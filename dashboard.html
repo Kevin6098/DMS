@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dashboard - DMS</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <button class="mobile-menu-toggle" onclick="toggleMobileNav()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <i class="fas fa-folder-open"></i>
+                <h1>DMS</h1>
+            </div>
+            <div class="header-center">
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search documents..." id="search-input">
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="btn-icon" onclick="showUploadModal()">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <div class="user-menu">
+                    <button class="user-avatar" onclick="toggleUserMenu()">
+                        <i class="fas fa-user"></i>
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown">
+                        <a href="#" onclick="showUserSettings()">
+                            <i class="fas fa-cog"></i>
+                            Settings
+                        </a>
+                        <a href="#" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- App Body -->
+        <div class="app-body">
+            <!-- Mobile Navigation Overlay -->
+            <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
+
+            <!-- Sidebar -->
+            <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <button class="nav-item active" onclick="showView('my-drive')">
+                    <i class="fas fa-home"></i>
+                    <span>My Drive</span>
+                </button>
+                <button class="nav-item" onclick="showView('shared')">
+                    <i class="fas fa-share-alt"></i>
+                    <span>Shared with me</span>
+                </button>
+                <button class="nav-item" onclick="showView('recent')">
+                    <i class="fas fa-clock"></i>
+                    <span>Recent</span>
+                </button>
+                <button class="nav-item" onclick="showView('starred')">
+                    <i class="fas fa-star"></i>
+                    <span>Starred</span>
+                </button>
+                <button class="nav-item" onclick="showView('trash')">
+                    <i class="fas fa-trash"></i>
+                    <span>Trash</span>
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-header">
+                <div class="breadcrumb">
+                    <span id="current-path">My Drive</span>
+                </div>
+                <div class="content-actions">
+                    <button class="btn-secondary" onclick="showCreateFolderModal()">
+                        <i class="fas fa-folder-plus"></i>
+                        New Folder
+                    </button>
+                    <button class="btn-primary" onclick="showUploadModal()">
+                        <i class="fas fa-upload"></i>
+                        Upload
+                    </button>
+                </div>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <div class="view-controls">
+                    <button class="view-btn active" onclick="setViewMode('grid')">
+                        <i class="fas fa-th"></i>
+                    </button>
+                    <button class="view-btn" onclick="setViewMode('list')">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+                <div class="sort-controls">
+                    <select id="sort-select" onchange="sortFiles()">
+                        <option value="name">Name</option>
+                        <option value="date">Date modified</option>
+                        <option value="size">Size</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- File Grid -->
+            <div class="file-grid" id="file-grid">
+                <!-- Files and folders will be dynamically loaded here -->
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" id="empty-state" style="display: none;">
+                <i class="fas fa-folder-open"></i>
+                <h3>No files yet</h3>
+                <p>Upload your first file or create a folder to get started</p>
+                <button class="btn-primary" onclick="showUploadModal()">Upload files</button>
+            </div>
+        </main>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="upload-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Upload Files</h3>
+                <button class="modal-close" onclick="hideUploadModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-area" id="upload-area">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Drag and drop files here or click to browse</p>
+                    <input type="file" id="file-input" multiple style="display: none;">
+                </div>
+                <div class="upload-list" id="upload-list"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hideUploadModal()">Cancel</button>
+                <button class="btn-primary" onclick="uploadFiles()">Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="create-folder-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Folder</h3>
+                <button class="modal-close" onclick="hideCreateFolderModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="folder-name">Folder Name</label>
+                    <input type="text" id="folder-name" placeholder="Enter folder name">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hideCreateFolderModal()">Cancel</button>
+                <button class="btn-primary" onclick="createFolder()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="share-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Share File</h3>
+                <button class="modal-close" onclick="hideShareModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="share-link">Share Link</label>
+                    <div class="input-group">
+                        <input type="text" id="share-link" readonly>
+                        <button class="btn-secondary" onclick="copyShareLink()">Copy</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Permission</label>
+                    <select id="share-permission">
+                        <option value="view">View only</option>
+                        <option value="edit">Can edit</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hideShareModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Settings Modal -->
+    <div class="modal" id="user-settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>User Settings</h3>
+                <button class="modal-close" onclick="hideUserSettings()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h4>Organization Information</h4>
+                    <div class="org-info">
+                        <p><strong>Organization:</strong> <span id="org-name-display"></span></p>
+                        <p><strong>Role:</strong> <span id="user-role-display"></span></p>
+                        <p><strong>Email:</strong> <span id="user-email-display"></span></p>
+                    </div>
+                </div>
+                
+                <div class="settings-section" id="admin-settings" style="display: none;">
+                    <h4>Invitation Management</h4>
+                    <div class="invitation-controls">
+                        <div class="form-group">
+                            <label>Generate New Invitation Codes</label>
+                            <div class="input-group">
+                                <input type="number" id="invite-count" value="5" min="1" max="20">
+                                <button class="btn-primary" onclick="generateNewInvites()">
+                                    <i class="fas fa-plus"></i>
+                                    Generate
+                                </button>
+                            </div>
+                        </div>
+                        <div class="invitation-list">
+                            <h5>Active Invitation Codes</h5>
+                            <div id="invitation-codes-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hideUserSettings()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

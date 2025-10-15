@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DMS - Document Management System</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/auth.css">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <i class="fas fa-folder-open"></i>
+                <h1>DMS</h1>
+                <p>Document Management System</p>
+            </div>
+            
+            <div class="auth-tabs">
+                <button class="tab-btn active" onclick="showTab('login', event)">Login</button>
+                <button class="tab-btn" onclick="showCreateAccountOptions(event)">Create Account</button>
+            </div>
+            
+            <div id="login-form" class="auth-form active">
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Sign In</button>
+                </form>
+            </div>
+            
+            <div id="create-account-options" class="auth-form create-account-options">
+                <div class="options-header">
+                    <h3>How would you like to create your account?</h3>
+                    <p>Choose the option that applies to your situation</p>
+                </div>
+                
+                <div class="options-container">
+                    <div class="option-card" onclick="selectOption('member')">
+                        <div class="option-icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <div class="option-content">
+                            <h4>Join Organization</h4>
+                            <p>I have an invitation code from my organization admin</p>
+                            <div class="option-features">
+                                <span class="feature-tag">Invitation Required</span>
+                                <span class="feature-tag">Team Member</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="option-card" onclick="selectOption('admin')">
+                        <div class="option-icon">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div class="option-content">
+                            <h4>Create Organization</h4>
+                            <p>I want to create a new organization and invite team members</p>
+                            <div class="option-features">
+                                <span class="feature-tag">Admin Access</span>
+                                <span class="feature-tag">Full Control</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="register-form" class="auth-form">
+                <div class="form-header">
+                    <button class="back-btn" onclick="goBackToOptions()">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to options
+                    </button>
+                    <h3>Join Organization</h3>
+                </div>
+                <form onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label for="invitation-code">Invitation Code</label>
+                        <input type="text" id="invitation-code" placeholder="Enter invitation code" required>
+                        <small class="form-help">Ask your organization admin for an invitation code</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-name">Full Name</label>
+                        <input type="text" id="register-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Email</label>
+                        <input type="email" id="register-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Password</label>
+                        <input type="password" id="register-password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-confirm">Confirm Password</label>
+                        <input type="password" id="register-confirm" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Join Organization</button>
+                </form>
+            </div>
+            
+            <div id="admin-form" class="auth-form">
+                <div class="form-header">
+                    <button class="back-btn" onclick="goBackToOptions()">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to options
+                    </button>
+                    <h3>Create Organization</h3>
+                </div>
+                <form onsubmit="handleAdminRegister(event)">
+                    <div class="form-group">
+                        <label for="org-name">Organization Name</label>
+                        <input type="text" id="org-name" placeholder="Enter organization name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="admin-name">Admin Full Name</label>
+                        <input type="text" id="admin-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="admin-email">Admin Email</label>
+                        <input type="email" id="admin-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="admin-password">Password</label>
+                        <input type="password" id="admin-password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="admin-confirm">Confirm Password</label>
+                        <input type="password" id="admin-confirm" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Create Organization</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+</body>
+</html>
