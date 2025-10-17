@@ -180,14 +180,7 @@ function handleAdminRegister(event) {
     const adminName = document.getElementById('admin-name').value;
     const adminEmail = document.getElementById('admin-email').value;
     const password = document.getElementById('admin-password').value;
-    const confirmPassword = document.getElementById('admin-confirm').value;
     const submitBtn = event.target.querySelector('button[type="submit"]');
-    
-    // Validate passwords match
-    if (password !== confirmPassword) {
-        showError('Passwords do not match');
-        return;
-    }
     
     // Show loading state
     submitBtn.classList.add('loading');

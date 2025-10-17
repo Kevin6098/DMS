@@ -1,4 +1,4 @@
-# Document Management System (DMS)
+# Task Insight - Document Management System
 
 A clean, modern document management system inspired by Google Drive and OneDrive, built with vanilla HTML, CSS, and JavaScript.
 
@@ -29,7 +29,7 @@ A clean, modern document management system inspired by Google Drive and OneDrive
 ## Project Structure
 
 ```
-DMS/
+Task Insight/
 ├── index.html              # Login/Register page
 ├── dashboard.html          # Main dashboard interface
 ├── styles/

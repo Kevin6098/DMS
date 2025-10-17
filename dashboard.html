@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dashboard - DMS</title>
+    <title>Dashboard - Task Insight</title>
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/dashboard.css">
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -18,7 +18,7 @@
                     <i class="fas fa-bars"></i>
                 </button>
                 <i class="fas fa-folder-open"></i>
-                <h1>DMS</h1>
+                <h1>Task Insight</h1>
             </div>
             <div class="header-center">
                 <div class="search-container">
@@ -178,31 +178,71 @@
     </div>
 
     <div class="modal" id="share-modal">
-        <div class="modal-content">
+        <div class="modal-content share-modal-content">
             <div class="modal-header">
-                <h3>Share File</h3>
-                <button class="modal-close" onclick="hideShareModal()">
-                    <i class="fas fa-times"></i>
-                </button>
+                <h3 id="share-file-title">Share File</h3>
+                <div class="share-header-actions">
+                    <button class="btn-icon" onclick="showShareHelp()" title="Help">
+                        <i class="fas fa-question-circle"></i>
+                    </button>
+                    <button class="btn-icon" onclick="showShareSettings()" title="Settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <button class="modal-close" onclick="hideShareModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
             <div class="modal-body">
-                <div class="form-group">
+                <!-- Add People Section -->
+                <div class="share-section">
+                    <label for="add-people-input">Add people, groups, spaces, and calendar events</label>
+                    <div class="add-people-container">
+                        <input type="text" id="add-people-input" placeholder="Add people, groups, spaces, and calendar events">
+                        <button class="btn-primary" onclick="addPeople()">Add</button>
+                    </div>
+                </div>
+
+                <!-- People with Access -->
+                <div class="share-section">
+                    <h4>People with access</h4>
+                    <div class="people-list" id="people-list">
+                        <!-- People will be dynamically added here -->
+                    </div>
+                </div>
+
+                <!-- General Access -->
+                <div class="share-section">
+                    <h4>General access</h4>
+                    <div class="general-access">
+                        <div class="access-option">
+                            <i class="fas fa-lock"></i>
+                            <select id="general-access" onchange="updateGeneralAccess()">
+                                <option value="restricted">Restricted</option>
+                                <option value="anyone">Anyone with the link</option>
+                                <option value="organization">Anyone in your organization</option>
+                            </select>
+                        </div>
+                        <p class="access-description" id="access-description">
+                            Only people with access can open with the link
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Share Link Section -->
+                <div class="share-section">
                     <label for="share-link">Share Link</label>
                     <div class="input-group">
                         <input type="text" id="share-link" readonly>
-                        <button class="btn-secondary" onclick="copyShareLink()">Copy</button>
+                        <button class="btn-secondary" onclick="copyShareLink()">
+                            <i class="fas fa-link"></i>
+                            Copy link
+                        </button>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Permission</label>
-                    <select id="share-permission">
-                        <option value="view">View only</option>
-                        <option value="edit">Can edit</option>
-                    </select>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-secondary" onclick="hideShareModal()">Close</button>
+                <button class="btn-secondary" onclick="hideShareModal()">Done</button>
             </div>
         </div>
     </div>
@@ -249,6 +289,55 @@
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="hideUserSettings()">Close</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="context-menu">
+        <div class="context-menu-item" onclick="openWithFile()">
+            <i class="fas fa-external-link-alt"></i>
+            <span>Open with</span>
+            <i class="fas fa-chevron-right"></i>
+        </div>
+        <div class="context-menu-item" onclick="downloadContextFile()">
+            <i class="fas fa-download"></i>
+            <span>Download</span>
+        </div>
+        <div class="context-menu-item" onclick="renameContextFile()">
+            <i class="fas fa-edit"></i>
+            <span>Rename</span>
+            <span class="shortcut">Ctrl+Alt+E</span>
+        </div>
+        <div class="context-menu-item" onclick="copyContextFile()">
+            <i class="fas fa-copy"></i>
+            <span>Make a copy</span>
+            <span class="shortcut">Ctrl+C Ctrl+V</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="shareContextFile()">
+            <i class="fas fa-share-alt"></i>
+            <span>Share</span>
+            <i class="fas fa-chevron-right"></i>
+        </div>
+        <div class="context-menu-item" onclick="organizeContextFile()">
+            <i class="fas fa-folder"></i>
+            <span>Organize</span>
+            <i class="fas fa-chevron-right"></i>
+        </div>
+        <div class="context-menu-item" onclick="showFileInfo()">
+            <i class="fas fa-info-circle"></i>
+            <span>File information</span>
+            <i class="fas fa-chevron-right"></i>
+        </div>
+        <div class="context-menu-item disabled">
+            <i class="fas fa-check-circle"></i>
+            <span>Make available offline</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item danger" onclick="deleteContextFile()">
+            <i class="fas fa-trash"></i>
+            <span>Move to trash</span>
+            <span class="shortcut">Delete</span>
         </div>
     </div>
 

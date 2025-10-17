@@ -35,7 +35,7 @@
 
 .header-left i {
     font-size: 24px;
-    color: #1a73e8;
+    color: #ff6b35;
 }
 
 .header-left h1 {
@@ -93,7 +93,7 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background-color: #1a73e8;
+    background-color: #ff6b35;
     color: white;
     border: none;
     cursor: pointer;
@@ -170,8 +170,8 @@
 }
 
 .nav-item.active {
-    background-color: #e8f0fe;
-    color: #1a73e8;
+    background-color: #ffe8e0;
+    color: #ff6b35;
     font-weight: 500;
 }
 
@@ -203,7 +203,7 @@
 }
 
 .breadcrumb span {
-    color: #1a73e8;
+    color: #ff6b35;
     font-weight: 500;
 }
 
@@ -291,7 +291,7 @@
 
 .file-item:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    border-color: #1a73e8;
+    border-color: #ff6b35;
 }
 
 .file-icon {
@@ -362,7 +362,7 @@
 
 .file-action-btn:hover {
     background: white;
-    color: #1a73e8;
+    color: #ff6b35;
 }
 
 /* Empty State */
@@ -403,13 +403,13 @@
 }
 
 .upload-area:hover {
-    border-color: #1a73e8;
+    border-color: #ff6b35;
     background-color: #f8f9fa;
 }
 
 .upload-area.dragover {
-    border-color: #1a73e8;
-    background-color: #e8f0fe;
+    border-color: #ff6b35;
+    background-color: #ffe8e0;
 }
 
 .upload-area i {
@@ -472,7 +472,7 @@
 
 .upload-progress-bar {
     height: 100%;
-    background-color: #1a73e8;
+    background-color: #ff6b35;
     transition: width 0.3s ease;
 }
 
@@ -540,8 +540,8 @@
     font-family: 'Courier New', monospace;
     font-size: 14px;
     font-weight: 500;
-    color: #1a73e8;
-    background-color: #e8f0fe;
+    color: #ff6b35;
+    background-color: #ffe8e0;
     padding: 4px 8px;
     border-radius: 4px;
 }
@@ -559,7 +559,7 @@
 
 .copy-btn:hover {
     background-color: #f1f3f4;
-    border-color: #5f6368;
+    border-color: #ff6b35;
 }
 
 /* Mobile Navigation */
@@ -590,6 +590,281 @@
 
 .sidebar.mobile-open {
     transform: translateX(0);
+}
+
+/* Context Menu */
+.context-menu {
+    position: fixed;
+    background: white;
+    border: 1px solid #dadce0;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 8px 0;
+    min-width: 200px;
+    z-index: 1000;
+    display: none;
+    font-size: 14px;
+}
+
+.context-menu.show {
+    display: block;
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    position: relative;
+}
+
+.context-menu-item:hover:not(.disabled) {
+    background-color: #f8f9fa;
+}
+
+.context-menu-item.disabled {
+    color: #9aa0a6;
+    cursor: not-allowed;
+}
+
+.context-menu-item.danger {
+    color: #ea4335;
+}
+
+.context-menu-item.danger:hover {
+    background-color: #fce8e6;
+}
+
+.context-menu-item i:first-child {
+    width: 20px;
+    margin-right: 12px;
+    text-align: center;
+    color: #5f6368;
+}
+
+.context-menu-item.danger i:first-child {
+    color: #ea4335;
+}
+
+.context-menu-item span:not(.shortcut) {
+    flex: 1;
+    font-weight: 400;
+}
+
+.context-menu-item .shortcut {
+    font-size: 12px;
+    color: #9aa0a6;
+    margin-left: 8px;
+}
+
+.context-menu-item i:last-child {
+    margin-left: 8px;
+    font-size: 12px;
+    color: #9aa0a6;
+}
+
+.context-menu-divider {
+    height: 1px;
+    background-color: #e8eaed;
+    margin: 4px 0;
+}
+
+/* Share Modal Styles */
+.share-modal-content {
+    max-width: 600px;
+    width: 90%;
+}
+
+.share-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.share-section {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e8eaed;
+}
+
+.share-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.share-section h4 {
+    font-size: 16px;
+    font-weight: 500;
+    color: #202124;
+    margin-bottom: 12px;
+}
+
+.add-people-container {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.add-people-container input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.add-people-container input:focus {
+    outline: none;
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+}
+
+.people-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.person-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.person-item:last-child {
+    border-bottom: none;
+}
+
+.person-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #ff6b35;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 500;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.person-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.person-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #202124;
+    margin-bottom: 2px;
+}
+
+.person-email {
+    font-size: 12px;
+    color: #5f6368;
+}
+
+.person-role {
+    font-size: 12px;
+    color: #ff6b35;
+    font-weight: 500;
+}
+
+.person-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.role-select {
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    background: white;
+    cursor: pointer;
+}
+
+.remove-person {
+    background: none;
+    border: none;
+    color: #5f6368;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.remove-person:hover {
+    background-color: #f1f3f4;
+    color: #ea4335;
+}
+
+.general-access {
+    margin-top: 8px;
+}
+
+.access-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.access-option i {
+    color: #5f6368;
+    font-size: 16px;
+}
+
+.access-option select {
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+    min-width: 200px;
+}
+
+.access-description {
+    font-size: 12px;
+    color: #5f6368;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Mobile Context Menu */
+@media (max-width: 768px) {
+    .context-menu {
+        min-width: 180px;
+        font-size: 13px;
+    }
+    
+    .context-menu-item {
+        padding: 10px 16px;
+    }
+    
+    .context-menu-item .shortcut {
+        display: none;
+    }
+    
+    .share-modal-content {
+        width: 95%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .add-people-container {
+        flex-direction: column;
+    }
+    
+    .access-option select {
+        min-width: 150px;
+    }
 }
 
 /* Responsive */

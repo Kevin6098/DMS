@@ -5,6 +5,11 @@ let currentView = 'my-drive';
 let viewMode = 'grid';
 let files = [];
 let currentFolder = null;
+let contextMenuFileId = null;
+let touchStartTime = 0;
+let touchTimer = null;
+let sharedPeople = [];
+let currentSharedFile = null;
 
 // File type icons mapping
 const fileTypeIcons = {
@@ -67,6 +72,20 @@ function setupEventListeners() {
     document.addEventListener('click', function(e) {
         if (e.target.classList.contains('modal')) {
             e.target.classList.remove('active');
+        }
+    });
+    
+    // Close context menu when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.context-menu') && !e.target.closest('.file-item')) {
+            hideContextMenu();
+        }
+    });
+    
+    // Prevent default context menu on file items
+    document.addEventListener('contextmenu', function(e) {
+        if (e.target.closest('.file-item')) {
+            e.preventDefault();
         }
     });
 }
@@ -142,7 +161,11 @@ function createFileItem(file) {
     const modified = formatDate(file.modified);
     
     return `
-        <div class="file-item" onclick="openFile('${file.id}')">
+        <div class="file-item" 
+             onclick="openFile('${file.id}')" 
+             oncontextmenu="showContextMenu(event, '${file.id}')"
+             ontouchstart="handleTouchStart(event, '${file.id}')"
+             ontouchend="handleTouchEnd(event, '${file.id}')">
             <div class="file-icon">
                 <i class="${icon}"></i>
             </div>
@@ -219,7 +242,20 @@ function showShareModal(fileId) {
     const file = files.find(f => f.id === fileId);
     if (!file) return;
     
-    document.getElementById('share-link').value = `https://dms.example.com/share/${fileId}`;
+    currentSharedFile = file;
+    document.getElementById('share-file-title').textContent = `Share '${file.name}'`;
+    document.getElementById('share-link').value = `https://taskinsight.example.com/share/${fileId}`;
+    
+    // Initialize with current user as owner
+    sharedPeople = [{
+        id: 'current-user',
+        name: window.currentUser.name,
+        email: window.currentUser.email,
+        role: 'Owner',
+        avatar: window.currentUser.name.charAt(0).toUpperCase()
+    }];
+    
+    renderPeopleList();
     document.getElementById('share-modal').classList.add('active');
 }
 
@@ -401,6 +437,117 @@ function copyShareLink() {
     shareLink.select();
     document.execCommand('copy');
     showNotification('Share link copied to clipboard');
+}
+
+// Enhanced Share Modal Functions
+function addPeople() {
+    const input = document.getElementById('add-people-input');
+    const email = input.value.trim();
+    
+    if (!email) {
+        showNotification('Please enter an email address');
+        return;
+    }
+    
+    if (!isValidEmail(email)) {
+        showNotification('Please enter a valid email address');
+        return;
+    }
+    
+    // Check if person already exists
+    if (sharedPeople.some(person => person.email === email)) {
+        showNotification('This person already has access');
+        return;
+    }
+    
+    // Add new person
+    const newPerson = {
+        id: 'person-' + Date.now(),
+        name: email.split('@')[0], // Use email prefix as name
+        email: email,
+        role: 'Viewer',
+        avatar: email.charAt(0).toUpperCase()
+    };
+    
+    sharedPeople.push(newPerson);
+    renderPeopleList();
+    input.value = '';
+    showNotification(`Added ${newPerson.name} to the file`);
+}
+
+function renderPeopleList() {
+    const peopleList = document.getElementById('people-list');
+    
+    peopleList.innerHTML = sharedPeople.map(person => `
+        <div class="person-item">
+            <div class="person-avatar">${person.avatar}</div>
+            <div class="person-info">
+                <div class="person-name">${person.name} ${person.id === 'current-user' ? '(you)' : ''}</div>
+                <div class="person-email">${person.email}</div>
+            </div>
+            <div class="person-actions">
+                ${person.id !== 'current-user' ? `
+                    <select class="role-select" onchange="updatePersonRole('${person.id}', this.value)">
+                        <option value="Viewer" ${person.role === 'Viewer' ? 'selected' : ''}>Viewer</option>
+                        <option value="Editor" ${person.role === 'Editor' ? 'selected' : ''}>Editor</option>
+                        <option value="Commenter" ${person.role === 'Commenter' ? 'selected' : ''}>Commenter</option>
+                    </select>
+                    <button class="remove-person" onclick="removePerson('${person.id}')" title="Remove access">
+                        <i class="fas fa-times"></i>
+                    </button>
+                ` : `
+                    <span class="person-role">${person.role}</span>
+                `}
+            </div>
+        </div>
+    `).join('');
+}
+
+function updatePersonRole(personId, newRole) {
+    const person = sharedPeople.find(p => p.id === personId);
+    if (person) {
+        person.role = newRole;
+        showNotification(`Changed ${person.name}'s role to ${newRole}`);
+    }
+}
+
+function removePerson(personId) {
+    const person = sharedPeople.find(p => p.id === personId);
+    if (person && confirm(`Remove ${person.name}'s access to this file?`)) {
+        sharedPeople = sharedPeople.filter(p => p.id !== personId);
+        renderPeopleList();
+        showNotification(`Removed ${person.name}'s access`);
+    }
+}
+
+function updateGeneralAccess() {
+    const access = document.getElementById('general-access').value;
+    const description = document.getElementById('access-description');
+    
+    switch (access) {
+        case 'restricted':
+            description.textContent = 'Only people with access can open with the link';
+            break;
+        case 'anyone':
+            description.textContent = 'Anyone on the internet with the link can view';
+            break;
+        case 'organization':
+            description.textContent = 'Anyone in your organization with the link can view';
+            break;
+    }
+}
+
+function showShareHelp() {
+    alert('Share Help:\n\n• Add people by entering their email addresses\n• Set roles: Viewer (read-only), Editor (can edit), Commenter (can comment)\n• Use General access to control who can access the link\n• Copy the share link to send to others');
+}
+
+function showShareSettings() {
+    alert('Share Settings:\n\n• Notification settings\n• Link expiration\n• Download permissions\n• Advanced sharing options\n\n(These features will be available in future updates)');
+}
+
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
 }
 
 function toggleUserMenu() {
@@ -610,6 +757,165 @@ function generateInvitationCodes(orgId, count) {
         codes.push(code);
     }
     return codes;
+}
+
+// Context Menu Functions
+function showContextMenu(event, fileId) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    contextMenuFileId = fileId;
+    const contextMenu = document.getElementById('context-menu');
+    
+    // Position the context menu
+    const x = event.clientX;
+    const y = event.clientY;
+    
+    contextMenu.style.left = x + 'px';
+    contextMenu.style.top = y + 'px';
+    contextMenu.classList.add('show');
+    
+    // Adjust position if menu goes off screen
+    const rect = contextMenu.getBoundingClientRect();
+    if (rect.right > window.innerWidth) {
+        contextMenu.style.left = (x - rect.width) + 'px';
+    }
+    if (rect.bottom > window.innerHeight) {
+        contextMenu.style.top = (y - rect.height) + 'px';
+    }
+}
+
+function hideContextMenu() {
+    const contextMenu = document.getElementById('context-menu');
+    contextMenu.classList.remove('show');
+    contextMenuFileId = null;
+}
+
+// Touch handling for mobile long press
+function handleTouchStart(event, fileId) {
+    touchStartTime = Date.now();
+    contextMenuFileId = fileId;
+    
+    touchTimer = setTimeout(() => {
+        showContextMenu(event, fileId);
+    }, 500); // 500ms long press
+}
+
+function handleTouchEnd(event, fileId) {
+    if (touchTimer) {
+        clearTimeout(touchTimer);
+        touchTimer = null;
+    }
+    
+    const touchDuration = Date.now() - touchStartTime;
+    if (touchDuration < 500) {
+        // Short tap - open file
+        openFile(fileId);
+    }
+}
+
+// Context menu actions
+function openWithFile() {
+    if (!contextMenuFileId) return;
+    
+    const file = files.find(f => f.id === contextMenuFileId);
+    if (file) {
+        showNotification(`Opening ${file.name} with default application`);
+    }
+    hideContextMenu();
+}
+
+function downloadContextFile() {
+    if (!contextMenuFileId) return;
+    
+    const file = files.find(f => f.id === contextMenuFileId);
+    if (file) {
+        downloadFile(contextMenuFileId);
+    }
+    hideContextMenu();
+}
+
+function renameContextFile() {
+    if (!contextMenuFileId) return;
+    
+    const file = files.find(f => f.id === contextMenuFileId);
+    if (file) {
+        const newName = prompt('Enter new name:', file.name);
+        if (newName && newName !== file.name) {
+            file.name = newName;
+            renderFiles();
+            showNotification(`Renamed to ${newName}`);
+        }
+    }
+    hideContextMenu();
+}
+
+function copyContextFile() {
+    if (!contextMenuFileId) return;
+    
+    const file = files.find(f => f.id === contextMenuFileId);
+    if (file) {
+        const copyFile = {
+            ...file,
+            id: 'file-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+            name: file.name + ' (Copy)',
+            created: new Date().toISOString(),
+            modified: new Date().toISOString()
+        };
+        
+        files.unshift(copyFile);
+        renderFiles();
+        showNotification(`Created copy of ${file.name}`);
+    }
+    hideContextMenu();
+}
+
+function shareContextFile() {
+    if (!contextMenuFileId) return;
+    
+    const file = files.find(f => f.id === contextMenuFileId);
+    if (file) {
+        shareFile(contextMenuFileId);
+    }
+    hideContextMenu();
+}
+
+function organizeContextFile() {
+    if (!contextMenuFileId) return;
+    
+    const file = files.find(f => f.id === contextMenuFileId);
+    if (file) {
+        showNotification(`Organize ${file.name} - Feature coming soon`);
+    }
+    hideContextMenu();
+}
+
+function showFileInfo() {
+    if (!contextMenuFileId) return;
+    
+    const file = files.find(f => f.id === contextMenuFileId);
+    if (file) {
+        const info = `
+File Information:
+Name: ${file.name}
+Type: ${file.type}
+Size: ${file.isFolder ? 'Folder' : formatFileSize(file.size)}
+Created: ${new Date(file.created).toLocaleString()}
+Modified: ${new Date(file.modified).toLocaleString()}
+        `;
+        alert(info);
+    }
+    hideContextMenu();
+}
+
+function deleteContextFile() {
+    if (!contextMenuFileId) return;
+    
+    const file = files.find(f => f.id === contextMenuFileId);
+    if (file && confirm(`Are you sure you want to move "${file.name}" to trash?`)) {
+        deleteFile(contextMenuFileId);
+    }
+    hideContextMenu();
 }
 
 // Sample data generator
