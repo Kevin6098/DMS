@@ -1,20 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { login, register, isAuthenticated, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('login');
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
   const showTab = (tab: string, event?: React.MouseEvent) => {
     if (event) event.preventDefault();
     setActiveTab(tab);
-    setSelectedOption(null);
   };
 
   const selectOption = (option: string) => {
-    setSelectedOption(option);
     if (option === 'member') {
       setActiveTab('register');
     } else if (option === 'admin') {
@@ -24,52 +31,98 @@ const Login: React.FC = () => {
 
   const goBackToOptions = () => {
     setActiveTab('create-account-options');
-    setSelectedOption(null);
   };
 
-  const handleLogin = (event: React.FormEvent) => {
+  const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
-    const email = (document.getElementById('login-email') as HTMLInputElement)?.value;
-    const password = (document.getElementById('login-password') as HTMLInputElement)?.value;
+    setIsSubmitting(true);
     
-    if (email && password) {
-      // Simulate login
-      localStorage.setItem('user', JSON.stringify({ email, name: 'John Doe', role: 'member' }));
-      toast.success('Login successful!');
-      navigate('/dashboard');
+    try {
+      const email = (document.getElementById('login-email') as HTMLInputElement)?.value;
+      const password = (document.getElementById('login-password') as HTMLInputElement)?.value;
+      
+      if (!email || !password) {
+        toast.error('Please fill in all fields');
+        return;
+      }
+
+      const success = await login(email, password);
+      if (success) {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleRegister = (event: React.FormEvent) => {
+  const handleAdminLogin = async (event: React.FormEvent) => {
     event.preventDefault();
-    const invitationCode = (document.getElementById('invitation-code') as HTMLInputElement)?.value;
-    const name = (document.getElementById('register-name') as HTMLInputElement)?.value;
-    const email = (document.getElementById('register-email') as HTMLInputElement)?.value;
-    const password = (document.getElementById('register-password') as HTMLInputElement)?.value;
-    const confirmPassword = (document.getElementById('register-confirm') as HTMLInputElement)?.value;
+    setIsSubmitting(true);
     
-    if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-    
-    if (invitationCode && name && email && password) {
-      // Simulate registration
-      localStorage.setItem('user', JSON.stringify({ email, name, role: 'member' }));
-      toast.success('Registration successful!');
-      navigate('/dashboard');
+    try {
+      const email = (document.getElementById('admin-email') as HTMLInputElement)?.value;
+      const password = (document.getElementById('admin-password') as HTMLInputElement)?.value;
+      
+      if (!email || !password) {
+        toast.error('Please fill in all fields');
+        return;
+      }
+
+      const success = await login(email, password, true);
+      if (success) {
+        navigate('/admin');
+      }
+    } catch (error) {
+      console.error('Admin login error:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleAdminLogin = () => {
-    const email = (document.getElementById('admin-email') as HTMLInputElement)?.value;
-    const password = (document.getElementById('admin-password') as HTMLInputElement)?.value;
+  const handleRegister = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsSubmitting(true);
     
-    if (email && password) {
-      // Simulate admin login
-      localStorage.setItem('adminUser', JSON.stringify({ email, name: 'Platform Owner', role: 'admin' }));
-      toast.success('Admin login successful!');
-      navigate('/admin');
+    try {
+      const invitationCode = (document.getElementById('invitation-code') as HTMLInputElement)?.value;
+      const firstName = (document.getElementById('register-firstname') as HTMLInputElement)?.value;
+      const lastName = (document.getElementById('register-lastname') as HTMLInputElement)?.value;
+      const email = (document.getElementById('register-email') as HTMLInputElement)?.value;
+      const password = (document.getElementById('register-password') as HTMLInputElement)?.value;
+      const confirmPassword = (document.getElementById('register-confirm') as HTMLInputElement)?.value;
+      
+      if (!firstName || !lastName || !email || !password || !confirmPassword) {
+        toast.error('Please fill in all fields');
+        return;
+      }
+      
+      if (password !== confirmPassword) {
+        toast.error('Passwords do not match');
+        return;
+      }
+
+      if (password.length < 6) {
+        toast.error('Password must be at least 6 characters long');
+        return;
+      }
+
+      const success = await register({
+        firstName,
+        lastName,
+        email,
+        password,
+        invitationCode: invitationCode || undefined,
+      });
+
+      if (success) {
+        setActiveTab('login');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -102,13 +155,38 @@ const Login: React.FC = () => {
           <form onSubmit={handleLogin}>
             <div className="form-group">
               <label htmlFor="login-email">Email</label>
-              <input type="email" id="login-email" required />
+              <input 
+                type="email" 
+                id="login-email" 
+                required 
+                placeholder="Enter your email"
+                disabled={isSubmitting}
+              />
             </div>
             <div className="form-group">
               <label htmlFor="login-password">Password</label>
-              <input type="password" id="login-password" required />
+              <input 
+                type="password" 
+                id="login-password" 
+                required 
+                placeholder="Enter your password"
+                disabled={isSubmitting}
+              />
             </div>
-            <button type="submit" className="btn-primary">Sign In</button>
+            <button 
+              type="submit" 
+              className="btn-primary"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i>
+                  Logging in...
+                </>
+              ) : (
+                'Sign In'
+              )}
+            </button>
           </form>
         </div>
         
@@ -166,22 +244,69 @@ const Login: React.FC = () => {
               <small className="form-help">Ask your organization admin for an invitation code</small>
             </div>
             <div className="form-group">
-              <label htmlFor="register-name">Full Name</label>
-              <input type="text" id="register-name" required />
+              <label htmlFor="register-firstname">First Name</label>
+              <input 
+                type="text" 
+                id="register-firstname" 
+                required 
+                placeholder="Enter your first name"
+                disabled={isSubmitting}
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="register-lastname">Last Name</label>
+              <input 
+                type="text" 
+                id="register-lastname" 
+                required 
+                placeholder="Enter your last name"
+                disabled={isSubmitting}
+              />
             </div>
             <div className="form-group">
               <label htmlFor="register-email">Email</label>
-              <input type="email" id="register-email" required />
+              <input 
+                type="email" 
+                id="register-email" 
+                required 
+                placeholder="Enter your email"
+                disabled={isSubmitting}
+              />
             </div>
             <div className="form-group">
               <label htmlFor="register-password">Password</label>
-              <input type="password" id="register-password" required />
+              <input 
+                type="password" 
+                id="register-password" 
+                required 
+                placeholder="Enter your password"
+                disabled={isSubmitting}
+              />
             </div>
             <div className="form-group">
               <label htmlFor="register-confirm">Confirm Password</label>
-              <input type="password" id="register-confirm" required />
+              <input 
+                type="password" 
+                id="register-confirm" 
+                required 
+                placeholder="Confirm your password"
+                disabled={isSubmitting}
+              />
             </div>
-            <button type="submit" className="btn-primary">Join Organization</button>
+            <button 
+              type="submit" 
+              className="btn-primary"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i>
+                  Registering...
+                </>
+              ) : (
+                'Join Organization'
+              )}
+            </button>
           </form>
         </div>
         
@@ -203,18 +328,43 @@ const Login: React.FC = () => {
               Please sign in with your admin credentials to access the Task Insight management panel.
             </p>
           </div>
-          <form id="admin-login-form">
+          <form onSubmit={handleAdminLogin}>
             <div className="form-group">
               <label htmlFor="admin-email">Admin Email</label>
-              <input type="email" id="admin-email" defaultValue="owner@taskinsight.com" required />
+              <input 
+                type="email" 
+                id="admin-email" 
+                required 
+                placeholder="Enter admin email"
+                disabled={isSubmitting}
+              />
             </div>
             <div className="form-group">
               <label htmlFor="admin-password">Admin Password</label>
-              <input type="password" id="admin-password" defaultValue="admin123" required />
+              <input 
+                type="password" 
+                id="admin-password" 
+                required 
+                placeholder="Enter admin password"
+                disabled={isSubmitting}
+              />
             </div>
-            <button type="button" className="btn-primary" onClick={handleAdminLogin}>
-              <i className="fas fa-sign-in-alt"></i>
-              Sign In to Task Insight Admin
+            <button 
+              type="submit" 
+              className="btn-primary"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i>
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-sign-in-alt"></i>
+                  Sign In to Task Insight Admin
+                </>
+              )}
             </button>
           </form>
           <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '13px', color: '#5f6368' }}>

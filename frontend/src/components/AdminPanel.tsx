@@ -1,636 +1,619 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { adminService, DashboardStats, ActivityItem, Invitation, StorageAnalytics } from '../services/adminService';
+import { organizationService, Organization, OrganizationStats } from '../services/organizationService';
+import { userService, User, UserStats } from '../services/userService';
+import { auditService, AuditLog } from '../services/auditService';
 import toast from 'react-hot-toast';
-
-interface Organization {
-  id: string;
-  name: string;
-  domain: string;
-  members: number;
-  storage: string;
-  status: 'active' | 'inactive';
-  created: string;
-}
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  organization: string;
-  role: 'admin' | 'member';
-  status: 'active' | 'inactive';
-  lastActive: string;
-}
 
 const AdminPanel: React.FC = () => {
   const navigate = useNavigate();
+  const { user, logout, isPlatformOwner } = useAuth();
+  
   const [currentView, setCurrentView] = useState('overview');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showAddOrgModal, setShowAddOrgModal] = useState(false);
-  const [showEditOrgModal, setShowEditOrgModal] = useState(false);
-  const [showViewOrgModal, setShowViewOrgModal] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showGenerateInvitesModal, setShowGenerateInvitesModal] = useState(false);
+  const [showSystemSettingsModal, setShowSystemSettingsModal] = useState(false);
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [storageAnalytics, setStorageAnalytics] = useState<StorageAnalytics | null>(null);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const [organizations] = useState<Organization[]>([
-    {
-      id: '1',
-      name: 'Acme Corporation',
-      domain: 'acme.com',
-      members: 45,
-      storage: '500 GB / 1 TB',
-      status: 'active',
-      created: 'Jan 15, 2024'
-    },
-    {
-      id: '2',
-      name: 'Tech Solutions Inc',
-      domain: 'techsolutions.com',
-      members: 23,
-      storage: '200 GB / 500 GB',
-      status: 'active',
-      created: 'Feb 1, 2024'
-    }
-  ]);
-
-  const [users] = useState<User[]>([
-    {
-      id: '1',
-      name: 'John Smith',
-      email: 'john@acme.com',
-      organization: 'Acme Corporation',
-      role: 'admin',
-      status: 'active',
-      lastActive: '2 hours ago'
-    },
-    {
-      id: '2',
-      name: 'Jane Doe',
-      email: 'jane@acme.com',
-      organization: 'Acme Corporation',
-      role: 'member',
-      status: 'active',
-      lastActive: '1 day ago'
-    }
-  ]);
-
+  // Redirect if not platform owner
   useEffect(() => {
-    // Check admin authentication
-    const adminUser = localStorage.getItem('adminUser');
-    if (!adminUser) {
-      navigate('/');
+    if (!isPlatformOwner()) {
+      navigate('/dashboard');
     }
-  }, [navigate]);
+  }, [isPlatformOwner, navigate]);
 
-  const switchView = (view: string) => {
+  // Load initial data
+  useEffect(() => {
+    if (isPlatformOwner()) {
+      loadDashboardData();
+    }
+  }, []);
+
+  const loadDashboardData = async () => {
+    setIsLoading(true);
+    try {
+      const [statsRes, orgsRes, usersRes, invitesRes, activitiesRes, storageRes] = await Promise.all([
+        adminService.getDashboardStats(),
+        organizationService.getOrganizations(1, 10),
+        userService.getUsers(1, 10),
+        adminService.getInvitations(1, 10),
+        adminService.getActivityTimeline(1, 20),
+        adminService.getStorageAnalytics(),
+      ]);
+
+      if (statsRes.success) setDashboardStats(statsRes.data);
+      if (orgsRes.success) {
+        setOrganizations(orgsRes.data.data);
+        setTotalPages(orgsRes.data.pagination.pages);
+      }
+      if (usersRes.success) setUsers(usersRes.data.data);
+      if (invitesRes.success) setInvitations(invitesRes.data.data);
+      if (activitiesRes.success) setActivities(activitiesRes.data.data);
+      if (storageRes.success) setStorageAnalytics(storageRes.data);
+    } catch (error) {
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadAuditLogs = async () => {
+    try {
+      const response = await auditService.getAuditLogs(1, 20);
+      if (response.success) {
+        setAuditLogs(response.data.data);
+      }
+    } catch (error) {
+      toast.error('Failed to load audit logs');
+    }
+  };
+
+  const handleViewChange = (view: string) => {
     setCurrentView(view);
-  };
-
-  const toggleUserMenu = () => {
-    setShowUserMenu(!showUserMenu);
-  };
-
-  const adminLogout = () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      localStorage.removeItem('adminUser');
-      navigate('/');
-      toast.success('Logged out successfully');
+    if (view === 'audit-logs') {
+      loadAuditLogs();
     }
   };
 
-  const createOrganization = () => {
+  const handleCreateOrganization = async () => {
     const orgName = (document.getElementById('org-name') as HTMLInputElement)?.value;
-    const adminName = (document.getElementById('admin-name') as HTMLInputElement)?.value;
-    const adminEmail = (document.getElementById('admin-email') as HTMLInputElement)?.value;
-    const adminPassword = (document.getElementById('admin-password') as HTMLInputElement)?.value;
-    const adminConfirmPassword = (document.getElementById('admin-confirm-password') as HTMLInputElement)?.value;
+    const orgDescription = (document.getElementById('org-description') as HTMLInputElement)?.value;
+    const storageQuota = parseInt((document.getElementById('storage-quota') as HTMLInputElement)?.value || '107374182400');
 
-    if (!orgName || !adminName || !adminEmail || !adminPassword) {
-      toast.error('Please fill in all required fields');
+    if (!orgName) {
+      toast.error('Please enter organization name');
       return;
     }
 
-    if (adminPassword !== adminConfirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
+    try {
+      const response = await organizationService.createOrganization({
+        name: orgName,
+        description: orgDescription,
+        storageQuota,
+      });
 
-    toast.success(`Organization "${orgName}" created successfully!`);
-    setShowAddOrgModal(false);
+      if (response.success) {
+        toast.success('Organization created successfully!');
+        setShowAddOrgModal(false);
+        loadDashboardData();
+      }
+    } catch (error) {
+      toast.error('Failed to create organization');
+    }
   };
 
-  const updateOrganization = () => {
-    const orgName = (document.getElementById('edit-org-name') as HTMLInputElement)?.value;
-    const storageQuota = (document.getElementById('edit-storage-quota') as HTMLInputElement)?.value;
+  const handleGenerateInvitation = async () => {
+    const orgId = parseInt((document.getElementById('invite-org') as HTMLSelectElement)?.value || '1');
+    const role = (document.getElementById('invite-role') as HTMLSelectElement)?.value || 'member';
+    const expiresInDays = parseInt((document.getElementById('expires-in') as HTMLInputElement)?.value || '30');
 
-    if (!orgName || !storageQuota) {
-      toast.error('Please fill in all required fields');
-      return;
+    try {
+      const response = await adminService.generateInvitation({
+        organizationId: orgId,
+        role: role as 'organization_admin' | 'member',
+        expiresInDays,
+      });
+
+      if (response.success) {
+        toast.success(`Invitation code generated: ${response.data.code}`);
+        setShowGenerateInvitesModal(false);
+        loadDashboardData();
+      }
+    } catch (error) {
+      toast.error('Failed to generate invitation');
     }
-
-    toast.success(`Organization "${orgName}" updated successfully!`);
-    setShowEditOrgModal(false);
   };
 
-  const createUser = () => {
-    const userName = (document.getElementById('user-name') as HTMLInputElement)?.value;
-    const userEmail = (document.getElementById('user-email') as HTMLInputElement)?.value;
-    const userPassword = (document.getElementById('user-password') as HTMLInputElement)?.value;
-    const userConfirmPassword = (document.getElementById('user-confirm-password') as HTMLInputElement)?.value;
-
-    if (!userName || !userEmail || !userPassword) {
-      toast.error('Please fill in all required fields');
-      return;
+  const handleDeleteInvitation = async (invitationId: number) => {
+    if (window.confirm('Are you sure you want to delete this invitation?')) {
+      try {
+        await adminService.deleteInvitation(invitationId);
+        toast.success('Invitation deleted successfully!');
+        loadDashboardData();
+      } catch (error) {
+        toast.error('Failed to delete invitation');
+      }
     }
-
-    if (userPassword !== userConfirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-
-    toast.success(`User "${userName}" created successfully!`);
-    setShowAddUserModal(false);
   };
 
-  const generateInvitationCodes = () => {
-    const organization = (document.getElementById('invitation-org') as HTMLSelectElement)?.value;
-    const count = (document.getElementById('invitation-count') as HTMLInputElement)?.value;
-
-    if (!organization || !count) {
-      toast.error('Please fill in all required fields');
-      return;
+  const handleDeleteOrganization = async (orgId: number) => {
+    if (window.confirm('Are you sure you want to delete this organization? This action cannot be undone.')) {
+      try {
+        await organizationService.deleteOrganization(orgId);
+        toast.success('Organization deleted successfully!');
+        loadDashboardData();
+      } catch (error) {
+        toast.error('Failed to delete organization');
+      }
     }
-
-    const codes = ['ORG-ABC123', 'ORG-DEF456', 'ORG-GHI789', 'ORG-JKL012', 'ORG-MNO345'];
-    toast.success(`Generated ${count} invitation codes: ${codes.slice(0, parseInt(count)).join(', ')}`);
-    setShowGenerateInvitesModal(false);
   };
 
-  const renderOverview = () => (
-    <div className="overview-content">
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon">
-            <i className="fas fa-building"></i>
-          </div>
-          <div className="stat-content">
-            <h3>3</h3>
-            <p>Organizations</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">
-            <i className="fas fa-users"></i>
-          </div>
-          <div className="stat-content">
-            <h3>68</h3>
-            <p>Total Users</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">
-            <i className="fas fa-hdd"></i>
-          </div>
-          <div className="stat-content">
-            <h3>1.2 TB</h3>
-            <p>Storage Used</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">
-            <i className="fas fa-ticket-alt"></i>
-          </div>
-          <div className="stat-content">
-            <h3>12</h3>
-            <p>Active Invitations</p>
-          </div>
-        </div>
-      </div>
+  const handleExportAuditLogs = async () => {
+    try {
+      await auditService.exportAuditLogs();
+      toast.success('Audit logs exported successfully!');
+    } catch (error) {
+      toast.error('Failed to export audit logs');
+    }
+  };
 
-      <div className="overview-grid">
-        <div className="overview-card">
-          <h3>Recent Activity</h3>
-          <div className="activity-timeline">
-            <div className="timeline-item">
-              <div className="timeline-icon">
-                <i className="fas fa-user-plus"></i>
-              </div>
-              <div className="timeline-content">
-                <p><strong>New user joined</strong> - Jane Smith joined Acme Corporation</p>
-                <small>2 hours ago</small>
-              </div>
-            </div>
-            <div className="timeline-item">
-              <div className="timeline-icon">
-                <i className="fas fa-building"></i>
-              </div>
-              <div className="timeline-content">
-                <p><strong>Organization created</strong> - Tech Solutions Inc</p>
-                <small>1 day ago</small>
-              </div>
-            </div>
-          </div>
-        </div>
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      toast.error('Failed to logout');
+    }
+  };
 
-        <div className="overview-card">
-          <h3>System Health</h3>
-          <div className="health-grid">
-            <div className="health-item">
-              <div className="health-label">Server Status</div>
-              <div className="health-value success">Online</div>
-            </div>
-            <div className="health-item">
-              <div className="health-label">Database</div>
-              <div className="health-value success">Healthy</div>
-            </div>
-            <div className="health-item">
-              <div className="health-label">Storage</div>
-              <div className="health-value warning">75% Used</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderOrganizations = () => (
-    <div className="organizations-content">
-      <div className="content-header">
-        <h2>Organizations</h2>
-        <button className="btn-primary" onClick={() => setShowAddOrgModal(true)}>
-          <i className="fas fa-plus"></i>
-          Add Organization
-        </button>
-      </div>
-      <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Organization</th>
-              <th>Domain</th>
-              <th>Members</th>
-              <th>Storage</th>
-              <th>Status</th>
-              <th>Created</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {organizations.map((org) => (
-              <tr key={org.id}>
-                <td>
-                  <div className="org-info">
-                    <div className="org-avatar">AC</div>
-                    <div>
-                      <div className="org-name">{org.name}</div>
-                    </div>
-                  </div>
-                </td>
-                <td>{org.domain}</td>
-                <td>{org.members}</td>
-                <td>{org.storage}</td>
-                <td>
-                  <span className={`status-badge ${org.status}`}>{org.status}</span>
-                </td>
-                <td>{org.created}</td>
-                <td>
-                  <div className="action-buttons">
-                    <button className="btn-icon" onClick={() => setShowViewOrgModal(true)} title="View">
-                      <i className="fas fa-eye"></i>
-                    </button>
-                    <button className="btn-icon" onClick={() => setShowEditOrgModal(true)} title="Edit">
-                      <i className="fas fa-edit"></i>
-                    </button>
-                    <button className="btn-icon danger" onClick={() => toast.success('Organization deleted')} title="Delete">
-                      <i className="fas fa-trash"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-
-  const renderUsers = () => (
-    <div className="users-content">
-      <div className="content-header">
-        <h2>Users</h2>
-        <button className="btn-primary" onClick={() => setShowAddUserModal(true)}>
-          <i className="fas fa-plus"></i>
-          Add User
-        </button>
-      </div>
-      <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>Email</th>
-              <th>Organization</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Last Active</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id}>
-                <td>
-                  <div className="user-info">
-                    <div className="user-avatar-small">JS</div>
-                    <div className="user-name">{user.name}</div>
-                  </div>
-                </td>
-                <td>{user.email}</td>
-                <td>{user.organization}</td>
-                <td>
-                  <span className={`role-badge ${user.role}`}>{user.role}</span>
-                </td>
-                <td>
-                  <span className={`status-badge ${user.status}`}>{user.status}</span>
-                </td>
-                <td>{user.lastActive}</td>
-                <td>
-                  <div className="action-buttons">
-                    <button className="btn-icon" title="Edit">
-                      <i className="fas fa-edit"></i>
-                    </button>
-                    <button className="btn-icon danger" title="Delete">
-                      <i className="fas fa-trash"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-
-  const renderInvitations = () => (
-    <div className="invitations-content">
-      <div className="content-header">
-        <h2>Invitations</h2>
-        <button className="btn-primary" onClick={() => setShowGenerateInvitesModal(true)}>
-          <i className="fas fa-plus"></i>
-          Generate Codes
-        </button>
-      </div>
-      <div className="invitation-cards">
-        <div className="invitation-card">
-          <div className="invitation-header">
-            <div className="invitation-code">ORG-ABC123</div>
-            <div className="invitation-status active">Active</div>
-          </div>
-          <div className="invitation-details">
-            <p><strong>Organization:</strong> Acme Corporation</p>
-            <p><strong>Generated:</strong> Jan 15, 2024</p>
-            <p><strong>Expires:</strong> Feb 15, 2024</p>
-            <p><strong>Used:</strong> No</p>
-          </div>
-          <div className="invitation-actions">
-            <button className="btn-secondary" onClick={() => toast.success('Code copied')}>
-              <i className="fas fa-copy"></i>
-              Copy
-            </button>
-            <button className="btn-icon danger" onClick={() => toast.success('Invitation revoked')}>
-              <i className="fas fa-ban"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderStorage = () => (
-    <div className="storage-content">
-      <div className="storage-overview">
-        <div className="storage-card">
-          <h3>Total Storage Usage</h3>
-          <div className="storage-stats">
-            <div className="storage-used">1.2 TB</div>
-            <div className="storage-total">of 2.5 TB</div>
-          </div>
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: '48%' }}></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderAuditLogs = () => (
-    <div className="audit-content">
-      <div className="content-header">
-        <h2>Audit Logs</h2>
-        <div className="filter-controls">
-          <select>
-            <option>All Events</option>
-            <option>User Actions</option>
-            <option>System Events</option>
-          </select>
-          <input type="date" />
-          <button className="btn-secondary">Export</button>
-        </div>
-      </div>
-      <div className="audit-timeline">
-        <div className="audit-item">
-          <div className="audit-icon">
-            <i className="fas fa-user-plus"></i>
-          </div>
-          <div className="audit-content">
-            <div className="audit-title">User Created</div>
-            <div className="audit-description">New user "Jane Smith" was created in Acme Corporation</div>
-            <div className="audit-meta">
-              <span className="audit-user">System Admin</span>
-              <span className="audit-time">2 hours ago</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  if (!isPlatformOwner()) {
+    return <div>Access denied. You must be a platform owner to access this panel.</div>;
+  }
 
   return (
-    <div className="app-container">
+    <div className="admin-panel">
       {/* Header */}
-      <header className="app-header">
+      <header className="admin-header">
         <div className="header-left">
-          <i className="fas fa-shield-alt"></i>
-          <h1>Task Insight Admin Panel</h1>
-        </div>
-        <div className="header-center">
-          <div className="search-container">
-            <i className="fas fa-search"></i>
-            <input type="text" placeholder="Search users, organizations..." id="search-input" />
+          <div className="logo">
+            <i className="fas fa-shield-alt"></i>
+            <span>Task Insight Admin</span>
           </div>
         </div>
         <div className="header-right">
           <div className="user-menu">
-            <button className="user-avatar" onClick={toggleUserMenu}>
-              <i className="fas fa-user-shield"></i>
+            <button className="user-avatar" onClick={() => setShowUserMenu(!showUserMenu)}>
+              <img src="/api/placeholder/40/40" alt="Admin" />
             </button>
-            <div className={`user-dropdown ${showUserMenu ? 'active' : ''}`}>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid #e8eaed' }}>
-                <strong style={{ fontSize: '14px', color: '#202124' }}>Platform Owner</strong>
-                <p style={{ fontSize: '12px', color: '#5f6368', margin: '4px 0 0 0' }}>owner@taskinsight.com</p>
+            {showUserMenu && (
+              <div className="user-dropdown">
+                <div className="user-info">
+                  <h4>{user?.firstName} {user?.lastName}</h4>
+                  <p>{user?.email}</p>
+                </div>
+                <button onClick={handleLogout}>
+                  <i className="fas fa-sign-out-alt"></i> Logout
+                </button>
               </div>
-              <a href="/dashboard">
-                <i className="fas fa-home"></i>
-                Go to Dashboard
-              </a>
-              <a href="#" onClick={adminLogout}>
-                <i className="fas fa-sign-out-alt"></i>
-                Sign Out
-              </a>
-            </div>
+            )}
           </div>
         </div>
       </header>
 
-      {/* App Body */}
-      <div className="app-body">
+      <div className="admin-content">
         {/* Sidebar */}
-        <aside className="sidebar">
-          <nav className="sidebar-nav">
+        <aside className="admin-sidebar">
+          <nav className="admin-nav">
             <button 
-              className={`nav-item ${currentView === 'overview' ? 'active' : ''}`} 
-              onClick={() => switchView('overview')}
+              className={`nav-item ${currentView === 'overview' ? 'active' : ''}`}
+              onClick={() => handleViewChange('overview')}
             >
-              <i className="fas fa-chart-pie"></i>
+              <i className="fas fa-tachometer-alt"></i>
               <span>Overview</span>
             </button>
             <button 
-              className={`nav-item ${currentView === 'organizations' ? 'active' : ''}`} 
-              onClick={() => switchView('organizations')}
+              className={`nav-item ${currentView === 'organizations' ? 'active' : ''}`}
+              onClick={() => handleViewChange('organizations')}
             >
               <i className="fas fa-building"></i>
               <span>Organizations</span>
             </button>
             <button 
-              className={`nav-item ${currentView === 'users' ? 'active' : ''}`} 
-              onClick={() => switchView('users')}
+              className={`nav-item ${currentView === 'users' ? 'active' : ''}`}
+              onClick={() => handleViewChange('users')}
             >
               <i className="fas fa-users"></i>
               <span>Users</span>
             </button>
             <button 
-              className={`nav-item ${currentView === 'invitations' ? 'active' : ''}`} 
-              onClick={() => switchView('invitations')}
+              className={`nav-item ${currentView === 'invitations' ? 'active' : ''}`}
+              onClick={() => handleViewChange('invitations')}
             >
-              <i className="fas fa-ticket-alt"></i>
+              <i className="fas fa-envelope"></i>
               <span>Invitations</span>
             </button>
             <button 
-              className={`nav-item ${currentView === 'storage' ? 'active' : ''}`} 
-              onClick={() => switchView('storage')}
+              className={`nav-item ${currentView === 'activity' ? 'active' : ''}`}
+              onClick={() => handleViewChange('activity')}
+            >
+              <i className="fas fa-history"></i>
+              <span>Activity</span>
+            </button>
+            <button 
+              className={`nav-item ${currentView === 'audit-logs' ? 'active' : ''}`}
+              onClick={() => handleViewChange('audit-logs')}
+            >
+              <i className="fas fa-clipboard-list"></i>
+              <span>Audit Logs</span>
+            </button>
+            <button 
+              className={`nav-item ${currentView === 'storage' ? 'active' : ''}`}
+              onClick={() => handleViewChange('storage')}
             >
               <i className="fas fa-hdd"></i>
               <span>Storage</span>
             </button>
             <button 
-              className={`nav-item ${currentView === 'audit' ? 'active' : ''}`} 
-              onClick={() => switchView('audit')}
+              className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
+              onClick={() => handleViewChange('settings')}
             >
-              <i className="fas fa-clipboard-list"></i>
-              <span>Audit Logs</span>
+              <i className="fas fa-cog"></i>
+              <span>Settings</span>
             </button>
           </nav>
         </aside>
 
         {/* Main Content */}
-        <main className="main-content">
-          {currentView === 'overview' && renderOverview()}
-          {currentView === 'organizations' && renderOrganizations()}
-          {currentView === 'users' && renderUsers()}
-          {currentView === 'invitations' && renderInvitations()}
-          {currentView === 'storage' && renderStorage()}
-          {currentView === 'audit' && renderAuditLogs()}
+        <main className="admin-main">
+          {isLoading ? (
+            <div className="loading">
+              <i className="fas fa-spinner fa-spin"></i>
+              <p>Loading...</p>
+            </div>
+          ) : (
+            <>
+              {/* Overview */}
+              {currentView === 'overview' && dashboardStats && (
+                <div className="overview-section">
+                  <h2>Platform Overview</h2>
+                  <div className="stats-grid">
+                    <div className="stat-card">
+                      <div className="stat-icon">
+                        <i className="fas fa-building"></i>
+                      </div>
+                      <div className="stat-content">
+                        <h3>{dashboardStats.platformStats.active_organizations}</h3>
+                        <p>Active Organizations</p>
+                      </div>
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-icon">
+                        <i className="fas fa-users"></i>
+                      </div>
+                      <div className="stat-content">
+                        <h3>{dashboardStats.platformStats.active_users}</h3>
+                        <p>Active Users</p>
+                      </div>
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-icon">
+                        <i className="fas fa-file"></i>
+                      </div>
+                      <div className="stat-content">
+                        <h3>{dashboardStats.platformStats.total_files}</h3>
+                        <p>Total Files</p>
+                      </div>
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-icon">
+                        <i className="fas fa-hdd"></i>
+                      </div>
+                      <div className="stat-content">
+                        <h3>{Math.round(dashboardStats.platformStats.total_storage_used / 1024 / 1024 / 1024)} GB</h3>
+                        <p>Storage Used</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="recent-activity">
+                    <h3>Recent Activity</h3>
+                    <div className="activity-list">
+                      {activities.slice(0, 10).map((activity, index) => (
+                        <div key={index} className="activity-item">
+                          <div className="activity-icon">
+                            <i className={auditService.getActionIcon(activity.action)}></i>
+                          </div>
+                          <div className="activity-content">
+                            <p>
+                              <strong>{activity.first_name} {activity.last_name}</strong> 
+                              {' '}{auditService.formatAction(activity.action).toLowerCase()} 
+                              {' '}{auditService.formatResourceType(activity.resource_type).toLowerCase()}
+                            </p>
+                            <span>{auditService.getRelativeTime(activity.created_at)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Organizations */}
+              {currentView === 'organizations' && (
+                <div className="organizations-section">
+                  <div className="section-header">
+                    <h2>Organizations</h2>
+                    <button className="btn-primary" onClick={() => setShowAddOrgModal(true)}>
+                      <i className="fas fa-plus"></i> Add Organization
+                    </button>
+                  </div>
+                  <div className="table-container">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Members</th>
+                          <th>Storage</th>
+                          <th>Status</th>
+                          <th>Created</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {organizations.map((org) => (
+                          <tr key={org.id}>
+                            <td>
+                              <div className="org-info">
+                                <strong>{org.name}</strong>
+                                {org.description && <p>{org.description}</p>}
+                              </div>
+                            </td>
+                            <td>{org.userCount}</td>
+                            <td>
+                              <div className="storage-info">
+                                <span>{Math.round(org.storageUsed / 1024 / 1024)} MB</span>
+                                <div className="storage-bar">
+                                  <div 
+                                    className="storage-used" 
+                                    style={{ 
+                                      width: `${(org.storageUsed / org.storageQuota) * 100}%` 
+                                    }}
+                                  ></div>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <span className={`status-badge ${org.status}`}>
+                                {org.status}
+                              </span>
+                            </td>
+                            <td>{new Date(org.created_at).toLocaleDateString()}</td>
+                            <td>
+                              <button 
+                                className="btn-danger btn-sm"
+                                onClick={() => handleDeleteOrganization(org.id)}
+                              >
+                                <i className="fas fa-trash"></i>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Users */}
+              {currentView === 'users' && (
+                <div className="users-section">
+                  <div className="section-header">
+                    <h2>Users</h2>
+                  </div>
+                  <div className="table-container">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Email</th>
+                          <th>Organization</th>
+                          <th>Role</th>
+                          <th>Status</th>
+                          <th>Last Login</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {users.map((user) => (
+                          <tr key={user.id}>
+                            <td>{user.firstName} {user.lastName}</td>
+                            <td>{user.email}</td>
+                            <td>{user.organizationName}</td>
+                            <td>
+                              <span className={`role-badge ${user.role}`}>
+                                {user.role.replace('_', ' ')}
+                              </span>
+                            </td>
+                            <td>
+                              <span className={`status-badge ${user.status}`}>
+                                {user.status}
+                              </span>
+                            </td>
+                            <td>{user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Invitations */}
+              {currentView === 'invitations' && (
+                <div className="invitations-section">
+                  <div className="section-header">
+                    <h2>Invitations</h2>
+                    <button className="btn-primary" onClick={() => setShowGenerateInvitesModal(true)}>
+                      <i className="fas fa-plus"></i> Generate Invitation
+                    </button>
+                  </div>
+                  <div className="table-container">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Code</th>
+                          <th>Organization</th>
+                          <th>Role</th>
+                          <th>Status</th>
+                          <th>Expires</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {invitations.map((invitation) => (
+                          <tr key={invitation.id}>
+                            <td>
+                              <code className="invitation-code">{invitation.code}</code>
+                            </td>
+                            <td>{invitation.organizationName}</td>
+                            <td>
+                              <span className={`role-badge ${invitation.role}`}>
+                                {invitation.role.replace('_', ' ')}
+                              </span>
+                            </td>
+                            <td>
+                              <span className={`status-badge ${invitation.status}`}>
+                                {invitation.status}
+                              </span>
+                            </td>
+                            <td>{new Date(invitation.expires_at).toLocaleDateString()}</td>
+                            <td>
+                              <button 
+                                className="btn-danger btn-sm"
+                                onClick={() => handleDeleteInvitation(invitation.id)}
+                              >
+                                <i className="fas fa-trash"></i>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Audit Logs */}
+              {currentView === 'audit-logs' && (
+                <div className="audit-logs-section">
+                  <div className="section-header">
+                    <h2>Audit Logs</h2>
+                    <button className="btn-secondary" onClick={handleExportAuditLogs}>
+                      <i className="fas fa-download"></i> Export
+                    </button>
+                  </div>
+                  <div className="table-container">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>User</th>
+                          <th>Action</th>
+                          <th>Resource</th>
+                          <th>Details</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {auditLogs.map((log) => (
+                          <tr key={log.id}>
+                            <td>{auditService.formatDate(log.created_at)}</td>
+                            <td>{log.first_name} {log.last_name}</td>
+                            <td>
+                              <span className="action-badge">
+                                <i className={auditService.getActionIcon(log.action)}></i>
+                                {auditService.formatAction(log.action)}
+                              </span>
+                            </td>
+                            <td>{auditService.formatResourceType(log.resource_type)}</td>
+                            <td>{log.details}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Storage Analytics */}
+              {currentView === 'storage' && storageAnalytics && (
+                <div className="storage-section">
+                  <h2>Storage Analytics</h2>
+                  <div className="storage-overview">
+                    <div className="storage-stats">
+                      <div className="stat-item">
+                        <h3>{storageAnalytics.overview.total_organizations}</h3>
+                        <p>Total Organizations</p>
+                      </div>
+                      <div className="stat-item">
+                        <h3>{Math.round(storageAnalytics.overview.total_used_bytes / 1024 / 1024 / 1024)} GB</h3>
+                        <p>Total Storage Used</p>
+                      </div>
+                      <div className="stat-item">
+                        <h3>{storageAnalytics.overview.usage_percentage.toFixed(1)}%</h3>
+                        <p>Usage Percentage</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </main>
       </div>
 
       {/* Add Organization Modal */}
       {showAddOrgModal && (
-        <div className="modal active">
-          <div className="modal-content modal-large">
+        <div className="modal-overlay">
+          <div className="modal">
             <div className="modal-header">
-              <h3>
-                <i className="fas fa-building"></i>
-                Add New Organization
-              </h3>
-              <button className="modal-close" onClick={() => setShowAddOrgModal(false)}>
+              <h3>Add Organization</h3>
+              <button onClick={() => setShowAddOrgModal(false)}>
                 <i className="fas fa-times"></i>
               </button>
             </div>
             <div className="modal-body">
-              <form id="add-organization-form">
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="org-name">Organization Name *</label>
-                    <input type="text" id="org-name" placeholder="Enter organization name" required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="org-domain">Domain (Optional)</label>
-                    <input type="text" id="org-domain" placeholder="company.com" />
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="admin-name">Admin Full Name *</label>
-                    <input type="text" id="admin-name" placeholder="Enter admin name" required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="admin-email">Admin Email *</label>
-                    <input type="email" id="admin-email" placeholder="admin@company.com" required />
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="admin-password">Admin Password *</label>
-                    <input type="password" id="admin-password" placeholder="Enter password" required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="admin-confirm-password">Confirm Password *</label>
-                    <input type="password" id="admin-confirm-password" placeholder="Confirm password" required />
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="storage-quota">Storage Quota (GB) *</label>
-                    <input type="number" id="storage-quota" defaultValue="1000" min="1" max="10000" required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="max-users">Max Users</label>
-                    <input type="number" id="max-users" defaultValue="100" min="1" max="1000" />
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="org-description">Description</label>
-                  <textarea id="org-description" placeholder="Enter organization description" rows={3}></textarea>
-                </div>
-                <div className="form-group">
-                  <label>
-                    <input type="checkbox" id="org-active" defaultChecked />
-                    Organization Active
-                  </label>
-                </div>
-                <div className="form-group">
-                  <label>
-                    <input type="checkbox" id="send-welcome-email" defaultChecked />
-                    Send welcome email to admin
-                  </label>
-                </div>
-              </form>
+              <div className="form-group">
+                <label htmlFor="org-name">Organization Name</label>
+                <input type="text" id="org-name" required />
+              </div>
+              <div className="form-group">
+                <label htmlFor="org-description">Description</label>
+                <textarea id="org-description" rows={3}></textarea>
+              </div>
+              <div className="form-group">
+                <label htmlFor="storage-quota">Storage Quota (bytes)</label>
+                <input type="number" id="storage-quota" defaultValue="107374182400" />
+              </div>
             </div>
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowAddOrgModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={createOrganization}>
-                <i className="fas fa-plus"></i>
+              <button className="btn-secondary" onClick={() => setShowAddOrgModal(false)}>
+                Cancel
+              </button>
+              <button className="btn-primary" onClick={handleCreateOrganization}>
                 Create Organization
               </button>
             </div>
@@ -638,129 +621,43 @@ const AdminPanel: React.FC = () => {
         </div>
       )}
 
-      {/* Add User Modal */}
-      {showAddUserModal && (
-        <div className="modal active">
-          <div className="modal-content modal-large">
-            <div className="modal-header">
-              <h3>
-                <i className="fas fa-user-plus"></i>
-                Add New User
-              </h3>
-              <button className="modal-close" onClick={() => setShowAddUserModal(false)}>
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className="modal-body">
-              <form id="add-user-form">
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="user-name">Full Name *</label>
-                    <input type="text" id="user-name" required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="user-email">Email *</label>
-                    <input type="email" id="user-email" required />
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="user-password">Password *</label>
-                    <input type="password" id="user-password" required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="user-confirm-password">Confirm Password *</label>
-                    <input type="password" id="user-confirm-password" required />
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="user-organization">Organization *</label>
-                    <select id="user-organization" required>
-                      <option value="">Select Organization</option>
-                      <option value="1">Acme Corporation</option>
-                      <option value="2">Tech Solutions Inc</option>
-                      <option value="3">Global Industries</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="user-role">Role *</label>
-                    <select id="user-role" required>
-                      <option value="member">Member</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label>
-                    <input type="checkbox" id="user-active" defaultChecked />
-                    Account Active
-                  </label>
-                </div>
-                <div className="form-group">
-                  <label>
-                    <input type="checkbox" id="user-send-email" />
-                    Send welcome email to user
-                  </label>
-                </div>
-              </form>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowAddUserModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={createUser}>
-                <i className="fas fa-plus"></i>
-                Create User
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Generate Invitations Modal */}
+      {/* Generate Invitation Modal */}
       {showGenerateInvitesModal && (
-        <div className="modal active">
-          <div className="modal-content">
+        <div className="modal-overlay">
+          <div className="modal">
             <div className="modal-header">
-              <h3>
-                <i className="fas fa-ticket-alt"></i>
-                Generate Invitation Codes
-              </h3>
-              <button className="modal-close" onClick={() => setShowGenerateInvitesModal(false)}>
+              <h3>Generate Invitation</h3>
+              <button onClick={() => setShowGenerateInvitesModal(false)}>
                 <i className="fas fa-times"></i>
               </button>
             </div>
             <div className="modal-body">
-              <form id="generate-invitations-form">
-                <div className="form-group">
-                  <label htmlFor="invitation-org">Organization *</label>
-                  <select id="invitation-org" required>
-                    <option value="">Select Organization</option>
-                    <option value="1" selected>Acme Corporation</option>
-                    <option value="2">Tech Solutions Inc</option>
-                    <option value="3">Global Industries</option>
-                  </select>
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="invitation-count">Number of Codes *</label>
-                    <input type="number" id="invitation-count" defaultValue="5" min="1" max="50" required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="invitation-expiry">Expiry Days</label>
-                    <input type="number" id="invitation-expiry" defaultValue="30" min="1" max="365" />
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="invitation-purpose">Purpose (Optional)</label>
-                  <input type="text" id="invitation-purpose" placeholder="e.g., New team members, Client access" />
-                </div>
-              </form>
+              <div className="form-group">
+                <label htmlFor="invite-org">Organization</label>
+                <select id="invite-org">
+                  {organizations.map((org) => (
+                    <option key={org.id} value={org.id}>{org.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="invite-role">Role</label>
+                <select id="invite-role">
+                  <option value="member">Member</option>
+                  <option value="organization_admin">Organization Admin</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="expires-in">Expires in (days)</label>
+                <input type="number" id="expires-in" defaultValue="30" min="1" max="365" />
+              </div>
             </div>
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowGenerateInvitesModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={generateInvitationCodes}>
-                <i className="fas fa-plus"></i>
-                Generate Codes
+              <button className="btn-secondary" onClick={() => setShowGenerateInvitesModal(false)}>
+                Cancel
+              </button>
+              <button className="btn-primary" onClick={handleGenerateInvitation}>
+                Generate Invitation
               </button>
             </div>
           </div>

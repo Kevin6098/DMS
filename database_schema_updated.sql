@@ -1,7 +1,7 @@
 -- ============================================
--- Task Insight DMS - MySQL Database Schema
--- Version: 1.0
--- Description: Complete database schema for Document Management System
+-- Task Insight DMS - MySQL Database Schema (Updated)
+-- Version: 2.0
+-- Description: Updated schema to match backend implementation
 -- ============================================
 
 -- Set charset and timezone
@@ -21,7 +21,7 @@ DROP TABLE IF EXISTS file_shares;
 DROP TABLE IF EXISTS file_versions;
 DROP TABLE IF EXISTS files;
 DROP TABLE IF EXISTS folders;
-DROP TABLE IF EXISTS invitation_codes;
+DROP TABLE IF EXISTS invitations;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS organizations;
 
@@ -155,7 +155,7 @@ CREATE TABLE files (
 
 -- File Versions Table
 CREATE TABLE file_versions (
-    version_id INT PRIMARY KEY AUTO_INCREMENT,
+    id INT PRIMARY KEY AUTO_INCREMENT,
     file_id INT NOT NULL,
     version_number INT NOT NULL,
     file_size BIGINT NOT NULL,
@@ -164,8 +164,8 @@ CREATE TABLE file_versions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     version_note TEXT NULL,
     checksum VARCHAR(64) NULL,
-    FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
-    FOREIGN KEY (uploaded_by) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
+    FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY unique_file_version (file_id, version_number),
     INDEX idx_file_versions (file_id, version_number DESC),
     INDEX idx_created_at (created_at DESC)
@@ -177,7 +177,7 @@ CREATE TABLE file_versions (
 
 -- File Shares Table
 CREATE TABLE file_shares (
-    share_id INT PRIMARY KEY AUTO_INCREMENT,
+    id INT PRIMARY KEY AUTO_INCREMENT,
     file_id INT NOT NULL,
     shared_by INT NOT NULL,
     shared_with INT NULL,
@@ -187,18 +187,18 @@ CREATE TABLE file_shares (
     general_access ENUM('restricted', 'anyone_with_link', 'organization') DEFAULT 'restricted',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
-    FOREIGN KEY (shared_by) REFERENCES users(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (shared_with) REFERENCES users(user_id) ON DELETE CASCADE,
-    INDEX idx_file_shares (file_id, is_active),
-    INDEX idx_shared_with (shared_with, is_active),
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
+    FOREIGN KEY (shared_by) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (shared_with) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_file_shares (file_id, status),
+    INDEX idx_shared_with (shared_with, status),
     INDEX idx_share_link (share_link)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Folder Shares Table
 CREATE TABLE folder_shares (
-    share_id INT PRIMARY KEY AUTO_INCREMENT,
+    id INT PRIMARY KEY AUTO_INCREMENT,
     folder_id INT NOT NULL,
     shared_by INT NOT NULL,
     shared_with INT NULL,
@@ -208,12 +208,12 @@ CREATE TABLE folder_shares (
     general_access ENUM('restricted', 'anyone_with_link', 'organization') DEFAULT 'restricted',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (folder_id) REFERENCES folders(folder_id) ON DELETE CASCADE,
-    FOREIGN KEY (shared_by) REFERENCES users(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (shared_with) REFERENCES users(user_id) ON DELETE CASCADE,
-    INDEX idx_folder_shares (folder_id, is_active),
-    INDEX idx_shared_with (shared_with, is_active)
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE,
+    FOREIGN KEY (shared_by) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (shared_with) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_folder_shares (folder_id, status),
+    INDEX idx_shared_with (shared_with, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
@@ -222,12 +222,12 @@ CREATE TABLE folder_shares (
 
 -- Starred Items Table
 CREATE TABLE starred_items (
-    starred_id INT PRIMARY KEY AUTO_INCREMENT,
+    id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     item_type ENUM('file', 'folder') NOT NULL,
     item_id INT NOT NULL,
-    starred_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY unique_starred (user_id, item_type, item_id),
     INDEX idx_user_starred (user_id, item_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -238,7 +238,7 @@ CREATE TABLE starred_items (
 
 -- User Sessions Table
 CREATE TABLE user_sessions (
-    session_id INT PRIMARY KEY AUTO_INCREMENT,
+    id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     session_token VARCHAR(255) NOT NULL UNIQUE,
     ip_address VARCHAR(45) NULL,
@@ -246,14 +246,14 @@ CREATE TABLE user_sessions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP NOT NULL,
     last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_token (session_token),
     INDEX idx_user_sessions (user_id, expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Audit Logs Table
 CREATE TABLE audit_logs (
-    log_id INT PRIMARY KEY AUTO_INCREMENT,
+    id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NULL,
     organization_id INT NOT NULL,
     action VARCHAR(100) NOT NULL,
@@ -262,8 +262,8 @@ CREATE TABLE audit_logs (
     details JSON NULL,
     ip_address VARCHAR(45) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL,
-    FOREIGN KEY (organization_id) REFERENCES organizations(organization_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
     INDEX idx_user_logs (user_id, created_at DESC),
     INDEX idx_org_logs (organization_id, created_at DESC),
     INDEX idx_resource (resource_type, resource_id)
@@ -277,24 +277,24 @@ CREATE TABLE audit_logs (
 CREATE VIEW recent_files_view AS
 SELECT 
     f.*,
-    u_creator.full_name as creator_name,
-    u_accessed.full_name as last_accessed_by_name
+    CONCAT(u_creator.first_name, ' ', u_creator.last_name) as creator_name,
+    CONCAT(u_accessed.first_name, ' ', u_accessed.last_name) as last_accessed_by_name
 FROM files f
-LEFT JOIN users u_creator ON f.uploaded_by = u_creator.user_id
-LEFT JOIN users u_accessed ON f.last_accessed_by = u_accessed.user_id
-WHERE f.is_deleted = FALSE
+LEFT JOIN users u_creator ON f.uploaded_by = u_creator.id
+LEFT JOIN users u_accessed ON f.last_accessed_by = u_accessed.id
+WHERE f.status = 'active'
 ORDER BY f.last_accessed_at DESC;
 
 -- View for Recent Folders
 CREATE VIEW recent_folders_view AS
 SELECT 
     fo.*,
-    u_creator.full_name as creator_name,
-    u_accessed.full_name as last_accessed_by_name
+    CONCAT(u_creator.first_name, ' ', u_creator.last_name) as creator_name,
+    CONCAT(u_accessed.first_name, ' ', u_accessed.last_name) as last_accessed_by_name
 FROM folders fo
-LEFT JOIN users u_creator ON fo.created_by = u_creator.user_id
-LEFT JOIN users u_accessed ON fo.last_accessed_by = u_accessed.user_id
-WHERE fo.is_deleted = FALSE
+LEFT JOIN users u_creator ON fo.created_by = u_creator.id
+LEFT JOIN users u_accessed ON fo.last_accessed_by = u_accessed.id
+WHERE fo.status = 'active'
 ORDER BY fo.last_accessed_at DESC;
 
 -- View for Shared Files
@@ -304,13 +304,13 @@ SELECT
     fs.permission_level,
     fs.shared_by,
     fs.shared_with,
-    u_owner.full_name as owner_name,
-    u_sharer.full_name as shared_by_name
+    CONCAT(u_owner.first_name, ' ', u_owner.last_name) as owner_name,
+    CONCAT(u_sharer.first_name, ' ', u_sharer.last_name) as shared_by_name
 FROM files f
-INNER JOIN file_shares fs ON f.file_id = fs.file_id
-LEFT JOIN users u_owner ON f.uploaded_by = u_owner.user_id
-LEFT JOIN users u_sharer ON fs.shared_by = u_sharer.user_id
-WHERE f.is_deleted = FALSE AND fs.is_active = TRUE;
+INNER JOIN file_shares fs ON f.id = fs.file_id
+LEFT JOIN users u_owner ON f.uploaded_by = u_owner.id
+LEFT JOIN users u_sharer ON fs.shared_by = u_sharer.id
+WHERE f.status = 'active' AND fs.status = 'active';
 
 -- View for User's Starred Items
 CREATE VIEW user_starred_items_view AS
@@ -318,18 +318,18 @@ SELECT
     si.user_id,
     si.item_type,
     si.item_id,
-    si.starred_at,
+    si.created_at as starred_at,
     CASE 
-        WHEN si.item_type = 'file' THEN f.file_name
-        WHEN si.item_type = 'folder' THEN fo.folder_name
+        WHEN si.item_type = 'file' THEN f.name
+        WHEN si.item_type = 'folder' THEN fo.name
     END as item_name,
     CASE 
         WHEN si.item_type = 'file' THEN f.last_accessed_at
         WHEN si.item_type = 'folder' THEN fo.last_accessed_at
     END as last_accessed_at
 FROM starred_items si
-LEFT JOIN files f ON si.item_type = 'file' AND si.item_id = f.file_id
-LEFT JOIN folders fo ON si.item_type = 'folder' AND si.item_id = fo.folder_id;
+LEFT JOIN files f ON si.item_type = 'file' AND si.item_id = f.id
+LEFT JOIN folders fo ON si.item_type = 'folder' AND si.item_id = fo.id;
 
 -- ============================================
 -- SAMPLE DATA (Optional - for testing)
@@ -405,9 +405,9 @@ BEGIN
     SET storage_used = (
         SELECT COALESCE(SUM(file_size), 0)
         FROM files
-        WHERE organization_id = p_organization_id AND is_deleted = FALSE
+        WHERE organization_id = p_organization_id AND status = 'active'
     )
-    WHERE organization_id = p_organization_id;
+    WHERE id = p_organization_id;
 END$$
 
 -- Procedure to soft delete a file
@@ -417,10 +417,10 @@ CREATE PROCEDURE soft_delete_file(
 )
 BEGIN
     UPDATE files
-    SET is_deleted = TRUE,
+    SET status = 'deleted',
         deleted_at = NOW(),
         deleted_by = p_user_id
-    WHERE file_id = p_file_id;
+    WHERE id = p_file_id;
 END$$
 
 -- Procedure to restore a file from trash
@@ -429,21 +429,21 @@ CREATE PROCEDURE restore_file(
 )
 BEGIN
     UPDATE files
-    SET is_deleted = FALSE,
+    SET status = 'active',
         deleted_at = NULL,
         deleted_by = NULL
-    WHERE file_id = p_file_id;
+    WHERE id = p_file_id;
 END$$
 
 -- Procedure to permanently delete old trash items (older than 30 days)
 CREATE PROCEDURE cleanup_trash()
 BEGIN
     DELETE FROM files
-    WHERE is_deleted = TRUE 
+    WHERE status = 'deleted' 
     AND deleted_at < DATE_SUB(NOW(), INTERVAL 30 DAY);
     
     DELETE FROM folders
-    WHERE is_deleted = TRUE 
+    WHERE status = 'deleted' 
     AND deleted_at < DATE_SUB(NOW(), INTERVAL 30 DAY);
 END$$
 
@@ -453,15 +453,15 @@ CREATE PROCEDURE get_recent_items(
     IN p_limit INT
 )
 BEGIN
-    (SELECT 'file' as item_type, file_id as item_id, file_name as item_name, 
+    (SELECT 'file' as item_type, id as item_id, name as item_name, 
             last_accessed_at, last_accessed_by, created_at
      FROM files
-     WHERE last_accessed_by = p_user_id AND is_deleted = FALSE)
+     WHERE last_accessed_by = p_user_id AND status = 'active')
     UNION ALL
-    (SELECT 'folder' as item_type, folder_id as item_id, folder_name as item_name,
+    (SELECT 'folder' as item_type, id as item_id, name as item_name,
             last_accessed_at, last_accessed_by, created_at
      FROM folders
-     WHERE last_accessed_by = p_user_id AND is_deleted = FALSE)
+     WHERE last_accessed_by = p_user_id AND status = 'active')
     ORDER BY last_accessed_at DESC
     LIMIT p_limit;
 END$$
@@ -477,4 +477,3 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- ============================================
 -- END OF SCHEMA
 -- ============================================
-
