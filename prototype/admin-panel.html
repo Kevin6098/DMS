@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Task Insight Admin Panel</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/dashboard.css">
+    <link rel="stylesheet" href="styles/admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <i class="fas fa-shield-alt"></i>
+                <h1>Task Insight Admin Panel</h1>
+            </div>
+            <div class="header-center">
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search users, organizations..." id="search-input">
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="user-menu">
+                    <button class="user-avatar" onclick="toggleUserMenu()">
+                        <i class="fas fa-user-shield"></i>
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown">
+                        <div style="padding: 12px 16px; border-bottom: 1px solid #e8eaed;">
+                            <strong style="font-size: 14px; color: #202124;">Platform Owner</strong>
+                            <p style="font-size: 12px; color: #5f6368; margin: 4px 0 0 0;">owner@taskinsight.com</p>
+                        </div>
+                        <a href="dashboard.html">
+                            <i class="fas fa-home"></i>
+                            Go to Dashboard
+                        </a>
+                        <a href="#" onclick="adminLogout()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Sign Out
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- App Body -->
+        <div class="app-body">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <nav class="sidebar-nav">
+                    <button class="nav-item active" data-view="overview">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Overview</span>
+                    </button>
+                    <button class="nav-item" data-view="organizations">
+                        <i class="fas fa-building"></i>
+                        <span>Organizations</span>
+                    </button>
+                    <button class="nav-item" data-view="users">
+                        <i class="fas fa-users"></i>
+                        <span>Users</span>
+                    </button>
+                    <button class="nav-item" data-view="invitations">
+                        <i class="fas fa-ticket-alt"></i>
+                        <span>Invitations</span>
+                    </button>
+                    <button class="nav-item" data-view="storage">
+                        <i class="fas fa-hdd"></i>
+                        <span>Storage</span>
+                    </button>
+                    <button class="nav-item" data-view="audit-logs">
+                        <i class="fas fa-history"></i>
+                        <span>Audit Logs</span>
+                    </button>
+                </nav>
+                <div class="sidebar-footer">
+                    <button class="nav-item logout-btn" onclick="adminLogout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Sign Out</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content admin-content">
+                <!-- Stats Overview (shown on all pages) -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>25</h3>
+                            <p>Organizations</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>1,250</h3>
+                            <p>Total Users</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <i class="fas fa-hdd"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>2.5 TB</h3>
+                            <p>Storage Used</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>890</h3>
+                            <p>Active Today</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overview View -->
+                <div id="overview-view" class="admin-view active">
+                    <!-- Recent Activity -->
+                    <div class="admin-section" style="margin-bottom: 24px;">
+                        <div class="section-header">
+                            <h2>
+                                <i class="fas fa-clock"></i>
+                                Recent Activity
+                            </h2>
+                        </div>
+                        <div class="activity-timeline">
+                            <div class="timeline-item">
+                                <div class="timeline-icon" style="background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);">
+                                    <i class="fas fa-building"></i>
+                                </div>
+                                <div class="timeline-content">
+                                    <h4>New Organization Created</h4>
+                                    <p><strong>Global Industries</strong> was added to the platform</p>
+                                    <small>2 hours ago</small>
+                                </div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                                    <i class="fas fa-user-plus"></i>
+                                </div>
+                                <div class="timeline-content">
+                                    <h4>New User Registered</h4>
+                                    <p><strong>John Doe</strong> joined Acme Corporation</p>
+                                    <small>5 hours ago</small>
+                                </div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                                    <i class="fas fa-upload"></i>
+                                </div>
+                                <div class="timeline-content">
+                                    <h4>Large File Upload</h4>
+                                    <p><strong>Tech Solutions Inc</strong> uploaded 2.5 GB of data</p>
+                                    <small>1 day ago</small>
+                                </div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                                    <i class="fas fa-ticket-alt"></i>
+                                </div>
+                                <div class="timeline-content">
+                                    <h4>Invitation Code Used</h4>
+                                    <p>Invitation code <strong>ORG-ABC123</strong> was redeemed</p>
+                                    <small>2 days ago</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Health -->
+                    <div class="admin-section">
+                        <div class="section-header">
+                            <h2>
+                                <i class="fas fa-heartbeat"></i>
+                                System Health
+                            </h2>
+                        </div>
+                        <div style="padding: 24px 32px;">
+                            <div class="health-grid">
+                                <div class="health-item">
+                                    <div class="health-label">
+                                        <i class="fas fa-server"></i>
+                                        Database Status
+                                    </div>
+                                    <div class="health-value good">
+                                        <i class="fas fa-check-circle"></i>
+                                        Healthy
+                                    </div>
+                                </div>
+                                <div class="health-item">
+                                    <div class="health-label">
+                                        <i class="fas fa-hdd"></i>
+                                        Storage Available
+                                    </div>
+                                    <div class="health-value good">
+                                        7.5 TB / 10 TB
+                                    </div>
+                                </div>
+                                <div class="health-item">
+                                    <div class="health-label">
+                                        <i class="fas fa-memory"></i>
+                                        Memory Usage
+                                    </div>
+                                    <div class="health-value warning">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        75% Used
+                                    </div>
+                                </div>
+                                <div class="health-item">
+                                    <div class="health-label">
+                                        <i class="fas fa-wifi"></i>
+                                        API Response Time
+                                    </div>
+                                    <div class="health-value good">
+                                        <i class="fas fa-check-circle"></i>
+                                        125ms avg
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Organizations View -->
+                <div id="organizations-view" class="admin-view">
+                    <!-- Organizations content will be here -->
+                </div>
+
+                <!-- Users View -->
+                <div id="users-view" class="admin-view">
+                    <!-- Users content will be here -->
+                </div>
+
+                <!-- Invitations View -->
+                <div id="invitations-view" class="admin-view">
+                    <!-- Invitations content will be here -->
+                </div>
+
+                <!-- Storage View -->
+                <div id="storage-view" class="admin-view">
+                    <!-- Storage content will be here -->
+                </div>
+
+                <!-- Audit Logs View -->
+                <div id="audit-logs-view" class="admin-view">
+                    <!-- Audit logs content will be here -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add Organization Modal -->
+    <div class="modal" id="add-organization-modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-building"></i>
+                    Add New Organization
+                </h3>
+                <button class="modal-close" onclick="hideAddOrganizationModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="add-organization-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="org-name">Organization Name *</label>
+                            <input type="text" id="org-name" placeholder="Enter organization name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="org-domain">Domain (Optional)</label>
+                            <input type="text" id="org-domain" placeholder="company.com">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="admin-name">Admin Full Name *</label>
+                            <input type="text" id="admin-name" placeholder="Enter admin name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="admin-email">Admin Email *</label>
+                            <input type="email" id="admin-email" placeholder="admin@company.com" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="admin-password">Admin Password *</label>
+                            <input type="password" id="admin-password" placeholder="Enter password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="admin-confirm-password">Confirm Password *</label>
+                            <input type="password" id="admin-confirm-password" placeholder="Confirm password" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="storage-quota">Storage Quota (GB) *</label>
+                            <input type="number" id="storage-quota" value="1000" min="1" max="10000" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="max-users">Max Users</label>
+                            <input type="number" id="max-users" value="100" min="1" max="1000">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="org-description">Description</label>
+                        <textarea id="org-description" placeholder="Enter organization description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="org-active" checked>
+                            Organization Active
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="send-welcome-email" checked>
+                            Send welcome email to admin
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hideAddOrganizationModal()">Cancel</button>
+                <button class="btn-primary" onclick="createOrganization()">
+                    <i class="fas fa-plus"></i>
+                    Create Organization
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Organization Modal -->
+    <div class="modal" id="edit-organization-modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-edit"></i>
+                    Edit Organization
+                </h3>
+                <button class="modal-close" onclick="hideEditOrganizationModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-organization-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-org-name">Organization Name *</label>
+                            <input type="text" id="edit-org-name" value="Acme Corporation" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-org-domain">Domain</label>
+                            <input type="text" id="edit-org-domain" value="acme.com">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-storage-quota">Storage Quota (GB) *</label>
+                            <input type="number" id="edit-storage-quota" value="2000" min="1" max="10000" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-max-users">Max Users</label>
+                            <input type="number" id="edit-max-users" value="200" min="1" max="1000">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-org-description">Description</label>
+                        <textarea id="edit-org-description" rows="3">Leading technology company specializing in innovative solutions.</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="edit-org-active" checked>
+                            Organization Active
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hideEditOrganizationModal()">Cancel</button>
+                <button class="btn-primary" onclick="updateOrganization()">
+                    <i class="fas fa-save"></i>
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Organization Modal -->
+    <div class="modal" id="view-organization-modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-building"></i>
+                    Organization Details
+                </h3>
+                <button class="modal-close" onclick="hideViewOrganizationModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="organization-details">
+                    <div class="org-details-header">
+                        <div class="org-avatar-large">AC</div>
+                        <div class="org-details-info">
+                            <h2>Acme Corporation</h2>
+                            <p>acme.com</p>
+                            <div class="org-badges">
+                                <span class="status-badge active">Active</span>
+                                <span class="badge" style="background: #e8f0fe; color: #1a73e8;">45 Members</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>Organization ID</label>
+                            <p>#ORG-001</p>
+                        </div>
+                        <div class="detail-item">
+                            <label>Created Date</label>
+                            <p>Jan 15, 2024</p>
+                        </div>
+                        <div class="detail-item">
+                            <label>Admin Email</label>
+                            <p>john@acme.com</p>
+                        </div>
+                        <div class="detail-item">
+                            <label>Last Activity</label>
+                            <p>2 hours ago</p>
+                        </div>
+                        <div class="detail-item">
+                            <label>Storage Used</label>
+                            <p>500 GB / 1 TB (50%)</p>
+                        </div>
+                        <div class="detail-item">
+                            <label>Max Users</label>
+                            <p>100 users</p>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h4>Storage Breakdown</h4>
+                        <div class="storage-breakdown">
+                            <div class="storage-item">
+                                <div class="storage-item-info">
+                                    <span class="storage-item-name">Documents</span>
+                                    <span class="storage-item-size">300 GB</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 60%; background: #ff6b35;"></div>
+                                </div>
+                            </div>
+                            <div class="storage-item">
+                                <div class="storage-item-info">
+                                    <span class="storage-item-name">Images</span>
+                                    <span class="storage-item-size">150 GB</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 30%; background: #4facfe;"></div>
+                                </div>
+                            </div>
+                            <div class="storage-item">
+                                <div class="storage-item-info">
+                                    <span class="storage-item-name">Videos</span>
+                                    <span class="storage-item-size">50 GB</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 10%; background: #43e97b;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h4>Recent Activity</h4>
+                        <div class="activity-list">
+                            <div class="activity-item">
+                                <i class="fas fa-user-plus"></i>
+                                <span>New user "Jane Smith" joined</span>
+                                <small>2 hours ago</small>
+                            </div>
+                            <div class="activity-item">
+                                <i class="fas fa-upload"></i>
+                                <span>Large file upload: "Project Report.pdf"</span>
+                                <small>5 hours ago</small>
+                            </div>
+                            <div class="activity-item">
+                                <i class="fas fa-share"></i>
+                                <span>File shared with external user</span>
+                                <small>1 day ago</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hideViewOrganizationModal()">Close</button>
+                <button class="btn-primary" onclick="editOrganizationFromView()">
+                    <i class="fas fa-edit"></i>
+                    Edit Organization
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generate Invitation Codes Modal -->
+    <div class="modal" id="generate-invitations-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-ticket-alt"></i>
+                    Generate Invitation Codes
+                </h3>
+                <button class="modal-close" onclick="hideGenerateInvitationsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="generate-invitations-form">
+                    <div class="form-group">
+                        <label for="invitation-org">Organization *</label>
+                        <select id="invitation-org" required>
+                            <option value="">Select Organization</option>
+                            <option value="1" selected>Acme Corporation</option>
+                            <option value="2">Tech Solutions Inc</option>
+                            <option value="3">Global Industries</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="invitation-count">Number of Codes *</label>
+                            <input type="number" id="invitation-count" value="5" min="1" max="50" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="invitation-expiry">Expiry Days</label>
+                            <input type="number" id="invitation-expiry" value="30" min="1" max="365">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="invitation-purpose">Purpose (Optional)</label>
+                        <input type="text" id="invitation-purpose" placeholder="e.g., New team members, Client access">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hideGenerateInvitationsModal()">Cancel</button>
+                <button class="btn-primary" onclick="generateInvitationCodes()">
+                    <i class="fas fa-plus"></i>
+                    Generate Codes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div class="modal" id="add-user-modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-user-plus"></i>
+                    Add New User
+                </h3>
+                <button class="modal-close" onclick="hideAddUserModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="add-user-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="user-name">Full Name *</label>
+                            <input type="text" id="user-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="user-email">Email *</label>
+                            <input type="email" id="user-email" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="user-password">Password *</label>
+                            <input type="password" id="user-password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="user-confirm-password">Confirm Password *</label>
+                            <input type="password" id="user-confirm-password" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="user-organization">Organization *</label>
+                            <select id="user-organization" required>
+                                <option value="">Select Organization</option>
+                                <option value="1">Acme Corporation</option>
+                                <option value="2">Tech Solutions Inc</option>
+                                <option value="3">Global Industries</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="user-role">Role *</label>
+                            <select id="user-role" required>
+                                <option value="member">Member</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="user-active" checked>
+                            Account Active
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="user-send-email">
+                            Send welcome email to user
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hideAddUserModal()">Cancel</button>
+                <button class="btn-primary" onclick="createUser()">
+                    <i class="fas fa-plus"></i>
+                    Create User
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/admin.js"></script>
+    <script src="../js/admin-views.js"></script>
+    <script>
+        // Check authentication for admin
+        document.addEventListener('DOMContentLoaded', function() {
+            const adminUser = sessionStorage.getItem('adminUser');
+            if (!adminUser) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // Display admin info
+            const adminData = JSON.parse(adminUser);
+            console.log('Admin logged in:', adminData);
+        });
+
+        // Handle navigation
+        document.querySelectorAll('[data-view]').forEach(button => {
+            button.addEventListener('click', function() {
+                const viewName = this.getAttribute('data-view');
+                switchView(viewName);
+                
+                // Update active button
+                document.querySelectorAll('.sidebar .nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

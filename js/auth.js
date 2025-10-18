@@ -173,63 +173,43 @@ function handleRegister(event) {
     }, 1500);
 }
 
-function handleAdminRegister(event) {
-    event.preventDefault();
+function handleAdminLoginClick() {
+    console.log('Admin login button clicked');
     
-    const orgName = document.getElementById('org-name').value;
-    const adminName = document.getElementById('admin-name').value;
-    const adminEmail = document.getElementById('admin-email').value;
+    const email = document.getElementById('admin-email').value;
     const password = document.getElementById('admin-password').value;
-    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const submitBtn = document.querySelector('#admin-login-form button');
+    
+    console.log('Email:', email, 'Password:', password);
     
     // Show loading state
-    submitBtn.classList.add('loading');
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
     submitBtn.disabled = true;
     
     // Simulate API call
     setTimeout(() => {
-        // Clear loading state
-        submitBtn.classList.remove('loading');
-        submitBtn.disabled = false;
-        
-        // For demo purposes, accept any valid input
-        if (orgName && adminName && adminEmail && password) {
-            // Generate organization ID and invitation codes
-            const orgId = 'org-' + Date.now();
-            const invitationCodes = generateInvitationCodes(orgId, 5); // Generate 5 initial codes
-            
-            // Store organization data
-            const orgData = {
-                id: orgId,
-                name: orgName,
-                adminEmail: adminEmail,
-                invitationCodes: invitationCodes,
-                createdAt: new Date().toISOString()
-            };
-            
-            localStorage.setItem('organization_' + orgId, JSON.stringify(orgData));
-            
-            // Store admin user session
-            sessionStorage.setItem('user', JSON.stringify({
-                email: adminEmail,
-                name: adminName,
-                organizationId: orgId,
-                organizationName: orgName,
-                role: 'admin',
+        console.log('Timeout completed, checking credentials');
+        // For demo, accept any credentials
+        if (email && password) {
+            console.log('Credentials valid, storing session and redirecting');
+            // Store admin session
+            sessionStorage.setItem('adminUser', JSON.stringify({
+                email: email,
+                name: 'Platform Owner',
+                role: 'platform_owner',
                 loginTime: new Date().toISOString()
             }));
             
-            // Show success message with invitation codes
-            showSuccess(`Organization "${orgName}" created successfully! Your invitation codes: ${invitationCodes.join(', ')}`);
-            
-            // Redirect to dashboard after delay
-            setTimeout(() => {
-                window.location.href = 'dashboard.html';
-            }, 3000);
+            console.log('Session stored, redirecting to admin-panel.html');
+            // Redirect to admin panel
+            window.location.href = 'admin-panel.html';
         } else {
-            showError('Please fill in all fields');
+            console.log('Invalid credentials');
+            submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In to Admin Panel';
+            submitBtn.disabled = false;
+            showError('Please enter valid credentials');
         }
-    }, 1500);
+    }, 1000);
 }
 
 function showError(message) {

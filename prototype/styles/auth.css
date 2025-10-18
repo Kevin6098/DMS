@@ -4,8 +4,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Bright warm gradient with strong contrast (yellow → orange → red) */
-    background: linear-gradient(135deg, #fff3b0 0%, #ffd166 20%, #ff8c42 55%, #ff6b35 75%, #ff2d55 100%);
+    /* Subtle gradient background to make orange card stand out */
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     padding: 20px;
 }
 
@@ -161,8 +161,8 @@
 }
 
 .option-card:hover {
-    border-color: #1a73e8;
-    box-shadow: 0 4px 12px rgba(26, 115, 232, 0.15);
+    border-color: #ff6b35;
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.25);
     transform: translateY(-2px);
 }
 

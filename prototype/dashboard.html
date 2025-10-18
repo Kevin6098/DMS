@@ -27,21 +27,18 @@
                 </div>
             </div>
             <div class="header-right">
-                <button class="btn-icon" onclick="showUploadModal()">
-                    <i class="fas fa-plus"></i>
-                </button>
                 <div class="user-menu">
                     <button class="user-avatar" onclick="toggleUserMenu()">
                         <i class="fas fa-user"></i>
                     </button>
                     <div class="user-dropdown" id="user-dropdown">
                         <a href="#" onclick="showUserSettings()">
-                            <i class="fas fa-cog"></i>
-                            Settings
+                            <i class="fas fa-user"></i>
+                            User Profile
                         </a>
                         <a href="#" onclick="logout()">
                             <i class="fas fa-sign-out-alt"></i>
-                            Logout
+                            Sign Out
                         </a>
                     </div>
                 </div>
@@ -77,6 +74,12 @@
                     <span>Trash</span>
                 </button>
             </nav>
+            <div class="sidebar-footer">
+                <button class="nav-item logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Sign Out</span>
+                </button>
+            </div>
         </aside>
 
         <!-- Main Content -->
@@ -319,19 +322,10 @@
             <span>Share</span>
             <i class="fas fa-chevron-right"></i>
         </div>
-        <div class="context-menu-item" onclick="organizeContextFile()">
-            <i class="fas fa-folder"></i>
-            <span>Organize</span>
-            <i class="fas fa-chevron-right"></i>
-        </div>
         <div class="context-menu-item" onclick="showFileInfo()">
             <i class="fas fa-info-circle"></i>
             <span>File information</span>
             <i class="fas fa-chevron-right"></i>
-        </div>
-        <div class="context-menu-item disabled">
-            <i class="fas fa-check-circle"></i>
-            <span>Make available offline</span>
         </div>
         <div class="context-menu-divider"></div>
         <div class="context-menu-item danger" onclick="deleteContextFile()">
@@ -341,6 +335,6 @@
         </div>
     </div>
 
-    <script src="js/dashboard.js"></script>
+    <script src="../js/dashboard.js"></script>
 </body>
 </html>
