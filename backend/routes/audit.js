@@ -336,8 +336,8 @@ router.get('/export/csv', verifyToken, requirePlatformOwner, validateDateRange, 
 
     // Log export action
     await executeQuery(
-      'INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, 'EXPORT', 'AUDIT_LOGS', 0, JSON.stringify({ startDate, endDate, organizationId, recordCount: logsResult.data.length })]
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, req.user.organization_id, 'EXPORT', 'AUDIT_LOGS', 0, JSON.stringify({ startDate, endDate, organizationId, recordCount: logsResult.data.length })]
     );
 
     // Set response headers for CSV download

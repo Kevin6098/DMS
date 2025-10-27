@@ -225,8 +225,8 @@ router.put('/:id', verifyToken, requireOrgAdmin, validateUserUpdate, async (req,
 
     // Log the update
     await executeQuery(
-      'INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, 'UPDATE', 'USER', id, JSON.stringify({ updatedFields: updateFields })]
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, req.user.organization_id, 'UPDATE', 'USER', id, JSON.stringify({ updatedFields: updateFields })]
     );
 
     res.json({
@@ -307,8 +307,8 @@ router.put('/:id/password', verifyToken, async (req, res) => {
 
     // Log password change
     await executeQuery(
-      'INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, 'UPDATE', 'USER', id, JSON.stringify({ action: 'password_change' })]
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, req.user.organization_id, 'UPDATE', 'USER', id, JSON.stringify({ action: 'password_change' })]
     );
 
     res.json({
@@ -375,8 +375,8 @@ router.delete('/:id', verifyToken, requireOrgAdmin, async (req, res) => {
 
     // Log deletion
     await executeQuery(
-      'INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, 'DELETE', 'USER', id, JSON.stringify({ email: user.email })]
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, req.user.organization_id, 'DELETE', 'USER', id, JSON.stringify({ email: user.email })]
     );
 
     res.json({

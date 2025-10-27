@@ -10,6 +10,7 @@ export interface User {
   organizationId?: number;
   organizationName?: string;
   status: string;
+  last_login?: string;
 }
 
 export interface LoginRequest {

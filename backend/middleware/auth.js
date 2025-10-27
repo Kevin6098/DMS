@@ -17,7 +17,7 @@ const verifyToken = async (req, res, next) => {
     
     // Check if user still exists and is active
     const userResult = await executeQuery(
-      'SELECT id, email, role, status FROM users WHERE id = ? AND status = "active"',
+      'SELECT id, email, role, status, organization_id FROM users WHERE id = ? AND status = "active"',
       [decoded.userId]
     );
 

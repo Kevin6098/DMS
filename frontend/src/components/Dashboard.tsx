@@ -3,29 +3,25 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useFiles } from '../contexts/FileContext';
 import { fileService, FileItem, Folder } from '../services/fileService';
-import { userService } from '../services/userService';
 import toast from 'react-hot-toast';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout, isAuthenticated } = useAuth();
   const { 
-    files, 
-    folders, 
+    files = [], 
+    folders = [], 
     currentFolder, 
     isLoading, 
     fileStats, 
-    filters, 
     pagination,
     loadFiles, 
     loadFolders, 
     uploadFile, 
     downloadFile, 
-    updateFile, 
     deleteFile, 
     createFolder, 
     setCurrentFolder, 
-    setFilters, 
     refreshFiles, 
     refreshStats 
   } = useFiles();
@@ -36,12 +32,17 @@ const Dashboard: React.FC = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [showUserSettings, setShowUserSettings] = useState(false);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showFileDetails, setShowFileDetails] = useState(false);
+  const [filters, setFilters] = useState({ search: '', folderId: undefined as number | undefined });
+  const [showUserSettings, setShowUserSettings] = useState(false);
+  const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
+  const [deletedFiles, setDeletedFiles] = useState<FileItem[]>([]);
+  const [starredFiles, setStarredFiles] = useState<FileItem[]>([]);
+  const [starredFolders, setStarredFolders] = useState<Folder[]>([]);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -50,19 +51,22 @@ const Dashboard: React.FC = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  // Load initial data
+  // Load initial data - run only once
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !hasLoadedInitialData &&
+        process.env.REACT_APP_OFFLINE_MODE !== 'true' && 
+        process.env.REACT_APP_DISABLE_API_CALLS !== 'true') {
+      setHasLoadedInitialData(true);
       loadFiles();
       loadFolders();
       refreshStats();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, hasLoadedInitialData]); // Remove function dependencies to prevent infinite loops
 
   // Handle search
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    setFilters({ search: query });
+    // TODO: Implement search functionality
   };
 
   // Handle file upload
@@ -103,13 +107,18 @@ const Dashboard: React.FC = () => {
     }
 
     try {
-      await createFolder({
+      const success = await createFolder({
         name: folderName,
         description: folderDescription || undefined,
         parentId: currentFolder || undefined,
       });
-      setShowCreateFolderModal(false);
-      toast.success('Folder created successfully!');
+      
+      if (success) {
+        setShowCreateFolderModal(false);
+        // Toast is already shown in FileContext, so we don't need to show it again
+      } else {
+        toast.error('Failed to create folder');
+      }
     } catch (error) {
       toast.error('Failed to create folder');
     }
@@ -126,13 +135,70 @@ const Dashboard: React.FC = () => {
 
   // Handle file deletion
   const handleDeleteFile = async (file: FileItem) => {
-    if (window.confirm(`Are you sure you want to delete "${file.name}"?`)) {
+    if (window.confirm(`Are you sure you want to move "${file.name}" to trash?`)) {
       try {
         await deleteFile(file.id);
-        toast.success('File deleted successfully!');
+        toast.success('File moved to trash!');
       } catch (error) {
         toast.error('Failed to delete file');
       }
+    }
+  };
+
+  // Handle file restoration from trash
+  const handleRestoreFile = async (file: FileItem) => {
+    try {
+      const response = await fileService.restoreFile(file.id);
+      if (response.success) {
+        toast.success('File restored successfully!');
+        // Refresh trash view
+        await loadDeletedFiles();
+        // Reload main files to show the restored file
+        await loadFiles();
+        await loadFolders();
+        await refreshStats();
+      } else {
+        toast.error('Failed to restore file');
+      }
+    } catch (error) {
+      toast.error('Failed to restore file');
+    }
+  };
+
+  // Handle permanent deletion
+  const handlePermanentDelete = async (file: FileItem) => {
+    if (window.confirm(`Are you sure you want to PERMANENTLY delete "${file.name}"? This action cannot be undone!`)) {
+      try {
+        const response = await fileService.permanentlyDeleteFile(file.id);
+        if (response.success) {
+          toast.success('File permanently deleted!');
+          await loadDeletedFiles(); // Refresh trash
+        } else {
+          toast.error('Failed to permanently delete file');
+        }
+      } catch (error) {
+        toast.error('Failed to permanently delete file');
+      }
+    }
+  };
+
+  // Handle star/unstar toggle
+  const handleToggleStar = async (itemType: 'file' | 'folder', itemId: number) => {
+    try {
+      const response = await fileService.toggleStar(itemType, itemId);
+      if (response.success) {
+        const action = response.data?.starred ? 'starred' : 'unstarred';
+        toast.success(`Item ${action}!`);
+        
+        // Refresh the current view
+        if (currentView === 'starred') {
+          await loadStarredItems();
+        } else {
+          await refreshFiles();
+        }
+      }
+    } catch (error) {
+      toast.error('Failed to toggle star');
     }
   };
 
@@ -160,21 +226,68 @@ const Dashboard: React.FC = () => {
   };
 
   // Handle view change
-  const showView = (view: string) => {
+  const showView = async (view: string) => {
     setCurrentView(view);
+    setIsMobileSidebarOpen(false); // Close mobile sidebar
+    
     // Filter files based on view
     switch (view) {
-      case 'recent':
-        setFilters({ search: '', folderId: undefined });
-        break;
       case 'starred':
-        setFilters({ search: '', folderId: undefined });
+        // Load starred items
+        await loadStarredItems();
         break;
       case 'shared':
-        setFilters({ search: '', folderId: undefined });
+        // Load shared items
+        await loadSharedItems();
+        break;
+      case 'trash':
+        // Load deleted files
+        await loadDeletedFiles();
         break;
       default:
+        // My Drive - load regular files
         setFilters({ search: searchQuery, folderId: currentFolder || undefined });
+        loadFiles();
+    }
+  };
+
+  // Load starred items
+  const loadStarredItems = async () => {
+    try {
+      const response = await fileService.getStarredItems();
+      if (response.success && response.data) {
+        setStarredFiles(response.data.files || []);
+        setStarredFolders(response.data.folders || []);
+      }
+    } catch (error) {
+      console.error('Error loading starred items:', error);
+      toast.error('Failed to load starred items');
+    }
+  };
+
+  // Load shared items (items shared by others to me)
+  const loadSharedItems = async () => {
+    try {
+      // TODO: Implement backend endpoint for shared items
+      toast.info('Shared items feature coming soon');
+      setStarredFiles([]); // Temporary - use starred as placeholder
+      setStarredFolders([]);
+    } catch (error) {
+      console.error('Error loading shared items:', error);
+      toast.error('Failed to load shared items');
+    }
+  };
+
+  // Load deleted files for trash view
+  const loadDeletedFiles = async () => {
+    try {
+      const response = await fileService.getDeletedFiles(1, 10);
+      if (response.success && response.data) {
+        setDeletedFiles(response.data.files || []);
+      }
+    } catch (error) {
+      console.error('Error loading trash:', error);
+      toast.error('Failed to load trash');
     }
   };
 
@@ -199,9 +312,18 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="dashboard">
+      {/* Sidebar Overlay for Mobile */}
+      <div 
+        className={`sidebar-overlay ${isMobileSidebarOpen ? 'active' : ''}`}
+        onClick={() => setIsMobileSidebarOpen(false)}
+      ></div>
+
       {/* Header */}
       <header className="dashboard-header">
         <div className="header-left">
+          <button className="mobile-menu-toggle" onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}>
+            <i className="fas fa-bars"></i>
+          </button>
           <div className="logo">
             <i className="fas fa-folder-open"></i>
             <span>Task Insight</span>
@@ -246,7 +368,7 @@ const Dashboard: React.FC = () => {
       </header>
 
       {/* Sidebar */}
-      <aside className="dashboard-sidebar">
+      <aside className={`dashboard-sidebar ${isMobileSidebarOpen ? 'mobile-open' : ''}`}>
         <nav className="sidebar-nav">
           <button 
             className={`nav-item ${currentView === 'my-drive' ? 'active' : ''}`}
@@ -254,13 +376,6 @@ const Dashboard: React.FC = () => {
           >
             <i className="fas fa-home"></i>
             <span>My Drive</span>
-          </button>
-          <button 
-            className={`nav-item ${currentView === 'recent' ? 'active' : ''}`}
-            onClick={() => showView('recent')}
-          >
-            <i className="fas fa-clock"></i>
-            <span>Recent</span>
           </button>
           <button 
             className={`nav-item ${currentView === 'starred' ? 'active' : ''}`}
@@ -289,10 +404,18 @@ const Dashboard: React.FC = () => {
         <div className="storage-info">
           <div className="storage-header">
             <span>Storage</span>
-            <span>{fileStats ? fileService.formatFileSize(fileStats.totalSize) : '0 Bytes'} of {fileStats ? fileService.formatFileSize(fileStats.totalSize * 10) : '0 Bytes'}</span>
+            <span>
+              {fileStats?.totalSize ? fileService.formatFileSize(fileStats.totalSize) : '0 Bytes'} of{' '}
+              {user?.organizationId ? fileService.formatFileSize(107374182400) : '100 GB'}
+            </span>
           </div>
           <div className="storage-bar">
-            <div className="storage-used" style={{ width: '10%' }}></div>
+            <div 
+              className="storage-used" 
+              style={{ 
+                width: `${fileStats?.totalSize ? Math.min((fileStats.totalSize / 107374182400) * 100, 100) : 0}%` 
+              }}
+            ></div>
           </div>
         </div>
       </aside>
@@ -331,6 +454,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
+
         {/* Files Grid/List */}
         <div className={`files-container ${viewMode}`}>
           {isLoading ? (
@@ -340,8 +464,8 @@ const Dashboard: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Folders */}
-              {folders.map((folder) => (
+              {/* Folders - Hide in trash view */}
+              {currentView !== 'trash' && (currentView === 'starred' ? starredFolders : folders).map((folder) => (
                 <div key={folder.id} className="file-item" onClick={() => handleFolderClick(folder)}>
                   <div className="file-icon">
                     <i className="fas fa-folder"></i>
@@ -351,44 +475,81 @@ const Dashboard: React.FC = () => {
                     <p>{folder.file_count} items</p>
                   </div>
                   <div className="file-actions">
-                    <button onClick={(e) => { e.stopPropagation(); setShowShareModal(true); setSelectedFile(folder as any); }}>
-                      <i className="fas fa-share"></i>
+                    <button onClick={(e) => { e.stopPropagation(); handleToggleStar('folder', folder.id); }} title="Star">
+                      <i className="fas fa-star"></i>
                     </button>
-                  </div>
-                </div>
-              ))}
-
-              {/* Files */}
-              {files.map((file) => (
-                <div key={file.id} className="file-item">
-                  <div className="file-icon">
-                    <i className={fileService.getFileIcon(file.type)}></i>
-                  </div>
-                  <div className="file-info">
-                    <h4>{file.name}</h4>
-                    <p>{fileService.formatFileSize(file.size)} • {new Date(file.created_at).toLocaleDateString()}</p>
-                  </div>
-                  <div className="file-actions">
-                    <button onClick={() => handleDownload(file)}>
-                      <i className="fas fa-download"></i>
-                    </button>
-                    <button onClick={() => { setShowShareModal(true); setSelectedFile(file); }}>
-                      <i className="fas fa-share"></i>
-                    </button>
-                    <button onClick={() => handleDeleteFile(file)}>
+                    <button onClick={(e) => { e.stopPropagation(); /* Delete folder */ }} title="Delete">
                       <i className="fas fa-trash"></i>
                     </button>
                   </div>
                 </div>
               ))}
 
-              {files.length === 0 && folders.length === 0 && (
-                <div className="empty-state">
-                  <i className="fas fa-folder-open"></i>
-                  <h3>No files or folders</h3>
-                  <p>Upload files or create folders to get started</p>
+              {/* Files */}
+              {(currentView === 'trash' ? deletedFiles : currentView === 'starred' ? starredFiles : files).map((file) => (
+                <div key={file.id} className="file-item">
+                  <div className="file-icon">
+                    <i className={fileService.getFileIcon(file.file_type)}></i>
+                  </div>
+                  <div className="file-info">
+                    <h4>{file.name}</h4>
+                    <p>{fileService.formatFileSize(file.file_size)} • {new Date(file.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <div className="file-actions">
+                    {currentView === 'trash' ? (
+                      <>
+                        <button onClick={() => handleRestoreFile(file)} title="Restore">
+                          <i className="fas fa-undo"></i>
+                        </button>
+                        <button onClick={() => handlePermanentDelete(file)} title="Delete Forever">
+                          <i className="fas fa-times"></i>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={(e) => { e.stopPropagation(); handleToggleStar('file', file.id); }} title="Star">
+                          <i className="fas fa-star"></i>
+                        </button>
+                        <button onClick={() => handleDownload(file)} title="Download">
+                          <i className="fas fa-download"></i>
+                        </button>
+                        <button onClick={() => handleDeleteFile(file)} title="Move to Trash">
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
-              )}
+              ))}
+
+              {(() => {
+                const displayFiles = currentView === 'trash' ? deletedFiles : currentView === 'starred' ? starredFiles : files;
+                const displayFolders = currentView === 'starred' ? starredFolders : folders;
+                const isEmpty = displayFiles.length === 0 && (currentView === 'trash' || displayFolders.length === 0);
+                
+                return isEmpty && (
+                  <div className="empty-state">
+                    <i className={
+                      currentView === 'trash' ? 'fas fa-trash' : 
+                      currentView === 'starred' ? 'fas fa-star' : 
+                      currentView === 'shared' ? 'fas fa-share-alt' :
+                      'fas fa-folder-open'
+                    }></i>
+                    <h3>
+                      {currentView === 'trash' ? 'Trash is empty' : 
+                       currentView === 'starred' ? 'No starred items' :
+                       currentView === 'shared' ? 'No shared items' :
+                       'No files or folders'}
+                    </h3>
+                    <p>
+                      {currentView === 'trash' ? 'Deleted files will appear here for 30 days' : 
+                       currentView === 'starred' ? 'Star files and folders to see them here' :
+                       currentView === 'shared' ? 'Files shared with you will appear here' :
+                       'Upload files or create folders to get started'}
+                    </p>
+                  </div>
+                );
+              })()}
             </>
           )}
         </div>
@@ -415,16 +576,55 @@ const Dashboard: React.FC = () => {
 
       {/* Upload Modal */}
       {showUploadModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>Upload Files</h3>
-              <button onClick={() => setShowUploadModal(false)}>
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.8)',
+          display: 'flex !important',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999
+        }}>
+          <div className="modal-content" style={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '20px',
+            maxWidth: '500px',
+            width: '90%',
+            position: 'relative',
+            display: 'block !important',
+            zIndex: 10000
+          }}>
+            <div className="modal-header" style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px',
+              paddingBottom: '10px',
+              borderBottom: '1px solid #eee'
+            }}>
+              <h3 style={{margin: 0, color: '#333'}}>Upload Files</h3>
+              <button onClick={() => setShowUploadModal(false)} style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '20px',
+                cursor: 'pointer',
+                color: '#666'
+              }}>
                 <i className="fas fa-times"></i>
               </button>
             </div>
-            <div className="modal-body">
-              <div className="upload-area">
+            <div className="modal-body" style={{padding: '20px 0'}}>
+              <div className="upload-area" style={{
+                border: '2px dashed #ccc',
+                borderRadius: '8px',
+                padding: '40px',
+                textAlign: 'center',
+                background: '#f9f9f9'
+              }}>
                 <input
                   type="file"
                   multiple
@@ -432,19 +632,34 @@ const Dashboard: React.FC = () => {
                   id="file-upload"
                   style={{ display: 'none' }}
                 />
-                <label htmlFor="file-upload" className="upload-button">
-                  <i className="fas fa-cloud-upload-alt"></i>
+                <label htmlFor="file-upload" style={{
+                  display: 'block',
+                  cursor: 'pointer',
+                  color: '#666',
+                  fontSize: '16px'
+                }}>
+                  <i className="fas fa-cloud-upload-alt" style={{fontSize: '24px', marginBottom: '10px', display: 'block'}}></i>
                   <span>Choose files to upload</span>
                 </label>
                 {isUploading && (
-                  <div className="upload-progress">
-                    <div className="progress-bar">
+                  <div style={{marginTop: '20px'}}>
+                    <div style={{
+                      width: '100%',
+                      height: '20px',
+                      background: '#eee',
+                      borderRadius: '10px',
+                      overflow: 'hidden'
+                    }}>
                       <div 
-                        className="progress-fill" 
-                        style={{ width: `${uploadProgress}%` }}
+                        style={{ 
+                          width: `${uploadProgress}%`,
+                          height: '100%',
+                          background: '#4CAF50',
+                          transition: 'width 0.3s'
+                        }}
                       ></div>
                     </div>
-                    <span>{uploadProgress}%</span>
+                    <span style={{marginTop: '10px', display: 'block'}}>{uploadProgress}%</span>
                   </div>
                 )}
               </div>
@@ -455,29 +670,119 @@ const Dashboard: React.FC = () => {
 
       {/* Create Folder Modal */}
       {showCreateFolderModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>Create Folder</h3>
-              <button onClick={() => setShowCreateFolderModal(false)}>
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.8)',
+          display: 'flex !important',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999
+        }}>
+          <div className="modal-content" style={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '20px',
+            maxWidth: '500px',
+            width: '90%',
+            position: 'relative',
+            display: 'block !important',
+            zIndex: 10000
+          }}>
+            <div className="modal-header" style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px',
+              paddingBottom: '10px',
+              borderBottom: '1px solid #eee'
+            }}>
+              <h3 style={{margin: 0, color: '#333'}}>Create Folder</h3>
+              <button onClick={() => setShowCreateFolderModal(false)} style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '20px',
+                cursor: 'pointer',
+                color: '#666'
+              }}>
                 <i className="fas fa-times"></i>
               </button>
             </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label htmlFor="folder-name">Folder Name</label>
-                <input type="text" id="folder-name" required />
+            <div className="modal-body" style={{padding: '20px 0'}}>
+              <div className="form-group" style={{marginBottom: '20px'}}>
+                <label htmlFor="folder-name" style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontWeight: 'bold',
+                  color: '#333'
+                }}>Folder Name</label>
+                <input 
+                  type="text" 
+                  id="folder-name" 
+                  required 
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '16px'
+                  }}
+                />
               </div>
-              <div className="form-group">
-                <label htmlFor="folder-description">Description (Optional)</label>
-                <textarea id="folder-description" rows={3}></textarea>
+              <div className="form-group" style={{marginBottom: '20px'}}>
+                <label htmlFor="folder-description" style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontWeight: 'bold',
+                  color: '#333'
+                }}>Description (Optional)</label>
+                <textarea 
+                  id="folder-description" 
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '16px',
+                    resize: 'vertical'
+                  }}
+                ></textarea>
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowCreateFolderModal(false)}>
+            <div className="modal-footer" style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '10px',
+              paddingTop: '20px',
+              borderTop: '1px solid #eee'
+            }}>
+              <button 
+                onClick={() => setShowCreateFolderModal(false)}
+                style={{
+                  padding: '10px 20px',
+                  border: '1px solid #ddd',
+                  background: 'white',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
                 Cancel
               </button>
-              <button className="btn-primary" onClick={handleCreateFolder}>
+              <button 
+                onClick={handleCreateFolder}
+                style={{
+                  padding: '10px 20px',
+                  border: 'none',
+                  background: '#007bff',
+                  color: 'white',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
                 Create Folder
               </button>
             </div>
@@ -487,8 +792,28 @@ const Dashboard: React.FC = () => {
 
       {/* Share Modal */}
       {showShareModal && selectedFile && (
-        <div className="modal-overlay">
-          <div className="modal">
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.8)',
+          display: 'flex !important',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999
+        }}>
+          <div className="modal-content" style={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '20px',
+            maxWidth: '500px',
+            width: '90%',
+            position: 'relative',
+            display: 'block !important',
+            zIndex: 10000
+          }}>
             <div className="modal-header">
               <h3>Share "{selectedFile.name}"</h3>
               <button onClick={() => setShowShareModal(false)}>

@@ -160,8 +160,8 @@ router.post('/', verifyToken, requirePlatformOwner, validateOrganization, async 
 
     // Log organization creation
     await executeQuery(
-      'INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, 'CREATE', 'ORGANIZATION', orgResult.data.insertId, JSON.stringify({ name, storageQuota })]
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, orgResult.data.insertId, 'CREATE', 'ORGANIZATION', orgResult.data.insertId, JSON.stringify({ name, storageQuota })]
     );
 
     res.status(201).json({
@@ -264,8 +264,8 @@ router.put('/:id', verifyToken, requirePlatformOwner, validateOrganization, asyn
 
     // Log the update
     await executeQuery(
-      'INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, 'UPDATE', 'ORGANIZATION', id, JSON.stringify({ updatedFields: updateFields })]
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, id, 'UPDATE', 'ORGANIZATION', id, JSON.stringify({ updatedFields: updateFields })]
     );
 
     res.json({
@@ -327,8 +327,8 @@ router.delete('/:id', verifyToken, requirePlatformOwner, async (req, res) => {
 
     // Log deletion
     await executeQuery(
-      'INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, 'DELETE', 'ORGANIZATION', id, JSON.stringify({ name: orgResult.data[0].name })]
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, id, 'DELETE', 'ORGANIZATION', id, JSON.stringify({ name: orgResult.data[0].name })]
     );
 
     res.json({

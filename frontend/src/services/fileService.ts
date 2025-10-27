@@ -1,13 +1,13 @@
-import { apiService, ApiResponse, PaginationResponse } from './api';
+import { apiService, ApiResponse, FilesPaginationResponse } from './api';
 
 // Types
 export interface FileItem {
   id: number;
   name: string;
   original_name: string;
-  path: string;
-  size: number;
-  type: string;
+  storage_path: string; // Changed from 'path' to match database
+  file_size: number;    // Changed from 'size' to match database
+  file_type: string;    // Changed from 'type' to match database
   description?: string;
   organization_id: number;
   uploaded_by: number;
@@ -15,6 +15,14 @@ export interface FileItem {
   status: string;
   created_at: string;
   updated_at?: string;
+  last_accessed_at?: string;
+  last_accessed_by?: number;
+  last_modified_at?: string;
+  last_modified_by?: number;
+  deleted_at?: string;
+  deleted_by?: number;
+  current_version?: number;
+  checksum?: string;
   first_name?: string;
   last_name?: string;
   email?: string;
@@ -81,13 +89,13 @@ export const fileService = {
     page: number = 1,
     limit: number = 10,
     filters?: FileFilters
-  ): Promise<ApiResponse<PaginationResponse<FileItem>>> => {
+  ): Promise<ApiResponse<FilesPaginationResponse<FileItem>>> => {
     const params = {
       page,
       limit,
       ...filters,
     };
-    return apiService.get<PaginationResponse<FileItem>>('/files', params);
+    return apiService.get<FilesPaginationResponse<FileItem>>('/files', params);
   },
 
   // Upload file
@@ -125,9 +133,19 @@ export const fileService = {
     return apiService.put<void>(`/files/${fileId}`, fileData);
   },
 
-  // Delete file
+  // Delete file (soft delete - move to trash)
   deleteFile: async (fileId: number): Promise<ApiResponse<void>> => {
     return apiService.delete<void>(`/files/${fileId}`);
+  },
+
+  // Restore file from trash
+  restoreFile: async (fileId: number): Promise<ApiResponse<void>> => {
+    return apiService.post<void>(`/files/${fileId}/restore`, {});
+  },
+
+  // Permanently delete file
+  permanentlyDeleteFile: async (fileId: number): Promise<ApiResponse<void>> => {
+    return apiService.delete<void>(`/files/${fileId}/permanent`);
   },
 
   // Get folders
@@ -145,6 +163,25 @@ export const fileService = {
   getFileStats: async (organizationId?: number): Promise<ApiResponse<FileStats>> => {
     const params = organizationId ? { organizationId } : {};
     return apiService.get<FileStats>('/files/stats/overview', params);
+  },
+
+  // Get deleted files (trash)
+  getDeletedFiles: async (
+    page: number = 1,
+    limit: number = 10
+  ): Promise<ApiResponse<FilesPaginationResponse<FileItem>>> => {
+    const params = { page, limit };
+    return apiService.get<FilesPaginationResponse<FileItem>>('/files/trash/list', params);
+  },
+
+  // Toggle star/favorite
+  toggleStar: async (itemType: 'file' | 'folder', itemId: number): Promise<ApiResponse<{ starred: boolean }>> => {
+    return apiService.post<{ starred: boolean }>(`/files/star/${itemType}/${itemId}`, {});
+  },
+
+  // Get starred items
+  getStarredItems: async (): Promise<ApiResponse<{ files: FileItem[], folders: Folder[] }>> => {
+    return apiService.get<{ files: FileItem[], folders: Folder[] }>('/files/starred/list');
   },
 
   // Format file size

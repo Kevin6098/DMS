@@ -212,8 +212,8 @@ router.post('/invitations/generate', verifyToken, requirePlatformOwner, async (r
 
     // Log invitation creation
     await executeQuery(
-      'INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, 'CREATE', 'INVITATION', invitationResult.data.insertId, JSON.stringify({ code, organizationId, role, expiresAt })]
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, organizationId, 'CREATE', 'INVITATION', invitationResult.data.insertId, JSON.stringify({ code, organizationId, role, expiresAt })]
     );
 
     res.status(201).json({
@@ -351,8 +351,8 @@ router.delete('/invitations/:id', verifyToken, requirePlatformOwner, async (req,
 
     // Log deletion
     await executeQuery(
-      'INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, 'DELETE', 'INVITATION', id, JSON.stringify({ code: invitationResult.data[0].code })]
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, invitationResult.data[0].organization_id, 'DELETE', 'INVITATION', id, JSON.stringify({ code: invitationResult.data[0].code })]
     );
 
     res.json({
@@ -480,8 +480,8 @@ router.put('/settings', verifyToken, requirePlatformOwner, async (req, res) => {
     // This would typically update a settings table
     // For now, we'll just log the update attempt
     await executeQuery(
-      'INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, 'UPDATE', 'SYSTEM_SETTINGS', 1, JSON.stringify({ 
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, req.user.organization_id, 'UPDATE', 'SYSTEM_SETTINGS', 1, JSON.stringify({ 
         maxFileSize, 
         allowedFileTypes, 
         defaultStorageQuota, 

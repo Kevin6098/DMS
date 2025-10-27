@@ -65,6 +65,7 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
     total: 0,
     pages: 0,
   });
+  const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
 
   // Load files
   const loadFiles = async (page: number = 1, newFilters: FileFilters = {}): Promise<void> => {
@@ -80,12 +81,16 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
       const response = await fileService.getFiles(page, pagination.limit, currentFilters);
       
       if (response.success && response.data) {
-        setFiles(response.data.data);
+        setFiles(response.data.files || []);
         setPagination(response.data.pagination);
         setFilters(currentFilters);
+      } else {
+        console.error('Failed to load files:', response.message);
+        setFiles([]);
       }
     } catch (error) {
       console.error('Error loading files:', error);
+      setFiles([]);
     } finally {
       setIsLoading(false);
     }
@@ -100,10 +105,14 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
       const response = await fileService.getFolders(organizationId);
       
       if (response.success && response.data) {
-        setFolders(response.data);
+        setFolders(response.data || []);
+      } else {
+        console.error('Failed to load folders:', response.message);
+        setFolders([]);
       }
     } catch (error) {
       console.error('Error loading folders:', error);
+      setFolders([]);
     }
   };
 
@@ -245,14 +254,20 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
     loadFiles(1, newFilters); // Reset to page 1 when changing filters
   };
 
-  // Load initial data when user is authenticated
+  // Load initial data when user is authenticated - run only once
   useEffect(() => {
-    if (isAuthenticated && user) {
-      loadFiles();
-      loadFolders();
-      refreshStats();
+    if (isAuthenticated && user && !hasLoadedInitialData) {
+      // Only load data if we have a valid user with organizationId and not in offline mode
+      if (user.organizationId && 
+          process.env.REACT_APP_OFFLINE_MODE !== 'true' && 
+          process.env.REACT_APP_DISABLE_API_CALLS !== 'true') {
+        setHasLoadedInitialData(true);
+        loadFiles();
+        loadFolders();
+        refreshStats();
+      }
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user?.id, hasLoadedInitialData]); // Only depend on user ID, not the whole user object
 
   // Context value
   const contextValue: FileContextType = {

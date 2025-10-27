@@ -1,8 +1,12 @@
 -- ============================================
--- Task Insight DMS - MySQL Database Schema (Updated)
+-- Task Insight DMS - Single Database Setup
 -- Version: 2.0
--- Description: Updated schema to match backend implementation
+-- Description: Complete database setup for Document Management System
 -- ============================================
+
+-- Create single database
+CREATE DATABASE IF NOT EXISTS dms_database CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE dms_database;
 
 -- Set charset and timezone
 SET NAMES utf8mb4;
@@ -63,7 +67,7 @@ CREATE TABLE users (
     INDEX idx_user_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Invitations Table (renamed from invitation_codes)
+-- Invitations Table
 CREATE TABLE invitations (
     id INT PRIMARY KEY AUTO_INCREMENT,
     organization_id INT NOT NULL,
@@ -244,7 +248,7 @@ CREATE TABLE user_sessions (
     ip_address VARCHAR(45) NULL,
     user_agent TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP NOT NULL,
+    expires_at TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL 24 HOUR),
     last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_token (session_token),
@@ -270,76 +274,14 @@ CREATE TABLE audit_logs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
--- VIEWS
--- ============================================
-
--- View for Recent Files
-CREATE VIEW recent_files_view AS
-SELECT 
-    f.*,
-    CONCAT(u_creator.first_name, ' ', u_creator.last_name) as creator_name,
-    CONCAT(u_accessed.first_name, ' ', u_accessed.last_name) as last_accessed_by_name
-FROM files f
-LEFT JOIN users u_creator ON f.uploaded_by = u_creator.id
-LEFT JOIN users u_accessed ON f.last_accessed_by = u_accessed.id
-WHERE f.status = 'active'
-ORDER BY f.last_accessed_at DESC;
-
--- View for Recent Folders
-CREATE VIEW recent_folders_view AS
-SELECT 
-    fo.*,
-    CONCAT(u_creator.first_name, ' ', u_creator.last_name) as creator_name,
-    CONCAT(u_accessed.first_name, ' ', u_accessed.last_name) as last_accessed_by_name
-FROM folders fo
-LEFT JOIN users u_creator ON fo.created_by = u_creator.id
-LEFT JOIN users u_accessed ON fo.last_accessed_by = u_accessed.id
-WHERE fo.status = 'active'
-ORDER BY fo.last_accessed_at DESC;
-
--- View for Shared Files
-CREATE VIEW user_shared_files AS
-SELECT 
-    f.*,
-    fs.permission_level,
-    fs.shared_by,
-    fs.shared_with,
-    CONCAT(u_owner.first_name, ' ', u_owner.last_name) as owner_name,
-    CONCAT(u_sharer.first_name, ' ', u_sharer.last_name) as shared_by_name
-FROM files f
-INNER JOIN file_shares fs ON f.id = fs.file_id
-LEFT JOIN users u_owner ON f.uploaded_by = u_owner.id
-LEFT JOIN users u_sharer ON fs.shared_by = u_sharer.id
-WHERE f.status = 'active' AND fs.status = 'active';
-
--- View for User's Starred Items
-CREATE VIEW user_starred_items_view AS
-SELECT 
-    si.user_id,
-    si.item_type,
-    si.item_id,
-    si.created_at as starred_at,
-    CASE 
-        WHEN si.item_type = 'file' THEN f.name
-        WHEN si.item_type = 'folder' THEN fo.name
-    END as item_name,
-    CASE 
-        WHEN si.item_type = 'file' THEN f.last_accessed_at
-        WHEN si.item_type = 'folder' THEN fo.last_accessed_at
-    END as last_accessed_at
-FROM starred_items si
-LEFT JOIN files f ON si.item_type = 'file' AND si.item_id = f.id
-LEFT JOIN folders fo ON si.item_type = 'folder' AND si.item_id = fo.id;
-
--- ============================================
--- SAMPLE DATA (Optional - for testing)
+-- SAMPLE DATA (for testing)
 -- ============================================
 
 -- Insert sample organization
 INSERT INTO organizations (name, description, storage_quota, storage_used, status) 
 VALUES ('Demo Organization', 'A demo organization for testing', 107374182400, 0, 'active');
 
--- Insert sample platform owner
+-- Insert sample platform owner (password: admin123)
 INSERT INTO users (organization_id, email, password_hash, first_name, last_name, role, status) 
 VALUES (
     1, 
@@ -351,7 +293,7 @@ VALUES (
     'active'
 );
 
--- Insert sample organization admin
+-- Insert sample organization admin (password: admin123)
 INSERT INTO users (organization_id, email, password_hash, first_name, last_name, role, status) 
 VALUES (
     1, 
@@ -363,7 +305,7 @@ VALUES (
     'active'
 );
 
--- Insert sample member user
+-- Insert sample member user (password: member123)
 INSERT INTO users (organization_id, email, password_hash, first_name, last_name, role, status) 
 VALUES (
     1, 
@@ -391,89 +333,31 @@ INSERT INTO folders (organization_id, name, description, parent_id, created_by, 
 VALUES (1, 'Projects', 'Projects folder', 1, 2, '/Documents/Projects', 'active');
 
 -- ============================================
--- USEFUL STORED PROCEDURES
--- ============================================
-
-DELIMITER $$
-
--- Procedure to update organization storage
-CREATE PROCEDURE update_organization_storage(
-    IN p_organization_id INT
-)
-BEGIN
-    UPDATE organizations
-    SET storage_used = (
-        SELECT COALESCE(SUM(file_size), 0)
-        FROM files
-        WHERE organization_id = p_organization_id AND status = 'active'
-    )
-    WHERE id = p_organization_id;
-END$$
-
--- Procedure to soft delete a file
-CREATE PROCEDURE soft_delete_file(
-    IN p_file_id INT,
-    IN p_user_id INT
-)
-BEGIN
-    UPDATE files
-    SET status = 'deleted',
-        deleted_at = NOW(),
-        deleted_by = p_user_id
-    WHERE id = p_file_id;
-END$$
-
--- Procedure to restore a file from trash
-CREATE PROCEDURE restore_file(
-    IN p_file_id INT
-)
-BEGIN
-    UPDATE files
-    SET status = 'active',
-        deleted_at = NULL,
-        deleted_by = NULL
-    WHERE id = p_file_id;
-END$$
-
--- Procedure to permanently delete old trash items (older than 30 days)
-CREATE PROCEDURE cleanup_trash()
-BEGIN
-    DELETE FROM files
-    WHERE status = 'deleted' 
-    AND deleted_at < DATE_SUB(NOW(), INTERVAL 30 DAY);
-    
-    DELETE FROM folders
-    WHERE status = 'deleted' 
-    AND deleted_at < DATE_SUB(NOW(), INTERVAL 30 DAY);
-END$$
-
--- Procedure to get recent items for a user
-CREATE PROCEDURE get_recent_items(
-    IN p_user_id INT,
-    IN p_limit INT
-)
-BEGIN
-    (SELECT 'file' as item_type, id as item_id, name as item_name, 
-            last_accessed_at, last_accessed_by, created_at
-     FROM files
-     WHERE last_accessed_by = p_user_id AND status = 'active')
-    UNION ALL
-    (SELECT 'folder' as item_type, id as item_id, name as item_name,
-            last_accessed_at, last_accessed_by, created_at
-     FROM folders
-     WHERE last_accessed_by = p_user_id AND status = 'active')
-    ORDER BY last_accessed_at DESC
-    LIMIT p_limit;
-END$$
-
-DELIMITER ;
-
--- ============================================
 -- ENABLE FOREIGN KEY CHECKS
 -- ============================================
 
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================
--- END OF SCHEMA
+-- VERIFICATION QUERIES
+-- ============================================
+
+-- Show all tables created
+SHOW TABLES;
+
+-- Show sample data
+SELECT 'Organizations:' as info;
+SELECT * FROM organizations;
+
+SELECT 'Users:' as info;
+SELECT id, email, first_name, last_name, role, status FROM users;
+
+SELECT 'Invitations:' as info;
+SELECT code, role, status, expires_at FROM invitations;
+
+SELECT 'Folders:' as info;
+SELECT id, name, description, path, status FROM folders;
+
+-- ============================================
+-- END OF DATABASE SETUP
 -- ============================================

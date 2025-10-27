@@ -47,19 +47,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const { token: storedToken, user: storedUser } = authService.getAuthData();
         
         if (storedToken && storedUser) {
-          // Verify token is still valid
-          try {
-            const response = await authService.verifyToken();
-            if (response.success) {
+          // In offline mode, use stored data without verification
+          if (process.env.REACT_APP_OFFLINE_MODE === 'true') {
+            console.log('Offline mode: Using stored auth data');
+            setToken(storedToken);
+            setUser(storedUser);
+          } else {
+            // Verify token is still valid
+            try {
+              const response = await authService.verifyToken();
+              if (response.success && response.data) {
+                setToken(storedToken);
+                setUser(response.data.user);
+              } else {
+                // Token is invalid, clear auth data
+                authService.clearAuthData();
+              }
+            } catch (error) {
+              // If backend is not available, use stored data but mark as potentially stale
+              console.warn('Backend not available, using stored auth data');
               setToken(storedToken);
-              setUser(response.data.user);
-            } else {
-              // Token is invalid, clear auth data
-              authService.clearAuthData();
+              setUser(storedUser);
             }
-          } catch (error) {
-            // Token verification failed, clear auth data
-            authService.clearAuthData();
           }
         }
       } catch (error) {

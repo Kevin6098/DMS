@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 // API Configuration
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
 const API_TIMEOUT = parseInt(process.env.REACT_APP_API_TIMEOUT || '30000');
+const OFFLINE_MODE = process.env.REACT_APP_OFFLINE_MODE === 'true' || process.env.REACT_APP_DISABLE_API_CALLS === 'true' || false;
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -75,11 +76,13 @@ api.interceptors.response.use(
           toast.error(errorMessage);
       }
     } else if (error.request) {
-      // Network error
-      toast.error('Network error. Please check your connection.');
+      // Network error - don't show toast for initial auth check
+      if (!error.config?.url?.includes('/auth/verify')) {
+        console.warn('Network error. Backend may not be running.');
+      }
     } else {
       // Other error
-      toast.error('An unexpected error occurred.');
+      console.error('An unexpected error occurred:', error);
     }
     
     return Promise.reject(error);
@@ -104,40 +107,74 @@ export interface PaginationResponse<T> {
   };
 }
 
+export interface FilesPaginationResponse<T> {
+  files: T[];  // Files endpoint uses 'files' instead of 'data'
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
 // Generic API methods
 export const apiService = {
   // GET request
   get: async <T>(url: string, params?: any): Promise<ApiResponse<T>> => {
+    if (OFFLINE_MODE) {
+      console.warn('Offline mode: API call blocked', url);
+      return { success: false, message: 'Offline mode - backend not available' };
+    }
     const response = await api.get(url, { params });
     return response.data;
   },
 
   // POST request
   post: async <T>(url: string, data?: any): Promise<ApiResponse<T>> => {
+    if (OFFLINE_MODE) {
+      console.warn('Offline mode: API call blocked', url);
+      return { success: false, message: 'Offline mode - backend not available' };
+    }
     const response = await api.post(url, data);
     return response.data;
   },
 
   // PUT request
   put: async <T>(url: string, data?: any): Promise<ApiResponse<T>> => {
+    if (OFFLINE_MODE) {
+      console.warn('Offline mode: API call blocked', url);
+      return { success: false, message: 'Offline mode - backend not available' };
+    }
     const response = await api.put(url, data);
     return response.data;
   },
 
   // DELETE request
   delete: async <T>(url: string): Promise<ApiResponse<T>> => {
+    if (OFFLINE_MODE) {
+      console.warn('Offline mode: API call blocked', url);
+      return { success: false, message: 'Offline mode - backend not available' };
+    }
     const response = await api.delete(url);
     return response.data;
   },
 
   // PATCH request
   patch: async <T>(url: string, data?: any): Promise<ApiResponse<T>> => {
+    if (OFFLINE_MODE) {
+      console.warn('Offline mode: API call blocked', url);
+      return { success: false, message: 'Offline mode - backend not available' };
+    }
     const response = await api.patch(url, data);
     return response.data;
   },
 
   // File upload
   upload: async <T>(url: string, formData: FormData, onProgress?: (progress: number) => void): Promise<ApiResponse<T>> => {
+    if (OFFLINE_MODE) {
+      console.warn('Offline mode: API call blocked', url);
+      return { success: false, message: 'Offline mode - backend not available' };
+    }
     const response = await api.post(url, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -154,6 +191,10 @@ export const apiService = {
 
   // File download
   download: async (url: string, filename?: string): Promise<void> => {
+    if (OFFLINE_MODE) {
+      console.warn('Offline mode: API call blocked', url);
+      return;
+    }
     const response = await api.get(url, {
       responseType: 'blob',
     });

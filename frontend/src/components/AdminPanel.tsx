@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { adminService, DashboardStats, ActivityItem, Invitation, StorageAnalytics } from '../services/adminService';
-import { organizationService, Organization, OrganizationStats } from '../services/organizationService';
-import { userService, User, UserStats } from '../services/userService';
+import { organizationService, Organization } from '../services/organizationService';
+import { userService } from '../services/userService';
+import { User } from '../services/authService';
 import { auditService, AuditLog } from '../services/auditService';
 import toast from 'react-hot-toast';
 
@@ -14,9 +15,7 @@ const AdminPanel: React.FC = () => {
   const [currentView, setCurrentView] = useState('overview');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showAddOrgModal, setShowAddOrgModal] = useState(false);
-  const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showGenerateInvitesModal, setShowGenerateInvitesModal] = useState(false);
-  const [showSystemSettingsModal, setShowSystemSettingsModal] = useState(false);
   
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
@@ -26,9 +25,9 @@ const AdminPanel: React.FC = () => {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [storageAnalytics, setStorageAnalytics] = useState<StorageAnalytics | null>(null);
+  const [totalPages, setTotalPages] = useState(0);
+  const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
   
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
   // Redirect if not platform owner
   useEffect(() => {
@@ -37,12 +36,15 @@ const AdminPanel: React.FC = () => {
     }
   }, [isPlatformOwner, navigate]);
 
-  // Load initial data
+  // Load initial data - run only once
   useEffect(() => {
-    if (isPlatformOwner()) {
+    if (isPlatformOwner() && !hasLoadedInitialData &&
+        process.env.REACT_APP_OFFLINE_MODE !== 'true' && 
+        process.env.REACT_APP_DISABLE_API_CALLS !== 'true') {
+      setHasLoadedInitialData(true);
       loadDashboardData();
     }
-  }, []);
+  }, [isPlatformOwner(), hasLoadedInitialData]); // Call the function to get the boolean value
 
   const loadDashboardData = async () => {
     setIsLoading(true);
@@ -56,15 +58,15 @@ const AdminPanel: React.FC = () => {
         adminService.getStorageAnalytics(),
       ]);
 
-      if (statsRes.success) setDashboardStats(statsRes.data);
-      if (orgsRes.success) {
+      if (statsRes.success && statsRes.data) setDashboardStats(statsRes.data);
+      if (orgsRes.success && orgsRes.data) {
         setOrganizations(orgsRes.data.data);
         setTotalPages(orgsRes.data.pagination.pages);
       }
-      if (usersRes.success) setUsers(usersRes.data.data);
-      if (invitesRes.success) setInvitations(invitesRes.data.data);
-      if (activitiesRes.success) setActivities(activitiesRes.data.data);
-      if (storageRes.success) setStorageAnalytics(storageRes.data);
+      if (usersRes.success && usersRes.data) setUsers(usersRes.data.data);
+      if (invitesRes.success && invitesRes.data) setInvitations(invitesRes.data.data);
+      if (activitiesRes.success && activitiesRes.data) setActivities(activitiesRes.data.data);
+      if (storageRes.success && storageRes.data) setStorageAnalytics(storageRes.data);
     } catch (error) {
       toast.error('Failed to load dashboard data');
     } finally {
@@ -75,7 +77,7 @@ const AdminPanel: React.FC = () => {
   const loadAuditLogs = async () => {
     try {
       const response = await auditService.getAuditLogs(1, 20);
-      if (response.success) {
+      if (response.success && response.data) {
         setAuditLogs(response.data.data);
       }
     } catch (error) {
@@ -129,7 +131,7 @@ const AdminPanel: React.FC = () => {
         expiresInDays,
       });
 
-      if (response.success) {
+      if (response.success && response.data) {
         toast.success(`Invitation code generated: ${response.data.code}`);
         setShowGenerateInvitesModal(false);
         loadDashboardData();
@@ -489,7 +491,7 @@ const AdminPanel: React.FC = () => {
                             <td>
                               <code className="invitation-code">{invitation.code}</code>
                             </td>
-                            <td>{invitation.organizationName}</td>
+                            <td>{invitation.organization_name}</td>
                             <td>
                               <span className={`role-badge ${invitation.role}`}>
                                 {invitation.role.replace('_', ' ')}

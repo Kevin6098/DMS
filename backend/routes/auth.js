@@ -68,8 +68,8 @@ router.post('/register', validateUserRegistration, async (req, res) => {
 
     // Log user creation
     await executeQuery(
-      'INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?)',
-      [userResult.data.insertId, 'CREATE', 'USER', userResult.data.insertId, JSON.stringify({ email, organizationId: orgId })]
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [userResult.data.insertId, orgId, 'CREATE', 'USER', userResult.data.insertId, JSON.stringify({ email, organizationId: orgId })]
     );
 
     res.status(201).json({
@@ -162,8 +162,8 @@ router.post('/login', validateUserLogin, async (req, res) => {
 
     // Log login
     await executeQuery(
-      'INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?)',
-      [user.id, 'LOGIN', 'USER', user.id, JSON.stringify({ email, adminLogin: !!adminLogin })]
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [user.id, user.organization_id, 'LOGIN', 'USER', user.id, JSON.stringify({ email, adminLogin: !!adminLogin })]
     );
 
     res.json({
@@ -261,8 +261,8 @@ router.post('/logout', verifyToken, async (req, res) => {
   try {
     // Log logout
     await executeQuery(
-      'INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, 'LOGOUT', 'USER', req.user.id, JSON.stringify({ email: req.user.email })]
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, req.user.organization_id, 'LOGOUT', 'USER', req.user.id, JSON.stringify({ email: req.user.email })]
     );
 
     res.json({
@@ -316,5 +316,6 @@ router.get('/verify', verifyToken, (req, res) => {
     }
   });
 });
+
 
 module.exports = router;
