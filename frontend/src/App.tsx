@@ -11,6 +11,8 @@ import './styles/main.css';
 import './styles/auth.css';
 import './styles/dashboard.css';
 import './styles/admin.css';
+import './styles/modals.css';
+import './styles/avatars.css';
 
 function App() {
   return (

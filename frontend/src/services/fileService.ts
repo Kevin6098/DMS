@@ -211,4 +211,111 @@ export const fileService = {
     
     return 'fas fa-file';
   },
+
+  // File Sharing
+  shareFile: async (fileId: number, shareData: {
+    email?: string;
+    permission: 'view' | 'edit' | 'comment';
+    expiresAt?: string;
+    password?: string;
+  }): Promise<ApiResponse<{ shareLink: string; shareId: number }>> => {
+    return apiService.post<{ shareLink: string; shareId: number }>(`/files/${fileId}/share`, shareData);
+  },
+
+  // Get file shares
+  getFileShares: async (fileId: number): Promise<ApiResponse<Array<{
+    id: number;
+    email: string;
+    permission: string;
+    expiresAt: string;
+    createdAt: string;
+  }>>> => {
+    return apiService.get<Array<any>>(`/files/${fileId}/shares`);
+  },
+
+  // Revoke file share
+  revokeShare: async (fileId: number, shareId: number): Promise<ApiResponse<void>> => {
+    return apiService.delete<void>(`/files/${fileId}/shares/${shareId}`);
+  },
+
+  // Get shared with me files
+  getSharedWithMe: async (page: number = 1, limit: number = 10): Promise<ApiResponse<FilesPaginationResponse<FileItem>>> => {
+    return apiService.get<FilesPaginationResponse<FileItem>>('/files/shared-with-me', { page, limit });
+  },
+
+  // File Version History
+  getFileVersions: async (fileId: number): Promise<ApiResponse<Array<{
+    id: number;
+    version: number;
+    fileName: string;
+    fileSize: number;
+    uploadedBy: string;
+    uploadedAt: string;
+    description?: string;
+  }>>> => {
+    return apiService.get<Array<any>>(`/files/${fileId}/versions`);
+  },
+
+  // Download specific version
+  downloadFileVersion: async (fileId: number, versionId: number, filename?: string): Promise<void> => {
+    return apiService.download(`/files/${fileId}/versions/${versionId}/download`, filename);
+  },
+
+  // Restore file version
+  restoreFileVersion: async (fileId: number, versionId: number): Promise<ApiResponse<void>> => {
+    return apiService.post<void>(`/files/${fileId}/versions/${versionId}/restore`, {});
+  },
+
+  // File Preview
+  getFilePreviewUrl: (fileId: number): string => {
+    const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
+    const token = localStorage.getItem('token');
+    return `${baseUrl}/files/${fileId}/preview?token=${token}`;
+  },
+
+  // Check if file can be previewed
+  canPreview: (fileType: string): boolean => {
+    const type = fileType.toLowerCase();
+    return type.includes('pdf') || 
+           type.includes('jpg') || type.includes('jpeg') || 
+           type.includes('png') || type.includes('gif') ||
+           type.includes('mp4') || type.includes('avi') || type.includes('mov') ||
+           type.includes('txt') || type.includes('doc') || type.includes('docx');
+  },
+
+  // Zip files
+  zipFiles: async (fileIds: number[], zipName?: string): Promise<void> => {
+    const token = localStorage.getItem('token');
+    const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
+    
+    const response = await fetch(`${baseUrl}/files/zip`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ fileIds, zipName: zipName || 'archive.zip' })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create zip file');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = zipName || 'archive.zip';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
+
+  // Unzip file
+  unzipFile: async (fileId: number, targetFolderId?: number): Promise<ApiResponse<{ extractedFiles: number }>> => {
+    return apiService.post<{ extractedFiles: number }>(`/files/${fileId}/unzip`, {
+      targetFolderId
+    });
+  },
 };

@@ -267,7 +267,8 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
         refreshStats();
       }
     }
-  }, [isAuthenticated, user?.id, hasLoadedInitialData]); // Only depend on user ID, not the whole user object
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, user?.id, hasLoadedInitialData]); // Functions are stable, user is checked within
 
   // Context value
   const contextValue: FileContextType = {

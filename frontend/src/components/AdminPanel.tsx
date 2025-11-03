@@ -25,26 +25,29 @@ const AdminPanel: React.FC = () => {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [storageAnalytics, setStorageAnalytics] = useState<StorageAnalytics | null>(null);
-  const [totalPages, setTotalPages] = useState(0);
   const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
   
 
+  // Check if user is platform owner
+  const isOwner = isPlatformOwner();
+
   // Redirect if not platform owner
   useEffect(() => {
-    if (!isPlatformOwner()) {
+    if (!isOwner) {
       navigate('/dashboard');
     }
-  }, [isPlatformOwner, navigate]);
+  }, [isOwner, navigate]);
 
   // Load initial data - run only once
   useEffect(() => {
-    if (isPlatformOwner() && !hasLoadedInitialData &&
+    if (isOwner && !hasLoadedInitialData &&
         process.env.REACT_APP_OFFLINE_MODE !== 'true' && 
         process.env.REACT_APP_DISABLE_API_CALLS !== 'true') {
       setHasLoadedInitialData(true);
       loadDashboardData();
     }
-  }, [isPlatformOwner(), hasLoadedInitialData]); // Call the function to get the boolean value
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOwner, hasLoadedInitialData]); // loadDashboardData is stable
 
   const loadDashboardData = async () => {
     setIsLoading(true);
@@ -61,7 +64,6 @@ const AdminPanel: React.FC = () => {
       if (statsRes.success && statsRes.data) setDashboardStats(statsRes.data);
       if (orgsRes.success && orgsRes.data) {
         setOrganizations(orgsRes.data.data);
-        setTotalPages(orgsRes.data.pagination.pages);
       }
       if (usersRes.success && usersRes.data) setUsers(usersRes.data.data);
       if (invitesRes.success && invitesRes.data) setInvitations(invitesRes.data.data);
@@ -200,7 +202,7 @@ const AdminPanel: React.FC = () => {
         <div className="header-right">
           <div className="user-menu">
             <button className="user-avatar" onClick={() => setShowUserMenu(!showUserMenu)}>
-              <img src="/api/placeholder/40/40" alt="Admin" />
+              {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
             </button>
             {showUserMenu && (
               <div className="user-dropdown">

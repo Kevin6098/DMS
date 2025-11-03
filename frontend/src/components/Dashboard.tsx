@@ -31,13 +31,10 @@ const Dashboard: React.FC = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({ search: '', folderId: undefined as number | undefined });
-  const [showUserSettings, setShowUserSettings] = useState(false);
   const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
   const [deletedFiles, setDeletedFiles] = useState<FileItem[]>([]);
   const [starredFiles, setStarredFiles] = useState<FileItem[]>([]);
@@ -61,12 +58,16 @@ const Dashboard: React.FC = () => {
       loadFolders();
       refreshStats();
     }
-  }, [isAuthenticated, hasLoadedInitialData]); // Remove function dependencies to prevent infinite loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, hasLoadedInitialData]); // Functions are stable from context
 
   // Handle search
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    // TODO: Implement search functionality
+    const newFilters = { ...filters, search: query };
+    setFilters(newFilters);
+    // Trigger file reload with search filter
+    loadFiles();
   };
 
   // Handle file upload
@@ -268,10 +269,11 @@ const Dashboard: React.FC = () => {
   // Load shared items (items shared by others to me)
   const loadSharedItems = async () => {
     try {
-      // TODO: Implement backend endpoint for shared items
-      toast.info('Shared items feature coming soon');
-      setStarredFiles([]); // Temporary - use starred as placeholder
-      setStarredFolders([]);
+      const response = await fileService.getSharedWithMe(1, 50);
+      if (response.success && response.data) {
+        setStarredFiles(response.data.files || []);
+        setStarredFolders([]);
+      }
     } catch (error) {
       console.error('Error loading shared items:', error);
       toast.error('Failed to load shared items');
@@ -347,7 +349,7 @@ const Dashboard: React.FC = () => {
           </button>
           <div className="user-menu">
             <button className="user-avatar" onClick={() => setShowUserMenu(!showUserMenu)}>
-              <img src="/api/placeholder/40/40" alt="User" />
+              {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
             </button>
             {showUserMenu && (
               <div className="user-dropdown">
@@ -355,9 +357,6 @@ const Dashboard: React.FC = () => {
                   <h4>{user.firstName} {user.lastName}</h4>
                   <p>{user.email}</p>
                 </div>
-                <button onClick={() => setShowUserSettings(true)}>
-                  <i className="fas fa-cog"></i> Settings
-                </button>
                 <button onClick={handleLogout}>
                   <i className="fas fa-sign-out-alt"></i> Logout
                 </button>
@@ -790,66 +789,7 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Share Modal */}
-      {showShareModal && selectedFile && (
-        <div className="modal-overlay" style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.8)',
-          display: 'flex !important',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 99999
-        }}>
-          <div className="modal-content" style={{
-            background: 'white',
-            borderRadius: '8px',
-            padding: '20px',
-            maxWidth: '500px',
-            width: '90%',
-            position: 'relative',
-            display: 'block !important',
-            zIndex: 10000
-          }}>
-            <div className="modal-header">
-              <h3>Share "{selectedFile.name}"</h3>
-              <button onClick={() => setShowShareModal(false)}>
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label>Share Link</label>
-                <div className="input-group">
-                  <input type="text" value={`https://dms.com/share/${selectedFile.id}`} readOnly />
-                  <button className="btn-secondary">
-                    <i className="fas fa-copy"></i>
-                  </button>
-                </div>
-              </div>
-              <div className="form-group">
-                <label>Permission Level</label>
-                <select>
-                  <option value="view">View only</option>
-                  <option value="comment">View and comment</option>
-                  <option value="edit">View, comment, and edit</option>
-                </select>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowShareModal(false)}>
-                Close
-              </button>
-              <button className="btn-primary">
-                Share
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Share Modal removed - use FileSharingModal component instead */}
     </div>
   );
 };
