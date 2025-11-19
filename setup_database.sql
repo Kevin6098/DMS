@@ -5,7 +5,6 @@
 -- ============================================
 
 -- Create single database
-
 USE task_insight;
 
 -- Set charset and timezone
@@ -15,19 +14,27 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 -- ============================================
 -- DROP EXISTING TABLES (if exists)
+-- Drop in reverse dependency order to avoid foreign key constraints
 -- ============================================
 
-DROP TABLE IF EXISTS audit_logs;
-DROP TABLE IF EXISTS user_sessions;
-DROP TABLE IF EXISTS starred_items;
-DROP TABLE IF EXISTS folder_shares;
-DROP TABLE IF EXISTS file_shares;
-DROP TABLE IF EXISTS file_versions;
-DROP TABLE IF EXISTS files;
-DROP TABLE IF EXISTS folders;
+-- CORE TABLES (drop children first, then parents)
 DROP TABLE IF EXISTS invitations;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS organizations;
+
+-- FILE MANAGEMENT TABLES (drop children first, then parents)
+DROP TABLE IF EXISTS file_versions;
+DROP TABLE IF EXISTS file_shares;
+DROP TABLE IF EXISTS folder_shares;
+DROP TABLE IF EXISTS files;
+DROP TABLE IF EXISTS folders;
+
+-- USER ACTIVITY TABLES
+DROP TABLE IF EXISTS starred_items;
+
+-- SYSTEM TABLES
+DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS user_sessions;
 
 -- ============================================
 -- CORE TABLES
@@ -107,7 +114,7 @@ CREATE TABLE folders (
     last_accessed_by INT NULL,
     deleted_at TIMESTAMP NULL,
     deleted_by INT NULL,
-    path VARCHAR(1000) NULL,
+    path TEXT NULL,
     FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
     FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
@@ -115,7 +122,7 @@ CREATE TABLE folders (
     FOREIGN KEY (deleted_by) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_org_folder (organization_id, status),
     INDEX idx_parent (parent_id),
-    INDEX idx_path (path),
+    INDEX idx_path (path(255)),
     INDEX idx_last_accessed (last_accessed_at DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
