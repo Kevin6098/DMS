@@ -5,8 +5,8 @@
 -- ============================================
 
 -- Create single database
-CREATE DATABASE IF NOT EXISTS dms_database CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE dms_database;
+
+USE task_insight;
 
 -- Set charset and timezone
 SET NAMES utf8mb4;
