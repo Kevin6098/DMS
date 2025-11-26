@@ -215,14 +215,17 @@
 .storage-info {
   padding: 1rem 1.5rem;
   border-top: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .storage-header {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
+  justify-content: center;
   font-size: 0.9rem;
   color: #6c757d;
+  margin-top: 0.5rem;
 }
 
 .storage-bar {
@@ -231,6 +234,7 @@
   background: #e9ecef;
   border-radius: 4px;
   overflow: hidden;
+  order: -1;
 }
 
 .storage-used {
