@@ -28,6 +28,7 @@ export interface FileItem {
   email?: string;
   folder_name?: string;
   organization_name?: string;
+  is_starred?: boolean;
 }
 
 export interface FileUploadRequest {
@@ -62,6 +63,7 @@ export interface Folder {
   total_size: number;
   first_name?: string;
   last_name?: string;
+  is_starred?: boolean;
 }
 
 export interface FolderCreateRequest {

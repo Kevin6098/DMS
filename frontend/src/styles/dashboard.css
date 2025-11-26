@@ -316,6 +316,20 @@
   background: white;
   border-radius: 0.5rem;
   padding: 1rem;
+}
+
+/* Starred icon styling */
+.fa-star.starred {
+  color: #ffc107 !important;
+}
+
+.file-actions button .fa-star {
+  transition: color 0.2s ease;
+}
+
+.file-actions button:hover .fa-star {
+  color: #ffc107;
+}
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   transition: all 0.2s;
   cursor: pointer;

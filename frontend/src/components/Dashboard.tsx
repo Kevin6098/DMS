@@ -191,11 +191,12 @@ const Dashboard: React.FC = () => {
         const action = response.data?.starred ? 'starred' : 'unstarred';
         toast.success(`Item ${action}!`);
         
-        // Refresh the current view
+        // Refresh the current view to update star status
         if (currentView === 'starred') {
           await loadStarredItems();
         } else {
-          await refreshFiles();
+          await loadFiles();
+          await loadFolders();
         }
       }
     } catch (error) {
@@ -477,8 +478,8 @@ const Dashboard: React.FC = () => {
                     <p>{folder.file_count} items</p>
                   </div>
                   <div className="file-actions">
-                    <button onClick={(e) => { e.stopPropagation(); handleToggleStar('folder', folder.id); }} title="Star">
-                      <i className="fas fa-star"></i>
+                    <button onClick={(e) => { e.stopPropagation(); handleToggleStar('folder', folder.id); }} title={folder.is_starred ? "Unstar" : "Star"}>
+                      <i className={`${folder.is_starred ? 'fas' : 'far'} fa-star${folder.is_starred ? ' starred' : ''}`}></i>
                     </button>
                     <button onClick={(e) => { e.stopPropagation(); /* Delete folder */ }} title="Delete">
                       <i className="fas fa-trash"></i>
@@ -509,8 +510,8 @@ const Dashboard: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <button onClick={(e) => { e.stopPropagation(); handleToggleStar('file', file.id); }} title="Star">
-                          <i className="fas fa-star"></i>
+                        <button onClick={(e) => { e.stopPropagation(); handleToggleStar('file', file.id); }} title={file.is_starred ? "Unstar" : "Star"}>
+                          <i className={`${file.is_starred ? 'fas' : 'far'} fa-star${file.is_starred ? ' starred' : ''}`}></i>
                         </button>
                         <button onClick={() => handleDownload(file)} title="Download">
                           <i className="fas fa-download"></i>
