@@ -49,7 +49,9 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       query: req.query
     });
     const { page = 1, limit = 10, q: search, folderId, type, organizationId } = req.query;
-    const offset = (page - 1) * limit;
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 10;
+    const offset = (pageNum - 1) * limitNum;
 
     let whereConditions = ['f.status = "active"'];
     let queryParams = [];
@@ -97,7 +99,7 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       LIMIT ? OFFSET ?
     `;
 
-    const filesResult = await executeQuery(filesQuery, [...queryParams, parseInt(limit), offset]);
+    const filesResult = await executeQuery(filesQuery, [...queryParams, limitNum, offset]);
 
     // Get total count
     const countQuery = `
@@ -113,7 +115,7 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
         filesResult: filesResult.error || 'Unknown error',
         countResult: countResult.error || 'Unknown error',
         query: filesQuery,
-        params: [...queryParams, parseInt(limit), offset]
+        params: [...queryParams, limitNum, offset]
       });
       return res.status(500).json({
         success: false,
@@ -127,10 +129,10 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       data: {
         files: filesResult.data,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: pageNum,
+          limit: limitNum,
           total: countResult.data[0].total,
-          pages: Math.ceil(countResult.data[0].total / limit)
+          pages: Math.ceil(countResult.data[0].total / limitNum)
         }
       }
     });
