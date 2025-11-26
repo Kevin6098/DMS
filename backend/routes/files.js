@@ -87,6 +87,7 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
     // Get files with pagination
+    // Note: LIMIT and OFFSET must be integers, not placeholders (MySQL limitation)
     const filesQuery = `
       SELECT f.*, u.first_name, u.last_name, u.email, 
              fo.name as folder_name, o.name as organization_name
@@ -96,17 +97,17 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       LEFT JOIN organizations o ON f.organization_id = o.id
       ${whereClause}
       ORDER BY f.created_at DESC 
-      LIMIT ? OFFSET ?
+      LIMIT ${limitNum} OFFSET ${offset}
     `;
 
     console.log('📁 [FILES] Executing query with params:', {
       queryParams,
       limitNum,
       offset,
-      totalParams: [...queryParams, limitNum, offset].length
+      totalParams: queryParams.length
     });
     
-    const filesResult = await executeQuery(filesQuery, [...queryParams, limitNum, offset]);
+    const filesResult = await executeQuery(filesQuery, queryParams);
     
     console.log('📁 [FILES] Files query result:', {
       success: filesResult.success,
