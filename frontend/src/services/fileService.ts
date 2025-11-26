@@ -185,7 +185,12 @@ export const fileService = {
   },
 
   // Format file size
-  formatFileSize: (bytes: number): string => {
+  formatFileSize: (bytes: number | undefined | null): string => {
+    // Handle null, undefined, NaN, or invalid numbers
+    if (!bytes || isNaN(bytes) || bytes < 0) {
+      return '0 Bytes';
+    }
+    
     if (bytes === 0) return '0 Bytes';
     
     const k = 1024;

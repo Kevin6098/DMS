@@ -148,7 +148,7 @@ router.post('/', verifyToken, requirePlatformOwner, validateOrganization, async 
     // Create organization
     const orgResult = await executeQuery(
       'INSERT INTO organizations (name, description, storage_quota, status) VALUES (?, ?, ?, ?)',
-      [name, description, storageQuota || 1000, 'active']
+      [name, description, storageQuota || 5368709120, 'active']
     );
 
     if (!orgResult.success) {

@@ -9,7 +9,7 @@ USE task_insight;
 
 -- Set charset and timezone
 SET NAMES utf8mb4;
-SET TIME_ZONE = '+00:00';
+SET TIME_ZONE = '+08:00';
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ============================================
@@ -17,10 +17,8 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- Drop in reverse dependency order to avoid foreign key constraints
 -- ============================================
 
--- CORE TABLES (drop children first, then parents)
-DROP TABLE IF EXISTS invitations;
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS organizations;
+-- USER ACTIVITY TABLES
+DROP TABLE IF EXISTS starred_items;
 
 -- FILE MANAGEMENT TABLES (drop children first, then parents)
 DROP TABLE IF EXISTS file_versions;
@@ -29,12 +27,14 @@ DROP TABLE IF EXISTS folder_shares;
 DROP TABLE IF EXISTS files;
 DROP TABLE IF EXISTS folders;
 
--- USER ACTIVITY TABLES
-DROP TABLE IF EXISTS starred_items;
-
 -- SYSTEM TABLES
 DROP TABLE IF EXISTS audit_logs;
 DROP TABLE IF EXISTS user_sessions;
+
+-- CORE TABLES (drop children first, then parents)
+DROP TABLE IF EXISTS invitations;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS organizations;
 
 -- ============================================
 -- CORE TABLES
@@ -45,7 +45,7 @@ CREATE TABLE organizations (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     description TEXT NULL,
-    storage_quota BIGINT DEFAULT 107374182400, -- 100GB in bytes
+    storage_quota BIGINT DEFAULT 5368709120, -- 5GB in bytes
     storage_used BIGINT DEFAULT 0,
     status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -286,7 +286,7 @@ CREATE TABLE audit_logs (
 
 -- Insert sample organization
 INSERT INTO organizations (name, description, storage_quota, storage_used, status) 
-VALUES ('Demo Organization', 'A demo organization for testing', 107374182400, 0, 'active');
+VALUES ('Demo Organization', 'A demo organization for testing', 5368709120, 0, 'active');
 
 -- Insert sample platform owner (password: admin123)
 INSERT INTO users (organization_id, email, password_hash, first_name, last_name, role, status) 

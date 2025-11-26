@@ -453,7 +453,7 @@ router.get('/settings', verifyToken, requirePlatformOwner, async (req, res) => {
     const settings = {
       maxFileSize: process.env.MAX_FILE_SIZE || 10485760,
       allowedFileTypes: (process.env.ALLOWED_FILE_TYPES || 'pdf,doc,docx,txt,jpg,jpeg,png,gif,mp4,avi,mov').split(','),
-      defaultStorageQuota: 1000, // MB
+      defaultStorageQuota: 5120, // MB (5GB)
       sessionTimeout: process.env.JWT_EXPIRES_IN || '24h',
       registrationEnabled: true,
       invitationRequired: true

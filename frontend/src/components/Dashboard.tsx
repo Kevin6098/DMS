@@ -349,7 +349,8 @@ const Dashboard: React.FC = () => {
           </button>
           <div className="user-menu">
             <button className="user-avatar" onClick={() => setShowUserMenu(!showUserMenu)}>
-              {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+              {user.firstName?.charAt(0) || user.email?.charAt(0).toUpperCase() || 'U'}
+              {user.lastName?.charAt(0) || (user.email?.charAt(1) && user.email.charAt(1).toUpperCase()) || ''}
             </button>
             {showUserMenu && (
               <div className="user-dropdown">
@@ -401,20 +402,22 @@ const Dashboard: React.FC = () => {
 
         {/* Storage Info */}
         <div className="storage-info">
-          <div className="storage-header">
-            <span>Storage</span>
-            <span>
-              {fileStats?.totalSize ? fileService.formatFileSize(fileStats.totalSize) : '0 Bytes'} of{' '}
-              {user?.organizationId ? fileService.formatFileSize(107374182400) : '100 GB'}
-            </span>
-          </div>
           <div className="storage-bar">
             <div 
               className="storage-used" 
               style={{ 
-                width: `${fileStats?.totalSize ? Math.min((fileStats.totalSize / 107374182400) * 100, 100) : 0}%` 
+                width: `${fileStats?.totalSize !== undefined && fileStats?.totalSize !== null && !isNaN(Number(fileStats.totalSize))
+                  ? Math.min((Number(fileStats.totalSize) / 5368709120) * 100, 100) 
+                  : 0}%` 
               }}
             ></div>
+          </div>
+          <div className="storage-header">
+            <span>
+              {fileStats?.totalSize !== undefined && fileStats?.totalSize !== null && !isNaN(Number(fileStats.totalSize))
+                ? fileService.formatFileSize(Number(fileStats.totalSize))
+                : '0 Bytes'} of 5 GB
+            </span>
           </div>
         </div>
       </aside>

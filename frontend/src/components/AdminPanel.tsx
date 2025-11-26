@@ -97,7 +97,7 @@ const AdminPanel: React.FC = () => {
   const handleCreateOrganization = async () => {
     const orgName = (document.getElementById('org-name') as HTMLInputElement)?.value;
     const orgDescription = (document.getElementById('org-description') as HTMLInputElement)?.value;
-    const storageQuota = parseInt((document.getElementById('storage-quota') as HTMLInputElement)?.value || '107374182400');
+    const storageQuota = parseInt((document.getElementById('storage-quota') as HTMLInputElement)?.value || '5368709120');
 
     if (!orgName) {
       toast.error('Please enter organization name');
@@ -202,7 +202,8 @@ const AdminPanel: React.FC = () => {
         <div className="header-right">
           <div className="user-menu">
             <button className="user-avatar" onClick={() => setShowUserMenu(!showUserMenu)}>
-              {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+              {user?.firstName?.charAt(0) || user?.email?.charAt(0).toUpperCase() || 'U'}
+              {user?.lastName?.charAt(0) || (user?.email?.charAt(1) && user.email.charAt(1).toUpperCase()) || ''}
             </button>
             {showUserMenu && (
               <div className="user-dropdown">
@@ -610,7 +611,7 @@ const AdminPanel: React.FC = () => {
               </div>
               <div className="form-group">
                 <label htmlFor="storage-quota">Storage Quota (bytes)</label>
-                <input type="number" id="storage-quota" defaultValue="107374182400" />
+                <input type="number" id="storage-quota" defaultValue="5368709120" />
               </div>
             </div>
             <div className="modal-footer">

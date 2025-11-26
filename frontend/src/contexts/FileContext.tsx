@@ -235,10 +235,30 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
       const response = await fileService.getFileStats(organizationId);
       
       if (response.success && response.data) {
-        setFileStats(response.data);
+        // Ensure totalSize is a number
+        const stats = {
+          ...response.data,
+          totalSize: response.data.totalSize ? Number(response.data.totalSize) : 0
+        };
+        setFileStats(stats);
+      } else {
+        // Set default stats if API fails
+        setFileStats({
+          totalFiles: 0,
+          totalSize: 0,
+          typeStats: [],
+          recentUploads: 0
+        });
       }
     } catch (error) {
       console.error('Error loading file stats:', error);
+      // Set default stats on error
+      setFileStats({
+        totalFiles: 0,
+        totalSize: 0,
+        typeStats: [],
+        recentUploads: 0
+      });
     }
   };
 

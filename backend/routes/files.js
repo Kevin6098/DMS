@@ -891,10 +891,10 @@ router.get('/stats/overview', verifyToken, async (req, res) => {
     res.json({
       success: true,
       data: {
-        totalFiles: totalResult.data[0].totalFiles,
-        totalSize: totalResult.data[0].totalSize,
+        totalFiles: parseInt(totalResult.data[0].totalFiles) || 0,
+        totalSize: parseInt(totalResult.data[0].totalSize) || 0,
         typeStats: typeStatsResult.data,
-        recentUploads: recentResult.data[0].recentUploads
+        recentUploads: parseInt(recentResult.data[0].recentUploads) || 0
       }
     });
   } catch (error) {
