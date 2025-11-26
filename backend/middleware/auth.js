@@ -28,17 +28,7 @@ const verifyToken = async (req, res, next) => {
       });
     }
 
-    const user = userResult.data[0];
-    // Map database columns to expected property names
-    req.user = {
-      id: user.id,
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-      organizationId: user.organization_id,
-      organization_id: user.organization_id
-    };
+    req.user = userResult.data[0];
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {

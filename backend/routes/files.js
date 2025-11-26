@@ -42,19 +42,8 @@ const upload = multer({
 // Get all files
 router.get('/', verifyToken, validatePagination, validateSearch, async (req, res) => {
   try {
-    console.log('📁 [FILES] Get files request received');
-    console.log('📁 [FILES] User:', {
-      id: req.user.userId,
-      email: req.user.email,
-      role: req.user.role,
-      organizationId: req.user.organizationId
-    });
-    console.log('📁 [FILES] Query params:', req.query);
-
     const { page = 1, limit = 10, q: search, folderId, type, organizationId } = req.query;
-    const pageInt = parseInt(page, 10);
-    const limitInt = parseInt(limit, 10);
-    const offset = (pageInt - 1) * limitInt;
+    const offset = (page - 1) * limit;
 
     let whereConditions = ['f.status = "active"'];
     let queryParams = [];
@@ -63,12 +52,10 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
     if (req.user.role === 'platform_owner' && organizationId) {
       whereConditions.push('f.organization_id = ?');
       queryParams.push(organizationId);
-    } else if (req.user.role !== 'platform_owner' && req.user.organizationId) {
-      // Only filter by organization if user has one, otherwise show all files (for demo accounts)
+    } else if (req.user.role !== 'platform_owner') {
       whereConditions.push('f.organization_id = ?');
-      queryParams.push(req.user.organizationId);
+      queryParams.push(req.user.organization_id);
     }
-    // If user has no organization_id, don't filter by organization (allow demo access)
 
     // Search filter
     if (search) {
@@ -85,7 +72,7 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
 
     // File type filter
     if (type) {
-      whereConditions.push('f.type = ?');
+      whereConditions.push('f.file_type = ?');
       queryParams.push(type);
     }
 
@@ -104,16 +91,7 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       LIMIT ? OFFSET ?
     `;
 
-    console.log('📁 [FILES] Executing files query:', filesQuery);
-    console.log('📁 [FILES] Query params:', [...queryParams, limitInt, offset]);
-    console.log('📁 [FILES] Param types:', [...queryParams, limitInt, offset].map(p => typeof p));
-    
-    const filesResult = await executeQuery(filesQuery, [...queryParams, limitInt, offset]);
-    console.log('📁 [FILES] Files query result:', {
-      success: filesResult.success,
-      fileCount: filesResult.data?.length || 0,
-      error: filesResult.error
-    });
+    const filesResult = await executeQuery(filesQuery, [...queryParams, parseInt(limit), offset]);
 
     // Get total count
     const countQuery = `
@@ -122,26 +100,12 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       ${whereClause}
     `;
 
-    console.log('📁 [FILES] Executing count query:', countQuery);
     const countResult = await executeQuery(countQuery, queryParams);
-    console.log('📁 [FILES] Count query result:', {
-      success: countResult.success,
-      total: countResult.data?.[0]?.total,
-      error: countResult.error
-    });
 
     if (!filesResult.success || !countResult.success) {
-      console.error('❌ [FILES] Query failed:', {
-        filesResult: filesResult.error,
-        countResult: countResult.error
-      });
       return res.status(500).json({
         success: false,
-        message: 'Failed to fetch files',
-        error: process.env.NODE_ENV === 'development' ? {
-          filesError: filesResult.error,
-          countError: countResult.error
-        } : undefined
+        message: 'Failed to fetch files'
       });
     }
 
@@ -150,24 +114,18 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       data: {
         files: filesResult.data,
         pagination: {
-          page: pageInt,
-          limit: limitInt,
+          page: parseInt(page),
+          limit: parseInt(limit),
           total: countResult.data[0].total,
-          pages: Math.ceil(countResult.data[0].total / limitInt)
+          pages: Math.ceil(countResult.data[0].total / limit)
         }
       }
     });
   } catch (error) {
-    console.error('❌ [FILES] Get files error:', error);
-    console.error('❌ [FILES] Error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
+    console.error('Get files error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Internal server error'
     });
   }
 });
@@ -286,143 +244,6 @@ router.post('/upload', verifyToken, upload.single('file'), validateFileUpload, a
     res.status(500).json({
       success: false,
       message: 'Internal server error'
-    });
-  }
-});
-
-// Get files shared with me
-router.get('/shared-with-me', verifyToken, validatePagination, async (req, res) => {
-  try {
-    console.log('📁 [FILES] Get shared-with-me request received');
-    console.log('📁 [FILES] User:', {
-      id: req.user.userId,
-      email: req.user.email,
-      role: req.user.role,
-      organizationId: req.user.organizationId
-    });
-
-    const { page = 1, limit = 50 } = req.query;
-    const offset = (page - 1) * limit;
-    const userId = req.user.userId;
-    const organizationId = req.user.organizationId;
-
-    // Build WHERE conditions for shared files
-    let whereConditions = [
-      'f.status = "active"',
-      'fs.status = "active"',
-      '(fs.expires_at IS NULL OR fs.expires_at > NOW())'
-    ];
-    let queryParams = [];
-
-    // Check if user is directly shared with, or if it's an organization share
-    if (organizationId) {
-      whereConditions.push(`(fs.shared_with = ? OR (fs.share_type = "organization" AND f.organization_id = ?) OR fs.general_access != "restricted")`);
-      queryParams.push(userId, organizationId);
-    } else {
-      // For demo accounts without organization, just check direct shares
-      whereConditions.push(`fs.shared_with = ?`);
-      queryParams.push(userId);
-    }
-
-    const whereClause = whereConditions.join(' AND ');
-
-    // Get files shared with this user
-    const filesQuery = `
-      SELECT DISTINCT f.id, f.name, f.type, f.size as file_size, f.description,
-             f.uploaded_by, f.folder_id, f.organization_id, f.status,
-             f.created_at, f.updated_at, f.path, f.version,
-             u.first_name, u.last_name, u.email,
-             fo.name as folder_name, o.name as organization_name,
-             fs.permission_level, fs.created_at as shared_at
-      FROM files f
-      INNER JOIN file_shares fs ON f.id = fs.file_id
-      LEFT JOIN users u ON f.uploaded_by = u.id
-      LEFT JOIN folders fo ON f.folder_id = fo.id
-      LEFT JOIN organizations o ON f.organization_id = o.id
-      WHERE ${whereClause}
-      ORDER BY fs.created_at DESC
-      LIMIT ? OFFSET ?
-    `;
-
-    console.log('📁 [FILES] Executing shared-with-me query');
-    console.log('📁 [FILES] Query:', filesQuery);
-    console.log('📁 [FILES] Params:', [...queryParams, parseInt(limit), offset]);
-    
-    const filesResult = await executeQuery(filesQuery, [...queryParams, parseInt(limit), offset]);
-    console.log('📁 [FILES] Shared files query result:', {
-      success: filesResult.success,
-      fileCount: filesResult.data?.length || 0,
-      error: filesResult.error
-    });
-
-    // Get total count
-    const countQuery = `
-      SELECT COUNT(DISTINCT f.id) as total
-      FROM files f
-      INNER JOIN file_shares fs ON f.id = fs.file_id
-      WHERE ${whereClause}
-    `;
-
-    const countResult = await executeQuery(countQuery, queryParams);
-    console.log('📁 [FILES] Shared files count result:', {
-      success: countResult.success,
-      total: countResult.data?.[0]?.total,
-      error: countResult.error
-    });
-
-    if (!filesResult.success || !countResult.success) {
-      console.error('❌ [FILES] Query failed:', {
-        filesResult: filesResult.error,
-        countResult: countResult.error
-      });
-      // For demo accounts, return empty result instead of error
-      return res.json({
-        success: true,
-        data: {
-          files: [],
-          pagination: {
-            page: parseInt(page),
-            limit: parseInt(limit),
-            total: 0,
-            pages: 0
-          }
-        }
-      });
-    }
-
-    const total = countResult.data?.[0]?.total || 0;
-
-    res.json({
-      success: true,
-      data: {
-        files: filesResult.data || [],
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total: total,
-          pages: Math.ceil(total / limit)
-        }
-      }
-    });
-  } catch (error) {
-    console.error('❌ [FILES] Get shared-with-me error:', error);
-    console.error('❌ [FILES] Error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
-    // Return empty result for demo accounts instead of error
-    res.json({
-      success: true,
-      data: {
-        files: [],
-        pagination: {
-          page: parseInt(req.query.page || 1),
-          limit: parseInt(req.query.limit || 50),
-          total: 0,
-          pages: 0
-        }
-      }
     });
   }
 });

@@ -25,7 +25,6 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('❌ [API SERVICE] Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -33,19 +32,10 @@ api.interceptors.request.use(
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response: AxiosResponse) => {
-    // Log successful responses for login
-    if (response.config.url?.includes('/auth/login')) {
-      console.log('✅ [API SERVICE] Login response successful');
-    }
     return response;
   },
   (error: AxiosError) => {
-    const { response, config } = error;
-    
-    // Don't redirect on 401 for login/register endpoints
-    const isAuthEndpoint = config?.url?.includes('/auth/login') || 
-                           config?.url?.includes('/auth/register') ||
-                           config?.url?.includes('/auth/refresh');
+    const { response } = error;
     
     if (response) {
       const { status, data } = response;
@@ -53,18 +43,11 @@ api.interceptors.response.use(
       
       switch (status) {
         case 401:
-          // Unauthorized - only redirect if not an auth endpoint
-          if (!isAuthEndpoint) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            localStorage.removeItem('refreshToken');
-            // Only redirect if not already on login page
-            if (window.location.pathname !== '/login') {
-              window.location.href = '/login';
-              toast.error('Session expired. Please login again.');
-            }
-          }
-          // For auth endpoints, let the component handle the error
+          // Unauthorized - clear token and redirect to login
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+          toast.error('Session expired. Please login again.');
           break;
         case 403:
           toast.error('Access denied. You do not have permission to perform this action.');
@@ -96,20 +79,10 @@ api.interceptors.response.use(
       // Network error - don't show toast for initial auth check
       if (!error.config?.url?.includes('/auth/verify')) {
         console.warn('Network error. Backend may not be running.');
-        // Don't show toast for network errors during login
-        if (!error.config?.url?.includes('/auth/login')) {
-          toast.error('Network error. Please check your connection.');
-        }
       }
     } else {
       // Other error
       console.error('An unexpected error occurred:', error);
-      // Suppress the browser extension error message
-      if (error.message && error.message.includes('message channel closed')) {
-        console.warn('Browser extension interference detected. This is usually harmless.');
-        // Don't show toast for this specific error
-        return Promise.reject(error);
-      }
     }
     
     return Promise.reject(error);
@@ -162,30 +135,8 @@ export const apiService = {
       console.warn('Offline mode: API call blocked', url);
       return { success: false, message: 'Offline mode - backend not available' };
     }
-    console.log('🌐 [API SERVICE] Making POST request:', {
-      url: `${API_BASE_URL}${url}`,
-      hasData: !!data,
-      dataKeys: data ? Object.keys(data) : []
-    });
-    try {
-      const response = await api.post(url, data);
-      console.log('🌐 [API SERVICE] POST response received:', {
-        url,
-        status: response.status,
-        hasData: !!response.data,
-        success: response.data?.success
-      });
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ [API SERVICE] POST request failed:', {
-        url,
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        responseData: error.response?.data
-      });
-      throw error;
-    }
+    const response = await api.post(url, data);
+    return response.data;
   },
 
   // PUT request

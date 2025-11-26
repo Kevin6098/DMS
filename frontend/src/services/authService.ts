@@ -53,24 +53,7 @@ export interface RefreshTokenResponse {
 export const authService = {
   // Login user
   login: async (credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> => {
-    console.log('🔐 [AUTH SERVICE] Login request:', {
-      email: credentials.email,
-      adminLogin: credentials.adminLogin,
-      hasPassword: !!credentials.password
-    });
-    console.log('🔐 [AUTH SERVICE] API Base URL:', process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api');
-    try {
-      const response = await apiService.post<LoginResponse>('/auth/login', credentials);
-      console.log('🔐 [AUTH SERVICE] Login response:', {
-        success: response.success,
-        hasData: !!response.data,
-        message: response.message
-      });
-      return response;
-    } catch (error) {
-      console.error('❌ [AUTH SERVICE] Login request failed:', error);
-      throw error;
-    }
+    return apiService.post<LoginResponse>('/auth/login', credentials);
   },
 
   // Register user

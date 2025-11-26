@@ -23,7 +23,6 @@ export interface FileItem {
   deleted_by?: number;
   current_version?: number;
   checksum?: string;
-  is_starred?: boolean; // Track if item is starred
   first_name?: string;
   last_name?: string;
   email?: string;
@@ -61,7 +60,6 @@ export interface Folder {
   created_at: string;
   file_count: number;
   total_size: number;
-  is_starred?: boolean; // Track if folder is starred
   first_name?: string;
   last_name?: string;
 }
@@ -184,21 +182,6 @@ export const fileService = {
   // Get starred items
   getStarredItems: async (): Promise<ApiResponse<{ files: FileItem[], folders: Folder[] }>> => {
     return apiService.get<{ files: FileItem[], folders: Folder[] }>('/files/starred/list');
-  },
-
-  // Rename file
-  renameFile: async (fileId: number, newName: string): Promise<ApiResponse<FileItem>> => {
-    return apiService.put<FileItem>(`/files/${fileId}/rename`, { name: newName });
-  },
-
-  // Rename folder
-  renameFolder: async (folderId: number, newName: string): Promise<ApiResponse<Folder>> => {
-    return apiService.put<Folder>(`/folders/${folderId}/rename`, { name: newName });
-  },
-
-  // Delete folder
-  deleteFolder: async (folderId: number): Promise<ApiResponse<void>> => {
-    return apiService.delete<void>(`/folders/${folderId}`);
   },
 
   // Format file size
