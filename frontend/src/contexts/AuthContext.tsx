@@ -93,7 +93,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('🔐 [AUTH CONTEXT] Response received:', {
         success: response.success,
         hasData: !!response.data,
-        error: response.error
+        message: response.message
       });
       
       if (response.success && response.data) {

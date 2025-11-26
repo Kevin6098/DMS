@@ -64,7 +64,7 @@ export const authService = {
       console.log('🔐 [AUTH SERVICE] Login response:', {
         success: response.success,
         hasData: !!response.data,
-        error: response.error
+        message: response.message
       });
       return response;
     } catch (error) {

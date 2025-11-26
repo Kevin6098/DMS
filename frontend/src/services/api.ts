@@ -22,8 +22,6 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    // Add request ID for tracking
-    config.metadata = { startTime: new Date() };
     return config;
   },
   (error) => {

@@ -42,6 +42,15 @@ const upload = multer({
 // Get all files
 router.get('/', verifyToken, validatePagination, validateSearch, async (req, res) => {
   try {
+    console.log('📁 [FILES] Get files request received');
+    console.log('📁 [FILES] User:', {
+      id: req.user.userId,
+      email: req.user.email,
+      role: req.user.role,
+      organizationId: req.user.organizationId
+    });
+    console.log('📁 [FILES] Query params:', req.query);
+
     const { page = 1, limit = 10, q: search, folderId, type, organizationId } = req.query;
     const offset = (page - 1) * limit;
 
@@ -52,10 +61,12 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
     if (req.user.role === 'platform_owner' && organizationId) {
       whereConditions.push('f.organization_id = ?');
       queryParams.push(organizationId);
-    } else if (req.user.role !== 'platform_owner') {
+    } else if (req.user.role !== 'platform_owner' && req.user.organizationId) {
+      // Only filter by organization if user has one, otherwise show all files (for demo accounts)
       whereConditions.push('f.organization_id = ?');
-      queryParams.push(req.user.organization_id);
+      queryParams.push(req.user.organizationId);
     }
+    // If user has no organization_id, don't filter by organization (allow demo access)
 
     // Search filter
     if (search) {
@@ -91,7 +102,15 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       LIMIT ? OFFSET ?
     `;
 
+    console.log('📁 [FILES] Executing files query:', filesQuery);
+    console.log('📁 [FILES] Query params:', [...queryParams, parseInt(limit), offset]);
+    
     const filesResult = await executeQuery(filesQuery, [...queryParams, parseInt(limit), offset]);
+    console.log('📁 [FILES] Files query result:', {
+      success: filesResult.success,
+      fileCount: filesResult.data?.length || 0,
+      error: filesResult.error
+    });
 
     // Get total count
     const countQuery = `
@@ -100,12 +119,26 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       ${whereClause}
     `;
 
+    console.log('📁 [FILES] Executing count query:', countQuery);
     const countResult = await executeQuery(countQuery, queryParams);
+    console.log('📁 [FILES] Count query result:', {
+      success: countResult.success,
+      total: countResult.data?.[0]?.total,
+      error: countResult.error
+    });
 
     if (!filesResult.success || !countResult.success) {
+      console.error('❌ [FILES] Query failed:', {
+        filesResult: filesResult.error,
+        countResult: countResult.error
+      });
       return res.status(500).json({
         success: false,
-        message: 'Failed to fetch files'
+        message: 'Failed to fetch files',
+        error: process.env.NODE_ENV === 'development' ? {
+          filesError: filesResult.error,
+          countError: countResult.error
+        } : undefined
       });
     }
 
@@ -122,10 +155,16 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       }
     });
   } catch (error) {
-    console.error('Get files error:', error);
+    console.error('❌ [FILES] Get files error:', error);
+    console.error('❌ [FILES] Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
