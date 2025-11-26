@@ -42,6 +42,12 @@ const upload = multer({
 // Get all files
 router.get('/', verifyToken, validatePagination, validateSearch, async (req, res) => {
   try {
+    console.log('📁 [FILES] Get files request received', {
+      user: req.user.email,
+      role: req.user.role,
+      organizationId: req.user.organization_id,
+      query: req.query
+    });
     const { page = 1, limit = 10, q: search, folderId, type, organizationId } = req.query;
     const offset = (page - 1) * limit;
 
@@ -103,9 +109,16 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
     const countResult = await executeQuery(countQuery, queryParams);
 
     if (!filesResult.success || !countResult.success) {
+      console.error('📁 [FILES] Query failed:', {
+        filesResult: filesResult.error || 'Unknown error',
+        countResult: countResult.error || 'Unknown error',
+        query: filesQuery,
+        params: [...queryParams, parseInt(limit), offset]
+      });
       return res.status(500).json({
         success: false,
-        message: 'Failed to fetch files'
+        message: 'Failed to fetch files',
+        error: process.env.NODE_ENV === 'development' ? (filesResult.error || countResult.error) : undefined
       });
     }
 
