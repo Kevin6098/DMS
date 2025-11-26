@@ -99,7 +99,20 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       LIMIT ? OFFSET ?
     `;
 
+    console.log('📁 [FILES] Executing query with params:', {
+      queryParams,
+      limitNum,
+      offset,
+      totalParams: [...queryParams, limitNum, offset].length
+    });
+    
     const filesResult = await executeQuery(filesQuery, [...queryParams, limitNum, offset]);
+    
+    console.log('📁 [FILES] Files query result:', {
+      success: filesResult.success,
+      error: filesResult.error,
+      dataLength: filesResult.data?.length || 0
+    });
 
     // Get total count
     const countQuery = `
@@ -109,6 +122,12 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
     `;
 
     const countResult = await executeQuery(countQuery, queryParams);
+    
+    console.log('📁 [FILES] Count query result:', {
+      success: countResult.success,
+      error: countResult.error,
+      total: countResult.data?.[0]?.total
+    });
 
     if (!filesResult.success || !countResult.success) {
       console.error('📁 [FILES] Query failed:', {
@@ -137,10 +156,18 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       }
     });
   } catch (error) {
-    console.error('Get files error:', error);
+    console.error('❌ [FILES] Get files error:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code,
+      sqlState: error.sqlState,
+      sqlMessage: error.sqlMessage
+    });
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
