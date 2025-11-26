@@ -327,7 +327,7 @@ const Dashboard: React.FC = () => {
             <i className="fas fa-bars"></i>
           </button>
           <div className="logo">
-            <i className="fas fa-folder-open"></i>
+            <img src="/logo-square.png" alt="Task Insight" className="header-logo" />
             <span>Task Insight</span>
           </div>
           <div className="search-bar">

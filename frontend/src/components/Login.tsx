@@ -130,9 +130,7 @@ const Login: React.FC = () => {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <i className="fas fa-folder-open"></i>
-          <h1>Task Insight</h1>
-          <p>Document Management System</p>
+          <img src="/logo-vertical-white.png" alt="Task Insight" className="auth-logo" />
         </div>
         
         <div className="auth-tabs">
@@ -318,13 +316,13 @@ const Login: React.FC = () => {
               Back to options
             </button>
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <i className="fas fa-shield-alt" style={{ color: '#ff6b35' }}></i>
+              <i className="fas fa-shield-alt" style={{ color: '#141464' }}></i>
               Task Insight Admin Access
             </h3>
           </div>
-          <div style={{ background: '#fff3f0', padding: '16px', borderRadius: '8px', marginBottom: '20px', borderLeft: '4px solid #ff6b35' }}>
+          <div style={{ background: '#e0e0f0', padding: '16px', borderRadius: '8px', marginBottom: '20px', borderLeft: '4px solid #141464' }}>
             <p style={{ fontSize: '13px', color: '#5f6368', margin: 0 }}>
-              <strong style={{ color: '#ff6b35' }}>Admin Only:</strong> Only Task Insight administrators can create organizations. 
+              <strong style={{ color: '#141464' }}>Admin Only:</strong> Only Task Insight administrators can create organizations. 
               Please sign in with your admin credentials to access the Task Insight management panel.
             </p>
           </div>

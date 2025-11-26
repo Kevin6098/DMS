@@ -65,7 +65,7 @@
 }
 
 .modal-title i {
-  color: #ff6b35;
+  color: #141464;
   font-size: 1.5rem;
 }
 
@@ -124,7 +124,7 @@
 
 .file-info-box i {
   font-size: 2.5rem;
-  color: #ff6b35;
+  color: #141464;
 }
 
 .file-info-box h4 {
@@ -159,7 +159,7 @@
 .preview-not-available i {
   font-size: 3rem;
   margin-bottom: 1rem;
-  color: #ff6b35;
+  color: #141464;
 }
 
 .preview-not-available h3 {
@@ -293,7 +293,7 @@
 
 .share-info i {
   font-size: 1.5rem;
-  color: #ff6b35;
+  color: #141464;
 }
 
 .share-email {
@@ -313,7 +313,7 @@
 
 .share-permission {
   padding: 0.125rem 0.5rem;
-  background: #ff6b35;
+  background: #141464;
   color: white;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -364,9 +364,9 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #ff6b35;
+  background: #141464;
   border: 3px solid white;
-  box-shadow: 0 0 0 2px #ff6b35;
+  box-shadow: 0 0 0 2px #141464;
   z-index: 1;
 }
 
@@ -522,7 +522,7 @@
 }
 
 .files-list i {
-  color: #ff6b35;
+  color: #141464;
   font-size: 1.25rem;
 }
 

@@ -29,11 +29,17 @@
   gap: 0.5rem;
   font-size: 1.5rem;
   font-weight: bold;
-  color: #ff6b35;
+  color: #141464;
 }
 
 .logo i {
   font-size: 2rem;
+}
+
+.header-logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
 }
 
 .search-bar {
@@ -58,8 +64,8 @@
 
 .search-bar input:focus {
   outline: none;
-  border-color: #ff6b35;
-  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+  border-color: #141464;
+  box-shadow: 0 0 0 3px rgba(20, 20, 100, 0.1);
 }
 
 .header-right {
@@ -186,9 +192,9 @@
 }
 
 .nav-item.active {
-  background: #fff3f0;
-  color: #ff6b35;
-  border-right: 3px solid #ff6b35;
+  background: #e0e0f0;
+  color: #141464;
+  border-right: 3px solid #141464;
 }
 
 .nav-item i {
@@ -219,7 +225,7 @@
 
 .storage-used {
   height: 100%;
-  background: #ff6b35;
+  background: #141464;
   transition: width 0.3s;
 }
 
@@ -248,7 +254,7 @@
 }
 
 .breadcrumb-item:hover {
-  color: #ff6b35;
+  color: #141464;
 }
 
 .breadcrumb i {
@@ -322,7 +328,7 @@
 
 .file-icon {
   font-size: 3rem;
-  color: #ff6b35;
+  color: #141464;
   margin-bottom: 0.5rem;
 }
 
@@ -368,7 +374,7 @@
 }
 
 .file-actions button:hover {
-  background: #ff6b35;
+  background: #141464;
   color: white;
 }
 
@@ -402,7 +408,7 @@
 .loading i {
   font-size: 2rem;
   margin-bottom: 1rem;
-  color: #ff6b35;
+  color: #141464;
 }
 
 /* Pagination */
@@ -426,7 +432,7 @@
 
 .pagination button:hover:not(:disabled) {
   background: #f8f9fa;
-  border-color: #ff6b35;
+  border-color: #141464;
 }
 
 .pagination button:disabled {
@@ -523,8 +529,8 @@
 .form-group textarea:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #ff6b35;
-  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+  border-color: #141464;
+  box-shadow: 0 0 0 3px rgba(20, 20, 100, 0.1);
 }
 
 .upload-area {
@@ -536,8 +542,8 @@
 }
 
 .upload-area:hover {
-  border-color: #ff6b35;
-  background: #fff3f0;
+  border-color: #141464;
+  background: #e0e0f0;
 }
 
 .upload-button {
@@ -552,7 +558,7 @@
 }
 
 .upload-button:hover {
-  color: #ff6b35;
+  color: #141464;
 }
 
 .upload-button i {
@@ -574,7 +580,7 @@
 
 .progress-fill {
   height: 100%;
-  background: #ff6b35;
+  background: #141464;
   transition: width 0.3s;
 }
 
@@ -599,12 +605,12 @@
 
 .input-group button:hover {
   background: #f8f9fa;
-  border-color: #ff6b35;
+  border-color: #141464;
 }
 
 /* Button Styles */
 .btn-primary {
-  background: #ff6b35;
+  background: #141464;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -615,7 +621,7 @@
 }
 
 .btn-primary:hover {
-  background: #e55a2b;
+  background: #1a1a7a;
   transform: translateY(-1px);
 }
 

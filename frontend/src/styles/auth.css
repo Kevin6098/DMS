@@ -21,7 +21,7 @@
 .auth-header {
     text-align: center;
     padding: 32px 24px 24px;
-    background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+    background: linear-gradient(135deg, #141464 0%, #2d2d8c 100%);
     color: white;
 }
 
@@ -29,6 +29,14 @@
     font-size: 48px;
     margin-bottom: 16px;
     opacity: 0.9;
+}
+
+.auth-logo {
+    width: auto;
+    height: 120px;
+    margin: 0 auto;
+    display: block;
+    object-fit: contain;
 }
 
 .auth-header h1 {
@@ -62,7 +70,7 @@
 }
 
 .tab-btn.active {
-    color: #ff6b35;
+    color: #141464;
 }
 
 .tab-btn.active::after {
@@ -72,7 +80,7 @@
     left: 0;
     right: 0;
     height: 2px;
-    background-color: #ff6b35;
+    background-color: #141464;
 }
 
 .tab-btn:hover:not(.active) {
@@ -161,8 +169,8 @@
 }
 
 .option-card:hover {
-    border-color: #ff6b35;
-    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.25);
+    border-color: #141464;
+    box-shadow: 0 4px 12px rgba(20, 20, 100, 0.25);
     transform: translateY(-2px);
 }
 
@@ -173,7 +181,7 @@
 .option-icon {
     width: 60px;
     height: 60px;
-    background: linear-gradient(135deg, #ff6b35, #ff8c42);
+    background: linear-gradient(135deg, #141464, #2d2d8c);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -205,8 +213,8 @@
 }
 
 .feature-tag {
-    background-color: #ffe8e0;
-    color: #ff6b35;
+    background-color: #e0e0f0;
+    color: #141464;
     padding: 4px 8px;
     border-radius: 12px;
     font-size: 12px;

@@ -17,7 +17,7 @@ body {
 
 /* Button Styles */
 .btn-primary {
-    background-color: #ff6b35;
+    background-color: #141464;
     color: white;
     border: none;
     padding: 10px 16px;
@@ -32,7 +32,7 @@ body {
 }
 
 .btn-primary:hover {
-    background-color: #e55a2b;
+    background-color: #1a1a7a;
     box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
 }
 
@@ -97,8 +97,8 @@ body {
 .form-group input:focus,
 .form-group select:focus {
     outline: none;
-    border-color: #ff6b35;
-    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.2);
+    border-color: #141464;
+    box-shadow: 0 0 0 2px rgba(20, 20, 100, 0.2);
 }
 
 /* Modal Styles */

@@ -31,7 +31,7 @@ function App() {
                 success: {
                   duration: 3000,
                   iconTheme: {
-                    primary: '#ff6b35',
+                    primary: '#141464',
                     secondary: '#fff',
                   },
                 },

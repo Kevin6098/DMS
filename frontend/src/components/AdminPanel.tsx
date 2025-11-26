@@ -195,7 +195,7 @@ const AdminPanel: React.FC = () => {
       <header className="admin-header">
         <div className="header-left">
           <div className="logo">
-            <i className="fas fa-shield-alt"></i>
+            <img src="/logo-square.png" alt="Task Insight Admin" className="header-logo" />
             <span>Task Insight Admin</span>
           </div>
         </div>
