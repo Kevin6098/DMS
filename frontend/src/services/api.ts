@@ -135,8 +135,30 @@ export const apiService = {
       console.warn('Offline mode: API call blocked', url);
       return { success: false, message: 'Offline mode - backend not available' };
     }
-    const response = await api.post(url, data);
-    return response.data;
+    console.log('🌐 [API SERVICE] Making POST request:', {
+      url: `${API_BASE_URL}${url}`,
+      hasData: !!data,
+      dataKeys: data ? Object.keys(data) : []
+    });
+    try {
+      const response = await api.post(url, data);
+      console.log('🌐 [API SERVICE] POST response received:', {
+        url,
+        status: response.status,
+        hasData: !!response.data,
+        success: response.data?.success
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ [API SERVICE] POST request failed:', {
+        url,
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        responseData: error.response?.data
+      });
+      throw error;
+    }
   },
 
   // PUT request

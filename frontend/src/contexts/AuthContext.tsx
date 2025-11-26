@@ -85,11 +85,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Login function
   const login = async (email: string, password: string, adminLogin: boolean = false): Promise<boolean> => {
     try {
+      console.log('🔐 [AUTH CONTEXT] Login called with:', { email, adminLogin });
       setIsLoading(true);
+      
+      console.log('🔐 [AUTH CONTEXT] Calling authService.login...');
       const response = await authService.login({ email, password, adminLogin });
+      console.log('🔐 [AUTH CONTEXT] Response received:', {
+        success: response.success,
+        hasData: !!response.data,
+        error: response.error
+      });
       
       if (response.success && response.data) {
         const { token: newToken, user: userData, refreshToken } = response.data;
+        console.log('🔐 [AUTH CONTEXT] Login successful, storing auth data');
+        console.log('🔐 [AUTH CONTEXT] User data:', {
+          id: userData.id,
+          email: userData.email,
+          role: userData.role
+        });
         
         // Store auth data
         authService.setAuthData(newToken, userData, refreshToken);
@@ -100,9 +114,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return true;
       }
       
+      console.error('❌ [AUTH CONTEXT] Login failed - response not successful or no data');
       return false;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ [AUTH CONTEXT] Login error:', error);
+      console.error('❌ [AUTH CONTEXT] Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       return false;
     } finally {
       setIsLoading(false);

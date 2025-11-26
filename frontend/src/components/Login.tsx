@@ -41,17 +41,32 @@ const Login: React.FC = () => {
       const email = (document.getElementById('login-email') as HTMLInputElement)?.value;
       const password = (document.getElementById('login-password') as HTMLInputElement)?.value;
       
+      console.log('🔐 [LOGIN] Starting login process...');
+      console.log('🔐 [LOGIN] Email:', email);
+      console.log('🔐 [LOGIN] Password provided:', password ? '***' : 'MISSING');
+      
       if (!email || !password) {
+        console.error('❌ [LOGIN] Missing email or password');
         toast.error('Please fill in all fields');
         return;
       }
 
+      console.log('🔐 [LOGIN] Calling login function...');
       const success = await login(email, password);
+      console.log('🔐 [LOGIN] Login result:', success);
+      
       if (success) {
+        console.log('✅ [LOGIN] Login successful, navigating to dashboard');
         navigate('/dashboard');
+      } else {
+        console.error('❌ [LOGIN] Login failed');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ [LOGIN] Login error:', error);
+      console.error('❌ [LOGIN] Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -65,17 +80,32 @@ const Login: React.FC = () => {
       const email = (document.getElementById('admin-email') as HTMLInputElement)?.value;
       const password = (document.getElementById('admin-password') as HTMLInputElement)?.value;
       
+      console.log('🔐 [ADMIN LOGIN] Starting admin login process...');
+      console.log('🔐 [ADMIN LOGIN] Email:', email);
+      console.log('🔐 [ADMIN LOGIN] Password provided:', password ? '***' : 'MISSING');
+      
       if (!email || !password) {
+        console.error('❌ [ADMIN LOGIN] Missing email or password');
         toast.error('Please fill in all fields');
         return;
       }
 
+      console.log('🔐 [ADMIN LOGIN] Calling login function with admin flag...');
       const success = await login(email, password, true);
+      console.log('🔐 [ADMIN LOGIN] Login result:', success);
+      
       if (success) {
+        console.log('✅ [ADMIN LOGIN] Login successful, navigating to admin panel');
         navigate('/admin');
+      } else {
+        console.error('❌ [ADMIN LOGIN] Login failed');
       }
     } catch (error) {
-      console.error('Admin login error:', error);
+      console.error('❌ [ADMIN LOGIN] Admin login error:', error);
+      console.error('❌ [ADMIN LOGIN] Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
     } finally {
       setIsSubmitting(false);
     }

@@ -94,15 +94,34 @@ router.post('/register', validateUserRegistration, async (req, res) => {
 // Login user
 router.post('/login', validateUserLogin, async (req, res) => {
   try {
+    console.log('🔐 [BACKEND] Login request received');
+    console.log('🔐 [BACKEND] Request body:', {
+      email: req.body.email,
+      adminLogin: req.body.adminLogin,
+      hasPassword: !!req.body.password
+    });
+    console.log('🔐 [BACKEND] Request headers:', {
+      origin: req.headers.origin,
+      'content-type': req.headers['content-type']
+    });
+
     const { email, password, adminLogin } = req.body;
 
+    console.log('🔐 [BACKEND] Searching for user with email:', email);
     // Find user
     const userResult = await executeQuery(
       'SELECT u.*, o.name as organization_name FROM users u LEFT JOIN organizations o ON u.organization_id = o.id WHERE u.email = ?',
       [email]
     );
 
+    console.log('🔐 [BACKEND] Database query result:', {
+      success: userResult.success,
+      userCount: userResult.data?.length || 0,
+      error: userResult.error
+    });
+
     if (!userResult.success || userResult.data.length === 0) {
+      console.error('❌ [BACKEND] User not found:', email);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
@@ -110,18 +129,29 @@ router.post('/login', validateUserLogin, async (req, res) => {
     }
 
     const user = userResult.data[0];
+    console.log('🔐 [BACKEND] User found:', {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      status: user.status
+    });
 
     // Check if user is active
     if (user.status !== 'active') {
+      console.error('❌ [BACKEND] User account is inactive:', email);
       return res.status(401).json({
         success: false,
         message: 'Account is inactive. Please contact support.'
       });
     }
 
+    console.log('🔐 [BACKEND] Verifying password...');
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    console.log('🔐 [BACKEND] Password verification result:', isValidPassword);
+    
     if (!isValidPassword) {
+      console.error('❌ [BACKEND] Invalid password for user:', email);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
@@ -130,12 +160,17 @@ router.post('/login', validateUserLogin, async (req, res) => {
 
     // Check admin login requirement
     if (adminLogin && !['organization_admin', 'platform_owner'].includes(user.role)) {
+      console.error('❌ [BACKEND] Admin login attempted but user is not admin:', {
+        email,
+        role: user.role
+      });
       return res.status(403).json({
         success: false,
         message: 'Admin access required'
       });
     }
 
+    console.log('🔐 [BACKEND] Generating JWT tokens...');
     // Generate JWT tokens
     const token = jwt.sign(
       { 
@@ -154,6 +189,7 @@ router.post('/login', validateUserLogin, async (req, res) => {
       { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
     );
 
+    console.log('🔐 [BACKEND] Tokens generated, updating last login...');
     // Update last login
     await executeQuery(
       'UPDATE users SET last_login = NOW() WHERE id = ?',
@@ -165,6 +201,12 @@ router.post('/login', validateUserLogin, async (req, res) => {
       'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
       [user.id, user.organization_id, 'LOGIN', 'USER', user.id, JSON.stringify({ email, adminLogin: !!adminLogin })]
     );
+
+    console.log('✅ [BACKEND] Login successful, sending response for user:', {
+      id: user.id,
+      email: user.email,
+      role: user.role
+    });
 
     res.json({
       success: true,
@@ -185,7 +227,12 @@ router.post('/login', validateUserLogin, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('❌ [BACKEND] Login error:', error);
+    console.error('❌ [BACKEND] Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     res.status(500).json({
       success: false,
       message: 'Internal server error'
