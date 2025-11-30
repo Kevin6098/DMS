@@ -157,7 +157,7 @@ router.get('/activity/timeline', verifyToken, requirePlatformOwner, validatePagi
     res.json({
       success: true,
       data: {
-        activities: activityResult.data,
+        data: activityResult.data,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -199,7 +199,7 @@ router.post('/invitations/generate', verifyToken, requirePlatformOwner, async (r
 
     // Create invitation
     const invitationResult = await executeQuery(
-      'INSERT INTO invitations (code, organization_id, role, expires_at, created_by, status) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO invitations (code, organization_id, role, expires_at, generated_by, status) VALUES (?, ?, ?, ?, ?, ?)',
       [code, organizationId, role, expiresAt, req.user.id, 'active']
     );
 
@@ -272,7 +272,7 @@ router.get('/invitations', verifyToken, requirePlatformOwner, validatePagination
       SELECT i.*, o.name as organization_name, u.first_name, u.last_name
       FROM invitations i
       LEFT JOIN organizations o ON i.organization_id = o.id
-      LEFT JOIN users u ON i.created_by = u.id
+      LEFT JOIN users u ON i.generated_by = u.id
       ${whereClause}
       ORDER BY i.created_at DESC
       LIMIT ? OFFSET ?
@@ -300,7 +300,7 @@ router.get('/invitations', verifyToken, requirePlatformOwner, validatePagination
     res.json({
       success: true,
       data: {
-        invitations: invitationsResult.data,
+        data: invitationsResult.data,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),

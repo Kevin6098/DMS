@@ -12,6 +12,11 @@ export interface Organization {
   userCount: number;
   created_at: string;
   updated_at?: string;
+  invitation_code?: string;
+  invitation_id?: number;
+  invitation_role?: string;
+  invitation_expires_at?: string;
+  invitation_status?: string;
 }
 
 export interface OrganizationCreateRequest {

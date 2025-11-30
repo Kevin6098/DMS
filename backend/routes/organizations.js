@@ -29,16 +29,22 @@ router.get('/', verifyToken, requirePlatformOwner, validatePagination, validateS
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    // Get organizations with pagination
+    // Get organizations with pagination and invitation codes
     const orgsQuery = `
       SELECT o.*, 
-             COUNT(u.id) as user_count,
-             COALESCE(SUM(f.size), 0) as storage_used
+             COUNT(DISTINCT u.id) as user_count,
+             COALESCE(SUM(f.file_size), 0) as storage_used,
+             i.code as invitation_code,
+             i.id as invitation_id,
+             i.role as invitation_role,
+             i.expires_at as invitation_expires_at,
+             i.status as invitation_status
       FROM organizations o 
       LEFT JOIN users u ON o.id = u.organization_id AND u.status = 'active'
       LEFT JOIN files f ON o.id = f.organization_id AND f.status = 'active'
+      LEFT JOIN invitations i ON o.id = i.organization_id AND i.status = 'active'
       ${whereClause}
-      GROUP BY o.id
+      GROUP BY o.id, i.id, i.code, i.role, i.expires_at, i.status
       ORDER BY o.created_at DESC 
       LIMIT ? OFFSET ?
     `;
@@ -61,10 +67,35 @@ router.get('/', verifyToken, requirePlatformOwner, validatePagination, validateS
       });
     }
 
+    // Map snake_case to camelCase for frontend
+    // Group by organization ID to handle multiple invitations (though we expect one per org)
+    const orgMap = new Map();
+    orgsResult.data.forEach(org => {
+      if (!orgMap.has(org.id)) {
+        orgMap.set(org.id, {
+          id: org.id,
+          name: org.name,
+          description: org.description,
+          storageQuota: org.storage_quota,
+          storageUsed: org.storage_used || 0,
+          status: org.status,
+          userCount: org.user_count || 0,
+          created_at: org.created_at,
+          updated_at: org.updated_at,
+          invitation_code: org.invitation_code || null,
+          invitation_id: org.invitation_id || null,
+          invitation_role: org.invitation_role || null,
+          invitation_expires_at: org.invitation_expires_at || null,
+          invitation_status: org.invitation_status || null
+        });
+      }
+    });
+    const mappedOrgs = Array.from(orgMap.values());
+
     res.json({
       success: true,
       data: {
-        organizations: orgsResult.data,
+        data: mappedOrgs,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -97,8 +128,8 @@ router.get('/:id', verifyToken, async (req, res) => {
 
     const orgResult = await executeQuery(
       `SELECT o.*, 
-              COUNT(u.id) as user_count,
-              COALESCE(SUM(f.size), 0) as storage_used
+              COUNT(DISTINCT u.id) as user_count,
+              COALESCE(SUM(f.file_size), 0) as storage_used
        FROM organizations o 
        LEFT JOIN users u ON o.id = u.organization_id AND u.status = 'active'
        LEFT JOIN files f ON o.id = f.organization_id AND f.status = 'active'

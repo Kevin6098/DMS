@@ -63,11 +63,9 @@ export interface Invitation {
   organization_id: number;
   role: string;
   expires_at: string;
-  created_by: number;
+  generated_by: number;
   status: string;
   created_at: string;
-  used_at?: string;
-  cancelled_at?: string;
   organization_name?: string;
   first_name?: string;
   last_name?: string;

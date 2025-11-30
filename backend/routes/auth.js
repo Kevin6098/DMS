@@ -40,6 +40,7 @@ router.post('/register', validateUserRegistration, async (req, res) => {
         });
       }
 
+      // Link user to organization via invitation code
       orgId = invitationResult.data[0].organization_id;
     }
 
@@ -68,13 +69,8 @@ router.post('/register', validateUserRegistration, async (req, res) => {
       });
     }
 
-    // Mark invitation as used (after user is created so we can set used_by)
-    if (invitationCode) {
-      await executeQuery(
-        'UPDATE invitations SET status = "used", used_at = NOW(), used_by = ? WHERE code = ?',
-        [userResult.data.insertId, invitationCode]
-      );
-    }
+    // Note: Invitation code can be used multiple times - no tracking needed
+    // Users are automatically linked to the organization via the invitation code
 
     // Log user creation
     await executeQuery(

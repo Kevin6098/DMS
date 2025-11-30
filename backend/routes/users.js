@@ -6,8 +6,8 @@ const { validateUserUpdate, validatePagination, validateSearch } = require('../m
 
 const router = express.Router();
 
-// Get all users (admin only)
-router.get('/', verifyToken, requireOrgAdmin, validatePagination, validateSearch, async (req, res) => {
+// Get all users (platform owner or org admin)
+router.get('/', verifyToken, validatePagination, validateSearch, async (req, res) => {
   try {
     const { page = 1, limit = 10, q: search, organizationId, role, status } = req.query;
     const offset = (page - 1) * limit;
@@ -19,6 +19,12 @@ router.get('/', verifyToken, requireOrgAdmin, validatePagination, validateSearch
     if (req.user.role === 'organization_admin') {
       whereConditions.push('u.organization_id = ?');
       queryParams.push(req.user.organization_id);
+    } else if (req.user.role !== 'platform_owner') {
+      // Regular members cannot access this endpoint
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
     }
 
     // Search filter
@@ -78,10 +84,24 @@ router.get('/', verifyToken, requireOrgAdmin, validatePagination, validateSearch
       });
     }
 
+    // Map snake_case to camelCase for frontend
+    const mappedUsers = usersResult.data.map(user => ({
+      id: user.id,
+      email: user.email,
+      firstName: user.first_name || '',
+      lastName: user.last_name || '',
+      role: user.role,
+      organizationId: user.organization_id,
+      organizationName: user.organization_name || '',
+      status: user.status,
+      last_login: user.last_login,
+      created_at: user.created_at
+    }));
+
     res.json({
       success: true,
       data: {
-        users: usersResult.data,
+        data: mappedUsers,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
