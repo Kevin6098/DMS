@@ -1,7 +1,8 @@
 -- ============================================
 -- Task Insight DMS - Single Database Setup
--- Version: 2.0
+-- Version: 2.1
 -- Description: Complete database setup for Document Management System
+-- Changes: Combined invitations into organizations table, removed user_sessions table
 -- ============================================
 
 -- Create single database
@@ -29,10 +30,8 @@ DROP TABLE IF EXISTS folders;
 
 -- SYSTEM TABLES
 DROP TABLE IF EXISTS audit_logs;
-DROP TABLE IF EXISTS user_sessions;
 
 -- CORE TABLES (drop children first, then parents)
-DROP TABLE IF EXISTS invitations;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS organizations;
 
@@ -48,10 +47,16 @@ CREATE TABLE organizations (
     storage_quota BIGINT DEFAULT 5368709120, -- 5GB in bytes
     storage_used BIGINT DEFAULT 0,
     status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
+    invitation_code VARCHAR(50) NULL UNIQUE,
+    invitation_role ENUM('organization_admin', 'member') DEFAULT 'member',
+    invitation_expires_at TIMESTAMP NULL,
+    invitation_generated_by INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (invitation_generated_by) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_org_name (name),
-    INDEX idx_org_status (status)
+    INDEX idx_org_status (status),
+    INDEX idx_invitation_code (invitation_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Users Table
@@ -74,26 +79,6 @@ CREATE TABLE users (
     INDEX idx_user_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Invitations Table
-CREATE TABLE invitations (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    organization_id INT NOT NULL,
-    code VARCHAR(50) NOT NULL UNIQUE,
-    role ENUM('organization_admin', 'member') NOT NULL DEFAULT 'member',
-    generated_by INT NOT NULL,
-    status ENUM('active', 'used', 'expired', 'cancelled') DEFAULT 'active',
-    used_by INT NULL,
-    used_at TIMESTAMP NULL,
-    expires_at TIMESTAMP NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
-    FOREIGN KEY (generated_by) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (used_by) REFERENCES users(id) ON DELETE SET NULL,
-    INDEX idx_code (code),
-    INDEX idx_org_codes (organization_id, status),
-    INDEX idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
 -- FILE MANAGEMENT TABLES
@@ -247,20 +232,6 @@ CREATE TABLE starred_items (
 -- SYSTEM TABLES
 -- ============================================
 
--- User Sessions Table
-CREATE TABLE user_sessions (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL,
-    session_token VARCHAR(255) NOT NULL UNIQUE,
-    ip_address VARCHAR(45) NULL,
-    user_agent TEXT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL 24 HOUR),
-    last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_token (session_token),
-    INDEX idx_user_sessions (user_id, expires_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Audit Logs Table
 CREATE TABLE audit_logs (
@@ -324,12 +295,14 @@ VALUES (
     'active'
 );
 
--- Insert sample invitation codes
-INSERT INTO invitations (organization_id, code, role, generated_by, expires_at, status) 
-VALUES 
-    (1, 'DEMO-2024-ABCD-1234', 'member', 2, DATE_ADD(NOW(), INTERVAL 30 DAY), 'active'),
-    (1, 'DEMO-2024-EFGH-5678', 'member', 2, DATE_ADD(NOW(), INTERVAL 30 DAY), 'active'),
-    (1, 'DEMO-2024-IJKL-9012', 'organization_admin', 2, DATE_ADD(NOW(), INTERVAL 30 DAY), 'active');
+-- Update organization with invitation code
+UPDATE organizations 
+SET 
+    invitation_code = 'DEMO-2024-ABCD-1234',
+    invitation_role = 'member',
+    invitation_expires_at = DATE_ADD(NOW(), INTERVAL 365 DAY),
+    invitation_generated_by = 2
+WHERE id = 1;
 
 -- Insert sample root folder
 INSERT INTO folders (organization_id, name, description, parent_id, created_by, path, status)
@@ -359,8 +332,8 @@ SELECT * FROM organizations;
 SELECT 'Users:' as info;
 SELECT id, email, first_name, last_name, role, status FROM users;
 
-SELECT 'Invitations:' as info;
-SELECT code, role, status, expires_at FROM invitations;
+SELECT 'Organizations with Invitation Codes:' as info;
+SELECT id, name, invitation_code, invitation_role, invitation_expires_at FROM organizations WHERE invitation_code IS NOT NULL;
 
 SELECT 'Folders:' as info;
 SELECT id, name, description, path, status FROM folders;
