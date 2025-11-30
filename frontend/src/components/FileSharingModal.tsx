@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { fileService, FileItem } from '../services/fileService';
+import { fileService, FileItem, Folder } from '../services/fileService';
 import toast from 'react-hot-toast';
 
 interface FileSharingModalProps {
-  file: FileItem | null;
+  file?: FileItem | null;
+  folder?: Folder | null;
   onClose: () => void;
 }
 
@@ -13,9 +14,11 @@ interface ShareItem {
   permission: string;
   expiresAt: string;
   createdAt: string;
+  shareType?: string;
+  shareLink?: string;
 }
 
-const FileSharingModal: React.FC<FileSharingModalProps> = ({ file, onClose }) => {
+const FileSharingModal: React.FC<FileSharingModalProps> = ({ file, folder, onClose }) => {
   const [email, setEmail] = useState('');
   const [permission, setPermission] = useState<'view' | 'edit' | 'comment'>('view');
   const [expiresIn, setExpiresIn] = useState('30'); // days
@@ -26,18 +29,27 @@ const FileSharingModal: React.FC<FileSharingModalProps> = ({ file, onClose }) =>
   const [existingShares, setExistingShares] = useState<ShareItem[]>([]);
   const [isLoadingShares, setIsLoadingShares] = useState(false);
 
+  const isFolder = !!folder;
+  const item = file || folder;
+  const itemName = file?.name || folder?.name || '';
+  const itemId = file?.id || folder?.id;
+
   useEffect(() => {
-    if (file) {
+    if (itemId) {
       loadExistingShares();
     }
-  }, [file]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemId, isFolder]);
 
   const loadExistingShares = async () => {
-    if (!file) return;
+    if (!itemId) return;
 
     setIsLoadingShares(true);
     try {
-      const response = await fileService.getFileShares(file.id);
+      const response = isFolder 
+        ? await fileService.getFolderShares(itemId)
+        : await fileService.getFileShares(itemId);
+      
       if (response.success && response.data) {
         setExistingShares(response.data);
       }
@@ -49,11 +61,10 @@ const FileSharingModal: React.FC<FileSharingModalProps> = ({ file, onClose }) =>
   };
 
   const handleShare = async () => {
-    if (!file) return;
+    if (!itemId) return;
 
     if (!email && !shareLink) {
-      toast.error('Please enter an email address');
-      return;
+      // Creating a link share without email is allowed
     }
 
     setIsSharing(true);
@@ -61,16 +72,20 @@ const FileSharingModal: React.FC<FileSharingModalProps> = ({ file, onClose }) =>
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + parseInt(expiresIn));
 
-      const response = await fileService.shareFile(file.id, {
+      const shareData = {
         email: email || undefined,
         permission,
         expiresAt: expirationDate.toISOString(),
         password: usePassword ? password : undefined,
-      });
+      };
+
+      const response = isFolder
+        ? await fileService.shareFolder(itemId, shareData)
+        : await fileService.shareFile(itemId, shareData);
 
       if (response.success && response.data) {
         setShareLink(response.data.shareLink);
-        toast.success('File shared successfully!');
+        toast.success(`${isFolder ? 'Folder' : 'File'} shared successfully!`);
         loadExistingShares();
         
         // Reset form
@@ -79,18 +94,22 @@ const FileSharingModal: React.FC<FileSharingModalProps> = ({ file, onClose }) =>
         setUsePassword(false);
       }
     } catch (error) {
-      console.error('Error sharing file:', error);
-      toast.error('Failed to share file');
+      console.error('Error sharing:', error);
+      toast.error(`Failed to share ${isFolder ? 'folder' : 'file'}`);
     } finally {
       setIsSharing(false);
     }
   };
 
   const handleRevokeShare = async (shareId: number) => {
-    if (!file) return;
+    if (!itemId) return;
 
     try {
-      await fileService.revokeShare(file.id, shareId);
+      if (isFolder) {
+        await fileService.revokeFolderShare(itemId, shareId);
+      } else {
+        await fileService.revokeShare(itemId, shareId);
+      }
       toast.success('Share revoked successfully');
       loadExistingShares();
     } catch (error) {
@@ -99,21 +118,23 @@ const FileSharingModal: React.FC<FileSharingModalProps> = ({ file, onClose }) =>
     }
   };
 
-  const copyShareLink = () => {
-    if (shareLink) {
-      navigator.clipboard.writeText(shareLink);
+  const copyShareLink = (link?: string) => {
+    const linkToCopy = link || shareLink;
+    if (linkToCopy) {
+      navigator.clipboard.writeText(linkToCopy);
       toast.success('Share link copied to clipboard!');
     }
   };
 
-  if (!file) return null;
+  if (!item) return null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content share-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>
-            <i className="fas fa-share-alt"></i> Share File
+            <i className={isFolder ? "fas fa-folder" : "fas fa-share-alt"}></i> 
+            {' '}Share {isFolder ? 'Folder' : 'File'}
           </h2>
           <button className="modal-close" onClick={onClose}>
             <i className="fas fa-times"></i>
@@ -122,19 +143,20 @@ const FileSharingModal: React.FC<FileSharingModalProps> = ({ file, onClose }) =>
 
         <div className="modal-body">
           <div className="file-info-box">
-            <i className={fileService.getFileIcon(file.file_type)}></i>
+            <i className={isFolder ? "fas fa-folder" : fileService.getFileIcon(file?.file_type || '')}></i>
             <div>
-              <h4>{file.name}</h4>
-              <p>{fileService.formatFileSize(file.file_size)}</p>
+              <h4>{itemName}</h4>
+              {file && <p>{fileService.formatFileSize(file.file_size)}</p>}
+              {folder && <p>Folder</p>}
             </div>
           </div>
 
           {shareLink && (
             <div className="share-link-box">
-              <h4>Share Link Created!</h4>
+              <h4><i className="fas fa-check-circle" style={{ color: '#4caf50' }}></i> Share Link Created!</h4>
               <div className="share-link-input">
                 <input type="text" value={shareLink} readOnly />
-                <button className="btn-primary" onClick={copyShareLink}>
+                <button className="btn-primary" onClick={() => copyShareLink()}>
                   <i className="fas fa-copy"></i> Copy
                 </button>
               </div>
@@ -142,7 +164,9 @@ const FileSharingModal: React.FC<FileSharingModalProps> = ({ file, onClose }) =>
           )}
 
           <div className="form-group">
-            <label htmlFor="email">Share with Email (Optional)</label>
+            <label htmlFor="email">
+              <i className="fas fa-envelope"></i> Share with Email (Optional)
+            </label>
             <input
               id="email"
               type="email"
@@ -154,34 +178,41 @@ const FileSharingModal: React.FC<FileSharingModalProps> = ({ file, onClose }) =>
             <small>Leave empty to create a shareable link for anyone</small>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="permission">Permission Level</label>
-            <select
-              id="permission"
-              className="form-control"
-              value={permission}
-              onChange={(e) => setPermission(e.target.value as 'view' | 'edit' | 'comment')}
-            >
-              <option value="view">View Only</option>
-              <option value="comment">Can Comment</option>
-              <option value="edit">Can Edit</option>
-            </select>
-          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="permission">
+                <i className="fas fa-shield-alt"></i> Permission Level
+              </label>
+              <select
+                id="permission"
+                className="form-control"
+                value={permission}
+                onChange={(e) => setPermission(e.target.value as 'view' | 'edit' | 'comment')}
+              >
+                <option value="view">👁️ View Only</option>
+                <option value="comment">💬 Can Comment</option>
+                <option value="edit">✏️ Can Edit</option>
+              </select>
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="expiresIn">Expires In</label>
-            <select
-              id="expiresIn"
-              className="form-control"
-              value={expiresIn}
-              onChange={(e) => setExpiresIn(e.target.value)}
-            >
-              <option value="1">1 Day</option>
-              <option value="7">7 Days</option>
-              <option value="30">30 Days</option>
-              <option value="90">90 Days</option>
-              <option value="365">1 Year</option>
-            </select>
+            <div className="form-group">
+              <label htmlFor="expiresIn">
+                <i className="fas fa-clock"></i> Expires In
+              </label>
+              <select
+                id="expiresIn"
+                className="form-control"
+                value={expiresIn}
+                onChange={(e) => setExpiresIn(e.target.value)}
+              >
+                <option value="1">1 Day</option>
+                <option value="7">7 Days</option>
+                <option value="30">30 Days</option>
+                <option value="90">90 Days</option>
+                <option value="365">1 Year</option>
+                <option value="3650">Never (10 years)</option>
+              </select>
+            </div>
           </div>
 
           <div className="form-group">
@@ -191,7 +222,7 @@ const FileSharingModal: React.FC<FileSharingModalProps> = ({ file, onClose }) =>
                 checked={usePassword}
                 onChange={(e) => setUsePassword(e.target.checked)}
               />
-              <span>Password protect this share</span>
+              <span><i className="fas fa-lock"></i> Password protect this share</span>
             </label>
           </div>
 
@@ -209,28 +240,60 @@ const FileSharingModal: React.FC<FileSharingModalProps> = ({ file, onClose }) =>
             </div>
           )}
 
-          {existingShares.length > 0 && (
+          {isLoadingShares ? (
+            <div className="loading-shares">
+              <i className="fas fa-spinner fa-spin"></i> Loading shares...
+            </div>
+          ) : existingShares.length > 0 && (
             <div className="existing-shares">
-              <h4>Active Shares</h4>
+              <h4><i className="fas fa-users"></i> Active Shares ({existingShares.length})</h4>
               <div className="shares-list">
                 {existingShares.map((share) => (
                   <div key={share.id} className="share-item">
                     <div className="share-info">
-                      <i className="fas fa-user"></i>
-                      <div>
+                      <div className="share-icon">
+                        {share.email === 'Anyone with link' ? (
+                          <i className="fas fa-link"></i>
+                        ) : (
+                          <i className="fas fa-user"></i>
+                        )}
+                      </div>
+                      <div className="share-details">
                         <p className="share-email">{share.email}</p>
-                        <p className="share-details">
-                          <span className="share-permission">{share.permission}</span>
-                          <span>Expires: {new Date(share.expiresAt).toLocaleDateString()}</span>
+                        <p className="share-meta">
+                          <span className={`permission-badge ${share.permission}`}>
+                            {share.permission === 'view' && '👁️'}
+                            {share.permission === 'comment' && '💬'}
+                            {share.permission === 'edit' && '✏️'}
+                            {' '}{share.permission}
+                          </span>
+                          {share.expiresAt && (
+                            <span className="expires-date">
+                              <i className="fas fa-calendar"></i>
+                              {' '}Expires: {new Date(share.expiresAt).toLocaleDateString()}
+                            </span>
+                          )}
                         </p>
                       </div>
                     </div>
-                    <button
-                      className="btn-danger-small"
-                      onClick={() => handleRevokeShare(share.id)}
-                    >
-                      <i className="fas fa-times"></i>
-                    </button>
+                    <div className="share-actions">
+                      {(share as any).shareLink && (
+                        <button
+                          className="btn-icon"
+                          onClick={() => copyShareLink((share as any).shareLink)}
+                          title="Copy link"
+                        >
+                          <i className="fas fa-copy"></i>
+                        </button>
+                      )}
+                      <button
+                        className="btn-danger-small"
+                        onClick={() => handleRevokeShare(share.id)}
+                        title="Revoke share"
+                      >
+                        <i className="fas fa-times"></i>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -239,7 +302,9 @@ const FileSharingModal: React.FC<FileSharingModalProps> = ({ file, onClose }) =>
         </div>
 
         <div className="modal-footer">
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn-secondary" onClick={onClose}>
+            <i className="fas fa-times"></i> Cancel
+          </button>
           <button
             className="btn-primary"
             onClick={handleShare}
@@ -248,7 +313,7 @@ const FileSharingModal: React.FC<FileSharingModalProps> = ({ file, onClose }) =>
             {isSharing ? (
               <><i className="fas fa-spinner fa-spin"></i> Sharing...</>
             ) : (
-              <><i className="fas fa-share-alt"></i> Share File</>
+              <><i className="fas fa-share-alt"></i> Create Share Link</>
             )}
           </button>
         </div>
@@ -258,4 +323,3 @@ const FileSharingModal: React.FC<FileSharingModalProps> = ({ file, onClose }) =>
 };
 
 export default FileSharingModal;
-

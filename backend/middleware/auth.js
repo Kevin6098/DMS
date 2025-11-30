@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const path = require('path');
 const { executeQuery } = require('../config/database');
 
 // Verify JWT token
@@ -144,9 +145,24 @@ const requireFileAccess = async (req, res, next) => {
 
     const file = fileResult.data[0];
 
+    // Helper function to resolve file path
+    const resolveFilePath = (storagePath) => {
+      if (!storagePath) return null;
+      // If path is already absolute, return as is
+      if (path.isAbsolute(storagePath)) {
+        return storagePath;
+      }
+      // Otherwise, resolve relative to uploads directory
+      return path.resolve(__dirname, '../uploads', storagePath);
+    };
+
     // Platform owner has access to all files
     if (req.user.role === 'platform_owner') {
-      req.file = file;
+      // Set path property from storage_path for compatibility
+      req.file = {
+        ...file,
+        path: resolveFilePath(file.storage_path)
+      };
       return next();
     }
 
@@ -172,7 +188,11 @@ const requireFileAccess = async (req, res, next) => {
       });
     }
 
-    req.file = file;
+    // Set path property from storage_path for compatibility
+    req.file = {
+      ...file,
+      path: resolveFilePath(file.storage_path)
+    };
     next();
   } catch (error) {
     return res.status(500).json({

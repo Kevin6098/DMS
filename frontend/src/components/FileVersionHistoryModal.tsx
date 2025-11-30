@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fileService, FileItem } from '../services/fileService';
+import { fileService, FileItem, FileVersion } from '../services/fileService';
 import toast from 'react-hot-toast';
 
 interface FileVersionHistoryModalProps {
@@ -8,22 +8,21 @@ interface FileVersionHistoryModalProps {
   onVersionRestored?: () => void;
 }
 
-interface FileVersion {
-  id: number;
-  version: number;
-  fileName: string;
-  fileSize: number;
-  uploadedBy: string;
-  uploadedAt: string;
-  description?: string;
-}
-
 const FileVersionHistoryModal: React.FC<FileVersionHistoryModalProps> = ({ 
   file, 
   onClose, 
   onVersionRestored 
 }) => {
-  const [versions, setVersions] = useState<FileVersion[]>([]);
+  const [versions, setVersions] = useState<Array<{
+    id: number;
+    version: number;
+    fileName: string;
+    fileSize: number;
+    uploadedBy: string;
+    uploadedAt: string;
+    description?: string;
+    is_current?: boolean;
+  }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
@@ -40,7 +39,20 @@ const FileVersionHistoryModal: React.FC<FileVersionHistoryModalProps> = ({
     try {
       const response = await fileService.getFileVersions(file.id);
       if (response.success && response.data) {
-        setVersions(response.data);
+        // Map backend format to component format
+        const mappedVersions = response.data.map((v: FileVersion) => ({
+          id: v.id || 0,
+          version: v.version_number,
+          fileName: file.name,
+          fileSize: v.file_size,
+          uploadedBy: v.first_name && v.last_name 
+            ? `${v.first_name} ${v.last_name}` 
+            : v.email || 'Unknown',
+          uploadedAt: v.created_at,
+          description: v.version_note || undefined,
+          is_current: v.is_current || false
+        }));
+        setVersions(mappedVersions);
       }
     } catch (error) {
       console.error('Error loading versions:', error);
@@ -125,7 +137,7 @@ const FileVersionHistoryModal: React.FC<FileVersionHistoryModalProps> = ({
             <div className="versions-list">
               <div className="versions-timeline">
                 {versions.map((version, index) => (
-                  <div key={version.id} className={`version-item ${index === 0 ? 'current' : ''}`}>
+                  <div key={version.id || `version-${version.version}`} className={`version-item ${version.is_current ? 'current' : ''}`}>
                     <div className="version-marker">
                       <div className="version-dot"></div>
                       {index < versions.length - 1 && <div className="version-line"></div>}
@@ -134,8 +146,8 @@ const FileVersionHistoryModal: React.FC<FileVersionHistoryModalProps> = ({
                       <div className="version-header">
                         <div className="version-info">
                           <h4>
-                            Version {version.version}
-                            {index === 0 && <span className="badge-current">Current</span>}
+                            {version.is_current ? 'Current version' : `Version ${version.version}`} {version.fileName}
+                            {version.is_current && <span className="badge-current">Current</span>}
                           </h4>
                           <p className="version-meta">
                             <i className="fas fa-user"></i> {version.uploadedBy}
@@ -146,14 +158,16 @@ const FileVersionHistoryModal: React.FC<FileVersionHistoryModalProps> = ({
                           </p>
                         </div>
                         <div className="version-actions">
-                          <button
-                            className="btn-icon"
-                            title="Download this version"
-                            onClick={() => handleDownloadVersion(version.id, version.fileName)}
-                          >
-                            <i className="fas fa-download"></i>
-                          </button>
-                          {index !== 0 && (
+                          {version.id > 0 && (
+                            <button
+                              className="btn-icon"
+                              title="Download this version"
+                              onClick={() => handleDownloadVersion(version.id, version.fileName)}
+                            >
+                              <i className="fas fa-download"></i>
+                            </button>
+                          )}
+                          {!version.is_current && version.id > 0 && (
                             <button
                               className="btn-icon"
                               title="Restore this version"

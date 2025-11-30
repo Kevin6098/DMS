@@ -52,28 +52,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             console.log('Offline mode: Using stored auth data');
             setToken(storedToken);
             setUser(storedUser);
-          } else {
-            // Verify token is still valid
-            try {
-              const response = await authService.verifyToken();
-              if (response.success && response.data) {
-                setToken(storedToken);
-                setUser(response.data.user);
-              } else {
-                // Token is invalid, clear auth data
-                authService.clearAuthData();
-              }
-            } catch (error) {
-              // If backend is not available, use stored data but mark as potentially stale
-              console.warn('Backend not available, using stored auth data');
-              setToken(storedToken);
-              setUser(storedUser);
-            }
+            setIsLoading(false);
+            return;
           }
+          
+          // Verify token is still valid
+          try {
+            const response = await authService.verifyToken();
+            if (response.success && response.data) {
+              setToken(storedToken);
+              setUser(response.data.user);
+            } else {
+              // Token is invalid, clear auth data
+              console.log('Token verification failed, clearing auth data');
+              authService.clearAuthData();
+              setToken(null);
+              setUser(null);
+            }
+          } catch (error: any) {
+            // If backend is not available or verification fails, clear auth data to prevent loops
+            console.warn('Token verification error:', error?.message || error);
+            console.warn('Clearing auth data to prevent redirect loops');
+            authService.clearAuthData();
+            setToken(null);
+            setUser(null);
+          }
+        } else {
+          // No stored auth data
+          setToken(null);
+          setUser(null);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
         authService.clearAuthData();
+        setToken(null);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }

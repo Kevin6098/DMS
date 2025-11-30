@@ -45,9 +45,22 @@ export interface FileUpdateRequest {
 
 export interface FileFilters {
   search?: string;
-  folderId?: number;
+  folderId?: number | null; // null means root files (folder_id IS NULL), number means specific folder, undefined means no filter
   type?: string;
   organizationId?: number;
+}
+
+export interface FileVersion {
+  id: number | null;
+  version_number: number;
+  file_size: number;
+  storage_path: string;
+  created_at: string;
+  version_note?: string | null;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  is_current?: boolean;
 }
 
 export interface Folder {
@@ -92,11 +105,22 @@ export const fileService = {
     limit: number = 10,
     filters?: FileFilters
   ): Promise<ApiResponse<FilesPaginationResponse<FileItem>>> => {
-    const params = {
+    const params: any = {
       page,
       limit,
-      ...filters,
     };
+    
+    // Handle filters, explicitly convert null to string "null" for folderId
+    if (filters) {
+      if (filters.search) params.q = filters.search;
+      if (filters.type) params.type = filters.type;
+      if (filters.organizationId) params.organizationId = filters.organizationId;
+      if (filters.folderId !== undefined) {
+        // Convert null to string "null" so backend can distinguish between null (root) and undefined (all files)
+        params.folderId = filters.folderId === null ? 'null' : filters.folderId;
+      }
+    }
+    
     return apiService.get<FilesPaginationResponse<FileItem>>('/files', params);
   },
 
@@ -151,14 +175,22 @@ export const fileService = {
   },
 
   // Get folders
-  getFolders: async (organizationId?: number): Promise<ApiResponse<Folder[]>> => {
-    const params = organizationId ? { organizationId } : {};
+  getFolders: async (organizationId?: number, parentId?: number | null, search?: string): Promise<ApiResponse<Folder[]>> => {
+    const params: any = {};
+    if (organizationId) params.organizationId = organizationId;
+    if (parentId !== undefined) params.parentId = parentId;
+    if (search) params.q = search;
     return apiService.get<Folder[]>('/files/folders/list', params);
   },
 
   // Create folder
   createFolder: async (folderData: FolderCreateRequest): Promise<ApiResponse<{ folderId: number; name: string; description?: string; parentId?: number }>> => {
     return apiService.post<{ folderId: number; name: string; description?: string; parentId?: number }>('/files/folders', folderData);
+  },
+
+  // Delete folder
+  deleteFolder: async (folderId: number): Promise<ApiResponse<void>> => {
+    return apiService.delete<void>(`/files/folders/${folderId}`);
   },
 
   // Get file statistics
@@ -245,23 +277,36 @@ export const fileService = {
     return apiService.delete<void>(`/files/${fileId}/shares/${shareId}`);
   },
 
+  // Share a folder
+  shareFolder: async (folderId: number, shareData: {
+    email?: string;
+    permission: 'view' | 'edit' | 'comment';
+    expiresAt?: string;
+  }): Promise<ApiResponse<{ shareLink: string; shareId: number }>> => {
+    return apiService.post<{ shareLink: string; shareId: number }>(`/files/folders/${folderId}/share`, shareData);
+  },
+
+  // Get folder shares
+  getFolderShares: async (folderId: number): Promise<ApiResponse<Array<{
+    id: number;
+    email: string;
+    permission: string;
+    expiresAt: string;
+    createdAt: string;
+  }>>> => {
+    return apiService.get<Array<any>>(`/files/folders/${folderId}/shares`);
+  },
+
+  // Revoke folder share
+  revokeFolderShare: async (folderId: number, shareId: number): Promise<ApiResponse<void>> => {
+    return apiService.delete<void>(`/files/folders/${folderId}/shares/${shareId}`);
+  },
+
   // Get shared with me files
   getSharedWithMe: async (page: number = 1, limit: number = 10): Promise<ApiResponse<FilesPaginationResponse<FileItem>>> => {
     return apiService.get<FilesPaginationResponse<FileItem>>('/files/shared-with-me', { page, limit });
   },
 
-  // File Version History
-  getFileVersions: async (fileId: number): Promise<ApiResponse<Array<{
-    id: number;
-    version: number;
-    fileName: string;
-    fileSize: number;
-    uploadedBy: string;
-    uploadedAt: string;
-    description?: string;
-  }>>> => {
-    return apiService.get<Array<any>>(`/files/${fileId}/versions`);
-  },
 
   // Download specific version
   downloadFileVersion: async (fileId: number, versionId: number, filename?: string): Promise<void> => {
@@ -288,6 +333,20 @@ export const fileService = {
            type.includes('png') || type.includes('gif') ||
            type.includes('mp4') || type.includes('avi') || type.includes('mov') ||
            type.includes('txt') || type.includes('doc') || type.includes('docx');
+  },
+
+  // Check if file is an image
+  isImage: (fileType: string): boolean => {
+    const type = fileType.toLowerCase();
+    return type.includes('jpg') || type.includes('jpeg') || 
+           type.includes('png') || type.includes('gif') ||
+           type.includes('webp') || type.includes('bmp') || type.includes('svg');
+  },
+
+  // Get thumbnail URL for image files
+  getThumbnailUrl: (fileId: number): string => {
+    const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
+    return `${baseUrl}/files/${fileId}/preview`;
   },
 
   // Zip files
@@ -324,5 +383,112 @@ export const fileService = {
     return apiService.post<{ extractedFiles: number }>(`/files/${fileId}/unzip`, {
       targetFolderId
     });
+  },
+
+  // Rename file
+  renameFile: async (fileId: number, newName: string): Promise<ApiResponse<void>> => {
+    return apiService.put<void>(`/files/${fileId}/rename`, { name: newName });
+  },
+
+  // Rename folder
+  renameFolder: async (folderId: number, newName: string): Promise<ApiResponse<void>> => {
+    return apiService.put<void>(`/files/folders/${folderId}/rename`, { name: newName });
+  },
+
+  // Move file to folder
+  moveFile: async (fileId: number, targetFolderId: number | null): Promise<ApiResponse<void>> => {
+    return apiService.put<void>(`/files/${fileId}/move`, { folderId: targetFolderId });
+  },
+
+  // Move folder to another folder
+  moveFolder: async (folderId: number, targetFolderId: number | null): Promise<ApiResponse<void>> => {
+    return apiService.put<void>(`/files/folders/${folderId}/move`, { parentId: targetFolderId });
+  },
+
+  // Download folder as zip
+  downloadFolder: async (folderId: number, folderName: string): Promise<void> => {
+    const token = localStorage.getItem('token');
+    const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
+    
+    const response = await fetch(`${baseUrl}/files/folders/${folderId}/download`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to download folder' }));
+      throw new Error(errorData.message || 'Failed to download folder');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${folderName.replace(/[^a-zA-Z0-9_-]/g, '_')}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
+
+  // Get file versions
+  getFileVersions: async (fileId: number): Promise<ApiResponse<FileVersion[]>> => {
+    return apiService.get<FileVersion[]>(`/files/${fileId}/versions`);
+  },
+
+  // Upload new version
+  uploadNewVersion: async (
+    fileId: number,
+    file: File,
+    onProgress?: (progress: number) => void
+  ): Promise<ApiResponse<{ version: number; fileId: number }>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = localStorage.getItem('token');
+    const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
+    
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable && onProgress) {
+          const progress = Math.round((e.loaded / e.total) * 100);
+          onProgress(progress);
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve(response);
+          } catch (error) {
+            reject(new Error('Failed to parse response'));
+          }
+        } else {
+          try {
+            const error = JSON.parse(xhr.responseText);
+            reject(new Error(error.message || 'Upload failed'));
+          } catch {
+            reject(new Error('Upload failed'));
+          }
+        }
+      });
+
+      xhr.addEventListener('error', () => reject(new Error('Upload failed')));
+      xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+
+      xhr.open('POST', `${baseUrl}/files/${fileId}/versions`);
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.send(formData);
+    });
+  },
+
+  // Keep version forever
+  keepVersionForever: async (fileId: number, versionId: number): Promise<ApiResponse<void>> => {
+    return apiService.put<void>(`/files/${fileId}/versions/${versionId}/keep`);
   },
 };

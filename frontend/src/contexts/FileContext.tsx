@@ -17,8 +17,8 @@ interface FileContextType {
     total: number;
     pages: number;
   };
-  loadFiles: (page?: number, newFilters?: FileFilters) => Promise<void>;
-  loadFolders: () => Promise<void>;
+  loadFiles: (page?: number, newFilters?: FileFilters, overrideFolderId?: number | null) => Promise<void>;
+  loadFolders: (overrideParentId?: number | null, searchQuery?: string) => Promise<void>;
   uploadFile: (file: File, fileData: {
     name?: string;
     description?: string;
@@ -68,22 +68,42 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
   const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
 
   // Load files
-  const loadFiles = async (page: number = 1, newFilters: FileFilters = {}): Promise<void> => {
+  const loadFiles = async (page: number = 1, newFilters: FileFilters = {}, overrideFolderId?: number | null): Promise<void> => {
     if (!isAuthenticated || !user) return;
 
     try {
       setIsLoading(true);
-      const currentFilters = { ...filters, ...newFilters };
-      if (currentFolder) {
-        currentFilters.folderId = currentFolder;
+      // Start with newFilters to ensure search query is included
+      const currentFilters: FileFilters = { ...newFilters };
+      
+      // If there's a search query, don't filter by folderId (search globally)
+      // Otherwise, use overrideFolderId if provided, or currentFolder state
+      if (currentFilters.search) {
+        // When searching, remove folderId filter to search all folders
+        delete currentFilters.folderId;
+      } else {
+        // No search - use folder filter
+        const folderIdToUse = overrideFolderId !== undefined ? overrideFolderId : currentFolder;
+        if (folderIdToUse !== undefined) {
+          currentFilters.folderId = folderIdToUse;
+        } else {
+          // If folderIdToUse is undefined, remove the filter to show all files
+          delete currentFilters.folderId;
+        }
       }
       
-      const response = await fileService.getFiles(page, pagination.limit, currentFilters);
+      // Merge with existing filters but prioritize newFilters
+      // If searching, don't merge old filters that might interfere
+      const finalFilters = currentFilters.search 
+        ? currentFilters // When searching, use only the new filters
+        : { ...filters, ...currentFilters }; // Otherwise, merge with existing filters
+      
+      const response = await fileService.getFiles(page, pagination.limit, finalFilters);
       
       if (response.success && response.data) {
         setFiles(response.data.files || []);
         setPagination(response.data.pagination);
-        setFilters(currentFilters);
+        setFilters(finalFilters);
       } else {
         console.error('Failed to load files:', response.message);
         setFiles([]);
@@ -97,12 +117,15 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
   };
 
   // Load folders
-  const loadFolders = async (): Promise<void> => {
+  const loadFolders = async (overrideParentId?: number | null, searchQuery?: string): Promise<void> => {
     if (!isAuthenticated || !user) return;
 
     try {
       const organizationId = user.organizationId;
-      const response = await fileService.getFolders(organizationId);
+      // Use overrideParentId if provided, otherwise use currentFolder state
+      // When searching, pass undefined for parentId to search all folders
+      const parentIdToUse = searchQuery ? undefined : (overrideParentId !== undefined ? overrideParentId : currentFolder);
+      const response = await fileService.getFolders(organizationId, parentIdToUse, searchQuery);
       
       if (response.success && response.data) {
         setFolders(response.data || []);
@@ -265,7 +288,9 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
   // Set current folder
   const handleSetCurrentFolder = (folderId: number | null): void => {
     setCurrentFolder(folderId);
-    loadFiles(1); // Reset to page 1 when changing folder
+    // Pass folderId directly to loadFiles and loadFolders to avoid stale state issue
+    loadFiles(1, {}, folderId); // Reset to page 1 when changing folder
+    loadFolders(folderId); // Load folders for the current folder
   };
 
   // Set filters

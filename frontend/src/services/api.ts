@@ -43,11 +43,20 @@ api.interceptors.response.use(
       
       switch (status) {
         case 401:
-          // Unauthorized - clear token and redirect to login
+          // Unauthorized - clear token
+          // Don't use window.location.href as it causes hard refresh
+          // Let React Router handle the redirect
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          window.location.href = '/login';
-          toast.error('Session expired. Please login again.');
+          localStorage.removeItem('refreshToken');
+          // Only show toast if not already on login page
+          if (!window.location.pathname.includes('/login')) {
+            toast.error('Session expired. Please login again.');
+            // Use setTimeout to allow React Router to handle navigation
+            setTimeout(() => {
+              window.location.href = '/login';
+            }, 100);
+          }
           break;
         case 403:
           toast.error('Access denied. You do not have permission to perform this action.');

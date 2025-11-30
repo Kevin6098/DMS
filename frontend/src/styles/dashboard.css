@@ -4,6 +4,50 @@
   flex-direction: column;
   height: 100vh;
   background: #f8f9fa;
+  position: relative;
+}
+
+/* Drag and Drop Overlay */
+.drag-drop-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.drag-drop-content {
+  background: white;
+  padding: 3rem 4rem;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.drag-drop-content i {
+  font-size: 4rem;
+  color: #4285f4;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.drag-drop-content h2 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.drag-drop-content p {
+  margin: 0;
+  color: #666;
+  font-size: 1rem;
 }
 
 /* Header */
@@ -52,14 +96,40 @@
   position: absolute;
   left: 1rem;
   color: #6c757d;
+  z-index: 1;
 }
 
 .search-bar input {
   padding: 0.75rem 1rem 0.75rem 3rem;
+  padding-right: 3rem; /* Make room for clear button (12px margin + button) */
   border: 1px solid #e9ecef;
   border-radius: 0.5rem;
   width: 300px;
   font-size: 0.9rem;
+}
+
+.search-clear {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  z-index: 2;
+  margin-right: 12px; /* Reset any default margin */
+}
+
+.search-clear:hover {
+  color: #141464;
+}
+
+.search-clear i {
+  font-size: 0.875rem;
 }
 
 .search-bar input:focus {
@@ -290,6 +360,7 @@
 .toolbar-left {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
 }
 
 .toolbar-right {
@@ -297,11 +368,305 @@
   gap: 0.5rem;
 }
 
+/* New Button (Google Drive style) */
+.new-button-container {
+  position: relative;
+  margin-right: 0.5rem;
+}
+
+.btn-new {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: white;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  color: #1a73e8;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
+}
+
+.btn-new:hover {
+  background: #f8f9fa;
+  box-shadow: 0 1px 3px 0 rgba(60,64,67,.3), 0 4px 8px 3px rgba(60,64,67,.15);
+}
+
+.btn-new:active {
+  background: #f1f3f4;
+  box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
+}
+
+.btn-new i {
+  font-size: 1rem;
+}
+
+/* New Menu Dropdown */
+.new-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: white;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  min-width: 280px;
+  z-index: 1000;
+  padding: 8px 0;
+  margin-top: 4px;
+}
+
+.new-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  color: #202124;
+}
+
+.new-menu-item:hover {
+  background-color: #f1f3f4;
+}
+
+.new-menu-item:active {
+  background-color: #e8eaed;
+}
+
+.new-menu-item i {
+  font-size: 1.25rem;
+  color: #5f6368;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.new-menu-item > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.new-menu-item-title {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #202124;
+  line-height: 1.25rem;
+}
+
+.new-menu-item-desc {
+  font-size: 0.75rem;
+  color: #5f6368;
+  line-height: 1rem;
+}
+
 /* Files Container */
 .files-container {
   display: grid;
   gap: 1rem;
   margin-bottom: 2rem;
+}
+
+/* Table View (Windows-style) */
+.files-table-container {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+}
+
+.files-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.files-table thead {
+  background: #f8f9fa;
+  border-bottom: 2px solid #e9ecef;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.files-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-right: 1px solid #e9ecef;
+  user-select: none;
+  position: relative;
+}
+
+.files-table th:last-child {
+  border-right: none;
+}
+
+.files-table th:hover {
+  background: #e9ecef;
+  cursor: pointer;
+}
+
+.files-table th.col-name {
+  width: 40%;
+  min-width: 200px;
+}
+
+.files-table th.col-type {
+  width: 20%;
+  min-width: 120px;
+}
+
+.files-table th.col-size {
+  width: 15%;
+  min-width: 100px;
+  text-align: right;
+}
+
+.files-table th.col-owner {
+  width: 20%;
+  min-width: 150px;
+}
+
+.files-table th.col-actions {
+  width: 5%;
+  min-width: 80px;
+  text-align: center;
+}
+
+.files-table tbody tr {
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+}
+
+.files-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.files-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.files-table td {
+  padding: 12px 16px;
+  vertical-align: middle;
+  border-right: 1px solid #f0f0f0;
+  color: #495057;
+}
+
+.files-table td:last-child {
+  border-right: none;
+}
+
+.files-table td.col-name {
+  font-weight: 500;
+}
+
+.files-table td.col-size {
+  text-align: right;
+  color: #6c757d;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.files-table td.col-type {
+  color: #6c757d;
+}
+
+.files-table td.col-owner {
+  color: #6c757d;
+}
+
+.files-table td.col-actions {
+  text-align: center;
+  padding: 8px;
+}
+
+.table-cell-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.table-icon {
+  font-size: 1.25rem;
+  color: #141464;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.table-row.folder-row .table-icon {
+  color: #ffc107;
+}
+
+.table-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.table-row:hover .table-actions {
+  opacity: 1;
+}
+
+.table-actions button {
+  padding: 6px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-actions button:hover {
+  background: #e9ecef;
+  color: #141464;
+}
+
+.table-actions button .fa-star.starred {
+  color: #ffc107 !important;
+}
+
+.table-actions button .fa-star:not(.starred) {
+  color: #6c757d;
+}
+
+/* Empty table state */
+.files-table-container:has(tbody:empty)::after {
+  content: 'No files or folders';
+  display: block;
+  padding: 40px;
+  text-align: center;
+  color: #6c757d;
 }
 
 .files-container.grid {
@@ -316,24 +681,42 @@
   background: white;
   border-radius: 0.5rem;
   padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: all 0.2s;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
 }
 
 /* Starred icon styling */
+/* Starred items - always yellow, filled star */
 .fa-star.starred {
   color: #ffc107 !important;
 }
 
-.file-actions button .fa-star {
-  transition: color 0.2s ease;
+/* Unstarred items - always grey, outline star */
+.file-actions button .fa-star:not(.starred) {
+  color: #6c757d;
+  transition: opacity 0.2s ease;
 }
 
-.file-actions button:hover .fa-star {
-  color: #ffc107;
+/* Hover effect for unstarred stars - subtle opacity change */
+.file-actions button:hover .fa-star:not(.starred) {
+  color: #6c757d;
+  opacity: 0.7;
 }
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  transition: all 0.2s;
-  cursor: pointer;
-  position: relative;
+
+/* Starred stars stay yellow even on hover */
+.file-actions button:hover .fa-star.starred {
+  color: #ffc107 !important;
+  opacity: 1;
+}
+
+/* General star transition */
+.file-actions button .fa-star {
+  transition: color 0.2s ease, opacity 0.2s ease;
 }
 
 .file-item:hover {
@@ -358,6 +741,22 @@
   font-size: 3rem;
   color: #141464;
   margin-bottom: 0.5rem;
+  width: 100%;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.file-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
 }
 
 .file-item.list .file-icon {
@@ -764,6 +1163,18 @@
   .search-bar {
     display: none;
   }
+
+  /* Responsive context menu for mobile */
+  .context-menu {
+    min-width: 180px;
+    max-width: calc(100vw - 20px);
+    font-size: 14px;
+  }
+
+  .context-menu-item {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
   
   .files-container.grid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -866,4 +1277,91 @@
     width: 100%;
     justify-content: center;
   }
+}
+
+/* Context Menu Styles */
+.context-menu {
+  animation: contextMenuFadeIn 0.15s ease-out;
+  position: fixed;
+  /* Ensure menu stays within viewport */
+  max-width: calc(100vw - 20px);
+  max-height: calc(100vh - 20px);
+  overflow-y: auto;
+  /* Smooth scrolling for long menus */
+  -webkit-overflow-scrolling: touch;
+}
+
+@keyframes contextMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+
+.context-menu-item:hover {
+  background-color: #f5f5f5;
+}
+
+.context-menu-item i {
+  width: 18px;
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+}
+
+.context-menu-item span {
+  flex: 1;
+}
+
+.context-menu-item-danger {
+  color: #dc3545;
+}
+
+.context-menu-item-danger:hover {
+  background-color: #fff5f5;
+}
+
+.context-menu-item-danger i {
+  color: #dc3545;
+}
+
+/* More button (3 dots) */
+.btn-more {
+  padding: 6px 8px !important;
+  border-radius: 50% !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.btn-more:hover {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.btn-more i {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Folder select item in Move modal */
+.folder-select-item:hover {
+  background-color: #f8f9fa !important;
+  border-color: #007bff !important;
 }

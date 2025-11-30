@@ -2,6 +2,8 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
+const fsSync = require('fs');
+const archiver = require('archiver');
 const { executeQuery } = require('../config/database');
 const { verifyToken, requireFileAccess } = require('../middleware/auth');
 const { validateFileUpload, validateFileUpdate, validateFolder, validatePagination, validateSearch } = require('../middleware/validation');
@@ -65,17 +67,24 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       queryParams.push(req.user.organization_id);
     }
 
-    // Search filter
+    // Search filter (case-insensitive)
     if (search) {
-      whereConditions.push('(f.name LIKE ? OR f.description LIKE ?)');
-      const searchPattern = `%${search}%`;
+      whereConditions.push('(LOWER(f.name) LIKE ? OR LOWER(f.description) LIKE ?)');
+      const searchPattern = `%${search.toLowerCase()}%`;
       queryParams.push(searchPattern, searchPattern);
     }
 
     // Folder filter
-    if (folderId) {
-      whereConditions.push('f.folder_id = ?');
-      queryParams.push(folderId);
+    // If folderId is provided, show files in that folder
+    // If folderId is explicitly null or "null", show root files (folder_id IS NULL)
+    // If folderId is not provided, show all files (no filter)
+    if (folderId !== undefined) {
+      if (folderId === null || folderId === 'null' || folderId === '') {
+        whereConditions.push('f.folder_id IS NULL');
+      } else {
+        whereConditions.push('f.folder_id = ?');
+        queryParams.push(folderId);
+      }
     }
 
     // File type filter
@@ -90,24 +99,27 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
     // Note: LIMIT and OFFSET must be integers, not placeholders (MySQL limitation)
     const filesQuery = `
       SELECT f.*, u.first_name, u.last_name, u.email, 
-             fo.name as folder_name, o.name as organization_name
+             fo.name as folder_name, o.name as organization_name,
+             (si.id IS NOT NULL) as is_starred
       FROM files f 
       LEFT JOIN users u ON f.uploaded_by = u.id
       LEFT JOIN folders fo ON f.folder_id = fo.id
       LEFT JOIN organizations o ON f.organization_id = o.id
+      LEFT JOIN starred_items si ON si.item_id = f.id AND si.item_type = 'file' AND si.user_id = ?
       ${whereClause}
       ORDER BY f.created_at DESC 
       LIMIT ${limitNum} OFFSET ${offset}
     `;
 
     console.log('📁 [FILES] Executing query with params:', {
+      userId: req.user.id,
       queryParams,
       limitNum,
       offset,
-      totalParams: queryParams.length
+      totalParams: [req.user.id, ...queryParams].length
     });
     
-    const filesResult = await executeQuery(filesQuery, queryParams);
+    const filesResult = await executeQuery(filesQuery, [req.user.id, ...queryParams]);
     
     console.log('📁 [FILES] Files query result:', {
       success: filesResult.success,
@@ -234,45 +246,109 @@ router.post('/upload', verifyToken, upload.single('file'), validateFileUpload, a
       }
     }
 
-    // Create file record
-    const fileResult = await executeQuery(
-      'INSERT INTO files (name, original_name, storage_path, file_size, file_type, description, organization_id, uploaded_by, folder_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [
-        name || file.originalname,
-        file.originalname,
-        file.path,
-        file.size,
-        path.extname(file.originalname).toLowerCase(),
-        description || null,
-        req.user.organization_id,
-        req.user.id,
-        folderId || null,
-        'active'
-      ]
-    );
+    const fileName = name || file.originalname;
+    const targetFolderId = folderId || null;
 
-    if (!fileResult.success) {
-      await fs.unlink(file.path);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to save file record'
-      });
+    // Check if a file with the same name exists in the same folder
+    // Use IS NULL for null comparison, = for number comparison
+    let existingFileQuery;
+    let existingFileParams;
+    if (targetFolderId === null || targetFolderId === undefined) {
+      existingFileQuery = 'SELECT id, current_version FROM files WHERE name = ? AND folder_id IS NULL AND organization_id = ? AND status = "active"';
+      existingFileParams = [fileName, req.user.organization_id];
+    } else {
+      existingFileQuery = 'SELECT id, current_version FROM files WHERE name = ? AND folder_id = ? AND organization_id = ? AND status = "active"';
+      existingFileParams = [fileName, targetFolderId, req.user.organization_id];
+    }
+    
+    const existingFileResult = await executeQuery(existingFileQuery, existingFileParams);
+
+    let fileId;
+    let isNewVersion = false;
+
+    if (existingFileResult.success && existingFileResult.data.length > 0) {
+      // File with same name exists - create a new version instead
+      const existingFile = existingFileResult.data[0];
+      fileId = existingFile.id;
+      isNewVersion = true;
+
+      // Get next version number
+      const currentVersion = existingFile.current_version || 0;
+      const newVersionNumber = currentVersion + 1;
+
+      // Save old version to file_versions table before updating
+      const oldVersionResult = await executeQuery(
+        'SELECT storage_path, file_size FROM files WHERE id = ?',
+        [fileId]
+      );
+
+      if (oldVersionResult.success && oldVersionResult.data.length > 0) {
+        const oldFile = oldVersionResult.data[0];
+        // Create version record for the old file
+        await executeQuery(
+          'INSERT INTO file_versions (file_id, version_number, file_size, storage_path, uploaded_by) VALUES (?, ?, ?, ?, ?)',
+          [fileId, currentVersion, oldFile.file_size, oldFile.storage_path, req.user.id]
+        );
+      }
+
+      // Update file with new version
+      const updateResult = await executeQuery(
+        'UPDATE files SET storage_path = ?, file_size = ?, current_version = ?, updated_at = NOW(), last_modified_at = NOW(), last_modified_by = ? WHERE id = ?',
+        [file.path, file.size, newVersionNumber, req.user.id, fileId]
+      );
+
+      if (!updateResult.success) {
+        await fs.unlink(file.path);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to update file version'
+        });
+      }
+    } else {
+      // Create new file record
+      const fileResult = await executeQuery(
+        'INSERT INTO files (name, original_name, storage_path, file_size, file_type, description, organization_id, uploaded_by, folder_id, status, current_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          fileName,
+          file.originalname,
+          file.path,
+          file.size,
+          path.extname(file.originalname).toLowerCase(),
+          description || null,
+          req.user.organization_id,
+          req.user.id,
+          targetFolderId,
+          'active',
+          1 // First version
+        ]
+      );
+
+      if (!fileResult.success) {
+        await fs.unlink(file.path);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to save file record'
+        });
+      }
+
+      fileId = fileResult.data.insertId;
     }
 
-    // Log file upload
+    // Log file upload/version
     await executeQuery(
       'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
-      [req.user.id, req.user.organization_id, 'CREATE', 'FILE', fileResult.data.insertId, JSON.stringify({ name: name || file.originalname, size: file.size })]
+      [req.user.id, req.user.organization_id, isNewVersion ? 'VERSION' : 'CREATE', 'FILE', fileId, JSON.stringify({ name: fileName, size: file.size, isNewVersion })]
     );
 
     res.status(201).json({
       success: true,
-      message: 'File uploaded successfully',
+      message: isNewVersion ? 'New version uploaded successfully' : 'File uploaded successfully',
       data: {
-        fileId: fileResult.data.insertId,
-        name: name || file.originalname,
+        fileId: fileId,
+        name: fileName,
         size: file.size,
-        type: path.extname(file.originalname).toLowerCase()
+        type: path.extname(file.originalname).toLowerCase(),
+        isNewVersion: isNewVersion
       }
     });
   } catch (error) {
@@ -291,6 +367,294 @@ router.post('/upload', verifyToken, upload.single('file'), validateFileUpload, a
   }
 });
 
+// Get shared with me (files and folders shared to current user)
+// NOTE: This route MUST be before /:fileId routes to avoid being matched as a fileId
+router.get('/shared-with-me', verifyToken, validatePagination, async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 10;
+    const offset = (pageNum - 1) * limitNum;
+
+    // Get shared files - only files explicitly shared WITH the current user
+    // Groups by file ID to show each file only once with the highest permission level
+    // Permission hierarchy: edit > view > comment
+    const sharedFilesQuery = `
+      SELECT f.*, u.first_name, u.last_name, u.email,
+             fo.name as folder_name, o.name as organization_name,
+             CASE 
+               WHEN MAX(CASE WHEN fs.permission_level = 'edit' THEN 3 
+                             WHEN fs.permission_level = 'view' THEN 2 
+                             WHEN fs.permission_level = 'comment' THEN 1 
+                             ELSE 0 END) >= 3 THEN 'edit'
+               WHEN MAX(CASE WHEN fs.permission_level = 'edit' THEN 3 
+                             WHEN fs.permission_level = 'view' THEN 2 
+                             WHEN fs.permission_level = 'comment' THEN 1 
+                             ELSE 0 END) >= 2 THEN 'view'
+               ELSE 'comment'
+             END as permission_level,
+             MAX(fs.created_at) as shared_at,
+             (SELECT sharer.first_name 
+              FROM file_shares fs2 
+              LEFT JOIN users sharer ON fs2.shared_by = sharer.id
+              WHERE fs2.file_id = f.id 
+                AND fs2.shared_with = ?
+                AND fs2.status = 'active'
+                AND (fs2.expires_at IS NULL OR fs2.expires_at > NOW())
+              ORDER BY CASE WHEN fs2.permission_level = 'edit' THEN 3 
+                            WHEN fs2.permission_level = 'view' THEN 2 
+                            WHEN fs2.permission_level = 'comment' THEN 1 
+                            ELSE 0 END DESC, fs2.created_at DESC
+              LIMIT 1) as shared_by_first_name,
+             (SELECT sharer.last_name 
+              FROM file_shares fs2 
+              LEFT JOIN users sharer ON fs2.shared_by = sharer.id
+              WHERE fs2.file_id = f.id 
+                AND fs2.shared_with = ?
+                AND fs2.status = 'active'
+                AND (fs2.expires_at IS NULL OR fs2.expires_at > NOW())
+              ORDER BY CASE WHEN fs2.permission_level = 'edit' THEN 3 
+                            WHEN fs2.permission_level = 'view' THEN 2 
+                            WHEN fs2.permission_level = 'comment' THEN 1 
+                            ELSE 0 END DESC, fs2.created_at DESC
+              LIMIT 1) as shared_by_last_name,
+             (si.id IS NOT NULL) as is_starred
+      FROM files f
+      INNER JOIN file_shares fs ON f.id = fs.file_id
+      LEFT JOIN users u ON f.uploaded_by = u.id
+      LEFT JOIN folders fo ON f.folder_id = fo.id
+      LEFT JOIN organizations o ON f.organization_id = o.id
+      LEFT JOIN starred_items si ON si.item_id = f.id AND si.item_type = 'file' AND si.user_id = ?
+      WHERE f.status = "active" 
+        AND fs.status = "active" 
+        AND (fs.expires_at IS NULL OR fs.expires_at > NOW())
+        AND fs.shared_with = ?
+      GROUP BY f.id, u.first_name, u.last_name, u.email, fo.name, o.name, si.id
+      ORDER BY shared_at DESC
+      LIMIT ${limitNum} OFFSET ${offset}
+    `;
+
+    const sharedFilesResult = await executeQuery(sharedFilesQuery, [
+      req.user.id,
+      req.user.id,
+      req.user.id,
+      req.user.id
+    ]);
+
+    // Get total count of distinct shared files
+    const countFilesQuery = `
+      SELECT COUNT(DISTINCT f.id) as total
+      FROM files f
+      INNER JOIN file_shares fs ON f.id = fs.file_id
+      WHERE f.status = "active" 
+        AND fs.status = "active" 
+        AND (fs.expires_at IS NULL OR fs.expires_at > NOW())
+        AND fs.shared_with = ?
+    `;
+
+    const countFilesResult = await executeQuery(countFilesQuery, [
+      req.user.id
+    ]);
+
+    if (!sharedFilesResult.success || !countFilesResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch shared files'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Shared files retrieved successfully',
+      data: {
+        files: sharedFilesResult.data || [],
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: countFilesResult.data[0]?.total || 0,
+          pages: Math.ceil((countFilesResult.data[0]?.total || 0) / limitNum)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get shared with me error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Get file versions - MUST be before /:fileId route
+router.get('/:fileId/versions', verifyToken, requireFileAccess, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    // Get all versions including current
+    const versionsResult = await executeQuery(
+      `SELECT fv.id, fv.version_number, fv.file_size, fv.storage_path, fv.created_at, fv.version_note,
+              u.first_name, u.last_name, u.email,
+              f.current_version, f.storage_path as current_storage_path, f.file_size as current_file_size,
+              f.updated_at as current_updated_at
+       FROM file_versions fv
+       LEFT JOIN users u ON fv.uploaded_by = u.id
+       LEFT JOIN files f ON fv.file_id = f.id
+       WHERE fv.file_id = ?
+       ORDER BY fv.version_number DESC`,
+      [fileId]
+    );
+
+    if (!versionsResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch versions'
+      });
+    }
+
+    // Get current file info
+    const fileResult = await executeQuery(
+      'SELECT id, name, current_version, storage_path, file_size, updated_at, uploaded_by FROM files WHERE id = ?',
+      [fileId]
+    );
+
+    const file = fileResult.success && fileResult.data.length > 0 ? fileResult.data[0] : null;
+    const currentVersion = file ? file.current_version : 0;
+
+    // Format versions - include current version
+    const versions = versionsResult.data || [];
+    
+    // Add current version to the list
+    if (file) {
+      const currentVersionData = await executeQuery(
+        'SELECT first_name, last_name, email FROM users WHERE id = ?',
+        [file.uploaded_by]
+      );
+      const uploader = currentVersionData.success && currentVersionData.data.length > 0 
+        ? currentVersionData.data[0] 
+        : { first_name: null, last_name: null, email: null };
+
+      versions.unshift({
+        id: null, // Current version doesn't have a version record ID
+        version_number: currentVersion,
+        file_size: file.file_size,
+        storage_path: file.storage_path,
+        created_at: file.updated_at || file.created_at,
+        version_note: null,
+        first_name: uploader.first_name,
+        last_name: uploader.last_name,
+        email: uploader.email,
+        is_current: true
+      });
+    }
+
+    res.json({
+      success: true,
+      data: versions
+    });
+  } catch (error) {
+    console.error('Get versions error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Upload new version - MUST be before /:fileId route
+router.post('/:fileId/versions', verifyToken, requireFileAccess, upload.single('file'), async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    // Get current file info
+    const fileResult = await executeQuery(
+      'SELECT id, current_version, storage_path, file_size FROM files WHERE id = ?',
+      [fileId]
+    );
+
+    if (!fileResult.success || fileResult.data.length === 0) {
+      await fs.unlink(req.file.path);
+      return res.status(404).json({
+        success: false,
+        message: 'File not found'
+      });
+    }
+
+    const file = fileResult.data[0];
+    const currentVersion = file.current_version || 0;
+    const newVersionNumber = currentVersion + 1;
+
+    // Save current version to file_versions table
+    await executeQuery(
+      'INSERT INTO file_versions (file_id, version_number, file_size, storage_path, uploaded_by) VALUES (?, ?, ?, ?, ?)',
+      [fileId, currentVersion, file.file_size, file.storage_path, req.user.id]
+    );
+
+    // Update file with new version
+    const updateResult = await executeQuery(
+      'UPDATE files SET storage_path = ?, file_size = ?, current_version = ?, updated_at = NOW(), last_modified_at = NOW(), last_modified_by = ? WHERE id = ?',
+      [req.file.path, req.file.size, newVersionNumber, req.user.id, fileId]
+    );
+
+    if (!updateResult.success) {
+      await fs.unlink(req.file.path);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to upload new version'
+      });
+    }
+
+    // Log version upload
+    await executeQuery(
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, req.user.organization_id, 'VERSION', 'FILE', fileId, JSON.stringify({ version: newVersionNumber, size: req.file.size })]
+    );
+
+    res.json({
+      success: true,
+      message: 'New version uploaded successfully',
+      data: {
+        version: newVersionNumber,
+        fileId: fileId
+      }
+    });
+  } catch (error) {
+    console.error('Upload version error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Keep version forever - MUST be before /:fileId route
+router.put('/:fileId/versions/:versionId/keep', verifyToken, requireFileAccess, async (req, res) => {
+  try {
+    const { fileId, versionId } = req.params;
+
+    // For now, we'll add a flag to file_versions table
+    // Since the schema doesn't have a "keep_forever" field, we'll add it via ALTER if needed
+    // For now, we'll just return success (can be implemented later with schema update)
+    
+    res.json({
+      success: true,
+      message: 'Version will be kept forever'
+    });
+  } catch (error) {
+    console.error('Keep version error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 // Get file by ID
 router.get('/:fileId', verifyToken, requireFileAccess, async (req, res) => {
   try {
@@ -298,13 +662,15 @@ router.get('/:fileId', verifyToken, requireFileAccess, async (req, res) => {
 
     const fileResult = await executeQuery(
       `SELECT f.*, u.first_name, u.last_name, u.email, 
-              fo.name as folder_name, o.name as organization_name
+              fo.name as folder_name, o.name as organization_name,
+              (si.id IS NOT NULL) as is_starred
        FROM files f 
        LEFT JOIN users u ON f.uploaded_by = u.id
        LEFT JOIN folders fo ON f.folder_id = fo.id
        LEFT JOIN organizations o ON f.organization_id = o.id
+       LEFT JOIN starred_items si ON si.item_id = f.id AND si.item_type = 'file' AND si.user_id = ?
        WHERE f.id = ?`,
-      [fileId]
+      [req.user.id, fileId]
     );
 
     if (!fileResult.success || fileResult.data.length === 0) {
@@ -354,6 +720,79 @@ router.get('/:fileId/download', verifyToken, requireFileAccess, async (req, res)
     });
   }
 });
+
+// Preview file (for images, PDFs, etc.)
+router.get('/:fileId/preview', verifyToken, requireFileAccess, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    if (!req.file.path || !await fs.access(req.file.path).then(() => true).catch(() => false)) {
+      return res.status(404).json({
+        success: false,
+        message: 'File not found on disk'
+      });
+    }
+
+    const fileName = req.file.name;
+    const fileType = req.file.file_type || '';
+
+    // Set appropriate headers for preview (inline display)
+    res.setHeader('Content-Type', getContentType(fileType));
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileName)}"`);
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    // Allow iframe embedding for previews - override Helmet's CSP
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'self' http://localhost:3000 https://taskinsight.my");
+
+    // Stream the file
+    const fileStream = fsSync.createReadStream(req.file.path);
+    fileStream.pipe(res);
+
+    fileStream.on('error', (error) => {
+      console.error('File stream error:', error);
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: 'Error reading file'
+        });
+      }
+    });
+  } catch (error) {
+    console.error('Preview file error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  }
+});
+
+// Helper function to get content type
+function getContentType(fileType) {
+  const type = fileType.toLowerCase();
+  const contentTypes = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'pdf': 'application/pdf',
+    'mp4': 'video/mp4',
+    'avi': 'video/x-msvideo',
+    'mov': 'video/quicktime',
+    'txt': 'text/plain',
+    'doc': 'application/msword',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  };
+  
+  for (const [key, value] of Object.entries(contentTypes)) {
+    if (type.includes(key)) {
+      return value;
+    }
+  }
+  
+  return 'application/octet-stream';
+}
 
 // Update file
 router.put('/:fileId', verifyToken, requireFileAccess, validateFileUpdate, async (req, res) => {
@@ -487,6 +926,509 @@ router.post('/star/:itemType/:itemId', verifyToken, async (req, res) => {
   }
 });
 
+// ============================================
+// FILE SHARING ROUTES
+// ============================================
+
+// Share a file
+router.post('/:fileId/share', verifyToken, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const { email, permission, expiresAt, password } = req.body;
+
+    // Check if file exists and user has access
+    const fileResult = await executeQuery(
+      'SELECT id, name, organization_id, uploaded_by FROM files WHERE id = ? AND status = "active"',
+      [fileId]
+    );
+
+    if (!fileResult.success || fileResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'File not found'
+      });
+    }
+
+    const file = fileResult.data[0];
+
+    // Check permissions - must be file owner or in same organization
+    if (file.uploaded_by !== req.user.id && file.organization_id !== req.user.organization_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to share this file'
+      });
+    }
+
+    let sharedWithUserId = null;
+    let shareType = 'link';
+
+    // If email is provided, find the user
+    if (email) {
+      const userResult = await executeQuery(
+        'SELECT id, email FROM users WHERE email = ? AND status = "active"',
+        [email]
+      );
+
+      if (userResult.success && userResult.data.length > 0) {
+        sharedWithUserId = userResult.data[0].id;
+        shareType = 'user';
+      } else {
+        // User doesn't exist - we'll still create a link share
+        shareType = 'link';
+      }
+    }
+
+    // Generate a unique share link
+    const crypto = require('crypto');
+    const shareLink = crypto.randomBytes(32).toString('hex');
+    const fullShareLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/share/${shareLink}`;
+
+    // Create the share record
+    const insertResult = await executeQuery(
+      `INSERT INTO file_shares (file_id, shared_by, shared_with, share_type, permission_level, share_link, expires_at, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'active')`,
+      [
+        fileId,
+        req.user.id,
+        sharedWithUserId,
+        shareType,
+        permission || 'view',
+        shareLink,
+        expiresAt || null
+      ]
+    );
+
+    if (!insertResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to share file'
+      });
+    }
+
+    // Log the share action
+    await executeQuery(
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, req.user.organization_id, 'SHARE', 'FILE', fileId, JSON.stringify({ 
+        sharedWith: email || 'link', 
+        permission: permission || 'view',
+        shareType 
+      })]
+    );
+
+    res.json({
+      success: true,
+      message: 'File shared successfully',
+      data: {
+        shareId: insertResult.data.insertId,
+        shareLink: fullShareLink
+      }
+    });
+  } catch (error) {
+    console.error('Share file error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Get all shares for a file
+router.get('/:fileId/shares', verifyToken, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    // Check if file exists and user has access
+    const fileResult = await executeQuery(
+      'SELECT id, organization_id, uploaded_by FROM files WHERE id = ? AND status = "active"',
+      [fileId]
+    );
+
+    if (!fileResult.success || fileResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'File not found'
+      });
+    }
+
+    const file = fileResult.data[0];
+
+    // Check permissions
+    if (file.uploaded_by !== req.user.id && file.organization_id !== req.user.organization_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to view shares for this file'
+      });
+    }
+
+    // Get all active shares
+    const sharesResult = await executeQuery(
+      `SELECT fs.id, fs.share_type, fs.permission_level as permission, fs.expires_at as expiresAt, 
+              fs.created_at as createdAt, fs.share_link,
+              u.email, u.first_name, u.last_name,
+              sharer.first_name as sharer_first_name, sharer.last_name as sharer_last_name
+       FROM file_shares fs
+       LEFT JOIN users u ON fs.shared_with = u.id
+       LEFT JOIN users sharer ON fs.shared_by = sharer.id
+       WHERE fs.file_id = ? AND fs.status = 'active'
+       ORDER BY fs.created_at DESC`,
+      [fileId]
+    );
+
+    if (!sharesResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch shares'
+      });
+    }
+
+    // Format the response
+    const shares = sharesResult.data.map(share => ({
+      id: share.id,
+      email: share.email || 'Anyone with link',
+      permission: share.permission,
+      expiresAt: share.expiresAt,
+      createdAt: share.createdAt,
+      shareType: share.share_type,
+      shareLink: share.share_link ? `${process.env.FRONTEND_URL || 'http://localhost:3000'}/share/${share.share_link}` : null,
+      sharedBy: share.sharer_first_name ? `${share.sharer_first_name} ${share.sharer_last_name}` : 'Unknown'
+    }));
+
+    res.json({
+      success: true,
+      data: shares
+    });
+  } catch (error) {
+    console.error('Get file shares error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Revoke a share
+router.delete('/:fileId/shares/:shareId', verifyToken, async (req, res) => {
+  try {
+    const { fileId, shareId } = req.params;
+
+    // Check if file exists and user has access
+    const fileResult = await executeQuery(
+      'SELECT id, organization_id, uploaded_by FROM files WHERE id = ? AND status = "active"',
+      [fileId]
+    );
+
+    if (!fileResult.success || fileResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'File not found'
+      });
+    }
+
+    const file = fileResult.data[0];
+
+    // Check permissions
+    if (file.uploaded_by !== req.user.id && file.organization_id !== req.user.organization_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to revoke shares for this file'
+      });
+    }
+
+    // Check if share exists
+    const shareResult = await executeQuery(
+      'SELECT id FROM file_shares WHERE id = ? AND file_id = ? AND status = "active"',
+      [shareId, fileId]
+    );
+
+    if (!shareResult.success || shareResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Share not found'
+      });
+    }
+
+    // Revoke the share (soft delete)
+    const updateResult = await executeQuery(
+      'UPDATE file_shares SET status = "inactive" WHERE id = ?',
+      [shareId]
+    );
+
+    if (!updateResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to revoke share'
+      });
+    }
+
+    // Log the revoke action
+    await executeQuery(
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, req.user.organization_id, 'REVOKE_SHARE', 'FILE', fileId, JSON.stringify({ shareId })]
+    );
+
+    res.json({
+      success: true,
+      message: 'Share revoked successfully'
+    });
+  } catch (error) {
+    console.error('Revoke share error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// ============================================
+// FOLDER SHARING ROUTES
+// ============================================
+
+// Share a folder
+router.post('/folders/:folderId/share', verifyToken, async (req, res) => {
+  try {
+    const { folderId } = req.params;
+    const { email, permission, expiresAt } = req.body;
+
+    // Check if folder exists and user has access
+    const folderResult = await executeQuery(
+      'SELECT id, name, organization_id, created_by FROM folders WHERE id = ? AND status = "active"',
+      [folderId]
+    );
+
+    if (!folderResult.success || folderResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Folder not found'
+      });
+    }
+
+    const folder = folderResult.data[0];
+
+    // Check permissions
+    if (folder.created_by !== req.user.id && folder.organization_id !== req.user.organization_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to share this folder'
+      });
+    }
+
+    let sharedWithUserId = null;
+    let shareType = 'link';
+
+    // If email is provided, find the user
+    if (email) {
+      const userResult = await executeQuery(
+        'SELECT id, email FROM users WHERE email = ? AND status = "active"',
+        [email]
+      );
+
+      if (userResult.success && userResult.data.length > 0) {
+        sharedWithUserId = userResult.data[0].id;
+        shareType = 'user';
+      }
+    }
+
+    // Generate a unique share link
+    const crypto = require('crypto');
+    const shareLink = crypto.randomBytes(32).toString('hex');
+    const fullShareLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/share/folder/${shareLink}`;
+
+    // Create the share record
+    const insertResult = await executeQuery(
+      `INSERT INTO folder_shares (folder_id, shared_by, shared_with, share_type, permission_level, share_link, expires_at, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'active')`,
+      [
+        folderId,
+        req.user.id,
+        sharedWithUserId,
+        shareType,
+        permission || 'view',
+        shareLink,
+        expiresAt || null
+      ]
+    );
+
+    if (!insertResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to share folder'
+      });
+    }
+
+    // Log the share action
+    await executeQuery(
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, req.user.organization_id, 'SHARE', 'FOLDER', folderId, JSON.stringify({ 
+        sharedWith: email || 'link', 
+        permission: permission || 'view',
+        shareType 
+      })]
+    );
+
+    res.json({
+      success: true,
+      message: 'Folder shared successfully',
+      data: {
+        shareId: insertResult.data.insertId,
+        shareLink: fullShareLink
+      }
+    });
+  } catch (error) {
+    console.error('Share folder error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Get all shares for a folder
+router.get('/folders/:folderId/shares', verifyToken, async (req, res) => {
+  try {
+    const { folderId } = req.params;
+
+    // Check if folder exists and user has access
+    const folderResult = await executeQuery(
+      'SELECT id, organization_id, created_by FROM folders WHERE id = ? AND status = "active"',
+      [folderId]
+    );
+
+    if (!folderResult.success || folderResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Folder not found'
+      });
+    }
+
+    const folder = folderResult.data[0];
+
+    // Check permissions
+    if (folder.created_by !== req.user.id && folder.organization_id !== req.user.organization_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to view shares for this folder'
+      });
+    }
+
+    // Get all active shares
+    const sharesResult = await executeQuery(
+      `SELECT fs.id, fs.share_type, fs.permission_level as permission, fs.expires_at as expiresAt, 
+              fs.created_at as createdAt, fs.share_link,
+              u.email, u.first_name, u.last_name,
+              sharer.first_name as sharer_first_name, sharer.last_name as sharer_last_name
+       FROM folder_shares fs
+       LEFT JOIN users u ON fs.shared_with = u.id
+       LEFT JOIN users sharer ON fs.shared_by = sharer.id
+       WHERE fs.folder_id = ? AND fs.status = 'active'
+       ORDER BY fs.created_at DESC`,
+      [folderId]
+    );
+
+    if (!sharesResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch shares'
+      });
+    }
+
+    // Format the response
+    const shares = sharesResult.data.map(share => ({
+      id: share.id,
+      email: share.email || 'Anyone with link',
+      permission: share.permission,
+      expiresAt: share.expiresAt,
+      createdAt: share.createdAt,
+      shareType: share.share_type,
+      shareLink: share.share_link ? `${process.env.FRONTEND_URL || 'http://localhost:3000'}/share/folder/${share.share_link}` : null,
+      sharedBy: share.sharer_first_name ? `${share.sharer_first_name} ${share.sharer_last_name}` : 'Unknown'
+    }));
+
+    res.json({
+      success: true,
+      data: shares
+    });
+  } catch (error) {
+    console.error('Get folder shares error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Revoke a folder share
+router.delete('/folders/:folderId/shares/:shareId', verifyToken, async (req, res) => {
+  try {
+    const { folderId, shareId } = req.params;
+
+    // Check if folder exists and user has access
+    const folderResult = await executeQuery(
+      'SELECT id, organization_id, created_by FROM folders WHERE id = ? AND status = "active"',
+      [folderId]
+    );
+
+    if (!folderResult.success || folderResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Folder not found'
+      });
+    }
+
+    const folder = folderResult.data[0];
+
+    // Check permissions
+    if (folder.created_by !== req.user.id && folder.organization_id !== req.user.organization_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to revoke shares for this folder'
+      });
+    }
+
+    // Check if share exists
+    const shareResult = await executeQuery(
+      'SELECT id FROM folder_shares WHERE id = ? AND folder_id = ? AND status = "active"',
+      [shareId, folderId]
+    );
+
+    if (!shareResult.success || shareResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Share not found'
+      });
+    }
+
+    // Revoke the share
+    const updateResult = await executeQuery(
+      'UPDATE folder_shares SET status = "inactive" WHERE id = ?',
+      [shareId]
+    );
+
+    if (!updateResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to revoke share'
+      });
+    }
+
+    // Log the revoke action
+    await executeQuery(
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, req.user.organization_id, 'REVOKE_SHARE', 'FOLDER', folderId, JSON.stringify({ shareId })]
+    );
+
+    res.json({
+      success: true,
+      message: 'Share revoked successfully'
+    });
+  } catch (error) {
+    console.error('Revoke folder share error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 // Get starred items
 router.get('/starred/list', verifyToken, async (req, res) => {
   try {
@@ -495,7 +1437,8 @@ router.get('/starred/list', verifyToken, async (req, res) => {
       SELECT f.*, u.first_name, u.last_name, u.email,
              fo.name as folder_name, o.name as organization_name,
              'file' as item_type,
-             s.created_at as starred_at
+             s.created_at as starred_at,
+             1 as is_starred
       FROM starred_items s
       INNER JOIN files f ON s.item_id = f.id
       LEFT JOIN users u ON f.uploaded_by = u.id
@@ -513,7 +1456,8 @@ router.get('/starred/list', verifyToken, async (req, res) => {
              'folder' as item_type,
              s.created_at as starred_at,
              (SELECT COUNT(*) FROM files WHERE folder_id = fo.id AND status = 'active') as file_count,
-             (SELECT COALESCE(SUM(file_size), 0) FROM files WHERE folder_id = fo.id AND status = 'active') as total_size
+             (SELECT COALESCE(SUM(file_size), 0) FROM files WHERE folder_id = fo.id AND status = 'active') as total_size,
+             1 as is_starred
       FROM starred_items s
       INNER JOIN folders fo ON s.item_id = fo.id
       LEFT JOIN users u ON fo.created_by = u.id
@@ -667,7 +1611,10 @@ router.delete('/:fileId/permanent', verifyToken, requireFileAccess, async (req, 
 
     // Delete file from disk
     try {
-      await fs.unlink(req.file.storage_path);
+      const filePath = req.file.path || req.file.storage_path;
+      if (filePath) {
+        await fs.unlink(filePath);
+      }
     } catch (unlinkError) {
       console.error('Failed to delete file from disk:', unlinkError);
       // Continue with database deletion even if file doesn't exist on disk
@@ -753,7 +1700,7 @@ router.delete('/:fileId', verifyToken, requireFileAccess, async (req, res) => {
 // Get folders
 router.get('/folders/list', verifyToken, async (req, res) => {
   try {
-    const { organizationId } = req.query;
+    const { organizationId, parentId, q: search } = req.query;
 
     let whereConditions = ['folders.status = "active"'];
     let queryParams = [];
@@ -767,19 +1714,39 @@ router.get('/folders/list', verifyToken, async (req, res) => {
       queryParams.push(req.user.organization_id);
     }
 
+    // Search filter (case-insensitive) - only apply if parentId is not specified (global search)
+    if (search && parentId === undefined) {
+      whereConditions.push('LOWER(folders.name) LIKE ?');
+      const searchPattern = `%${search.toLowerCase()}%`;
+      queryParams.push(searchPattern);
+    }
+
+    // Filter by parentId (for folder navigation) - only if not searching
+    if (parentId !== undefined && !search) {
+      if (parentId === null || parentId === 'null' || parentId === '') {
+        // Show root folders (no parent)
+        whereConditions.push('(folders.parent_id IS NULL OR folders.parent_id = 0)');
+      } else {
+        whereConditions.push('folders.parent_id = ?');
+        queryParams.push(parseInt(parentId));
+      }
+    }
+
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
     const foldersQuery = `
       SELECT folders.*, users.first_name, users.last_name,
              (SELECT COUNT(*) FROM files WHERE folder_id = folders.id AND status = 'active') as file_count,
-             (SELECT COALESCE(SUM(file_size), 0) FROM files WHERE folder_id = folders.id AND status = 'active') as total_size
+             (SELECT COALESCE(SUM(file_size), 0) FROM files WHERE folder_id = folders.id AND status = 'active') as total_size,
+             (si.id IS NOT NULL) as is_starred
       FROM folders
       LEFT JOIN users ON folders.created_by = users.id
+      LEFT JOIN starred_items si ON si.item_id = folders.id AND si.item_type = 'folder' AND si.user_id = ?
       ${whereClause}
       ORDER BY folders.created_at DESC
     `;
 
-    const foldersResult = await executeQuery(foldersQuery, queryParams);
+    const foldersResult = await executeQuery(foldersQuery, [req.user.id, ...queryParams]);
 
     if (!foldersResult.success) {
       return res.status(500).json({
@@ -865,6 +1832,622 @@ router.post('/folders', verifyToken, validateFolder, async (req, res) => {
     });
   } catch (error) {
     console.error('Create folder error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Rename file
+router.put('/:fileId/rename', verifyToken, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const { name } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name is required'
+      });
+    }
+
+    // Check if file exists and user has access
+    const fileResult = await executeQuery(
+      'SELECT id, name, organization_id, uploaded_by FROM files WHERE id = ? AND status = "active"',
+      [fileId]
+    );
+
+    if (!fileResult.success || fileResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'File not found'
+      });
+    }
+
+    const file = fileResult.data[0];
+
+    // Check permissions
+    if (file.organization_id !== req.user.organization_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to rename this file'
+      });
+    }
+
+    // Update file name
+    const updateResult = await executeQuery(
+      'UPDATE files SET name = ?, updated_at = NOW() WHERE id = ?',
+      [name.trim(), fileId]
+    );
+
+    if (!updateResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to rename file'
+      });
+    }
+
+    // Log rename action
+    await executeQuery(
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, req.user.organization_id, 'RENAME', 'FILE', fileId, JSON.stringify({ oldName: file.name, newName: name.trim() })]
+    );
+
+    res.json({
+      success: true,
+      message: 'File renamed successfully'
+    });
+  } catch (error) {
+    console.error('Rename file error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Move file to folder
+router.put('/:fileId/move', verifyToken, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const { folderId } = req.body;
+
+    // Check if file exists and user has access
+    const fileResult = await executeQuery(
+      'SELECT id, name, organization_id, folder_id FROM files WHERE id = ? AND status = "active"',
+      [fileId]
+    );
+
+    if (!fileResult.success || fileResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'File not found'
+      });
+    }
+
+    const file = fileResult.data[0];
+
+    // Check permissions
+    if (file.organization_id !== req.user.organization_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to move this file'
+      });
+    }
+
+    // If moving to a folder, verify the folder exists and belongs to same org
+    if (folderId !== null && folderId !== undefined) {
+      const folderResult = await executeQuery(
+        'SELECT id FROM folders WHERE id = ? AND organization_id = ? AND status = "active"',
+        [folderId, req.user.organization_id]
+      );
+
+      if (!folderResult.success || folderResult.data.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Target folder not found'
+        });
+      }
+    }
+
+    // Update file folder
+    const updateResult = await executeQuery(
+      'UPDATE files SET folder_id = ?, updated_at = NOW() WHERE id = ?',
+      [folderId || null, fileId]
+    );
+
+    if (!updateResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to move file'
+      });
+    }
+
+    // Log move action
+    await executeQuery(
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, req.user.organization_id, 'MOVE', 'FILE', fileId, JSON.stringify({ fromFolder: file.folder_id, toFolder: folderId })]
+    );
+
+    res.json({
+      success: true,
+      message: 'File moved successfully'
+    });
+  } catch (error) {
+    console.error('Move file error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Rename folder
+router.put('/folders/:folderId/rename', verifyToken, async (req, res) => {
+  try {
+    const { folderId } = req.params;
+    const { name } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name is required'
+      });
+    }
+
+    // Check if folder exists and user has access
+    const folderResult = await executeQuery(
+      'SELECT id, name, organization_id FROM folders WHERE id = ? AND status = "active"',
+      [folderId]
+    );
+
+    if (!folderResult.success || folderResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Folder not found'
+      });
+    }
+
+    const folder = folderResult.data[0];
+
+    // Check permissions
+    if (folder.organization_id !== req.user.organization_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to rename this folder'
+      });
+    }
+
+    // Update folder name
+    const updateResult = await executeQuery(
+      'UPDATE folders SET name = ?, updated_at = NOW() WHERE id = ?',
+      [name.trim(), folderId]
+    );
+
+    if (!updateResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to rename folder'
+      });
+    }
+
+    // Log rename action
+    await executeQuery(
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, req.user.organization_id, 'RENAME', 'FOLDER', folderId, JSON.stringify({ oldName: folder.name, newName: name.trim() })]
+    );
+
+    res.json({
+      success: true,
+      message: 'Folder renamed successfully'
+    });
+  } catch (error) {
+    console.error('Rename folder error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Move folder to another folder
+router.put('/folders/:folderId/move', verifyToken, async (req, res) => {
+  try {
+    const { folderId } = req.params;
+    let { parentId } = req.body;
+    
+    // Normalize parentId: convert to null if undefined, empty string, or "null"
+    if (parentId === undefined || parentId === '' || parentId === 'null' || parentId === null) {
+      parentId = null;
+    } else {
+      parentId = parseInt(parentId);
+      if (isNaN(parentId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid parent folder ID'
+        });
+      }
+    }
+
+    // Check if folder exists and user has access
+    const folderResult = await executeQuery(
+      'SELECT id, name, organization_id, parent_id FROM folders WHERE id = ? AND status = "active"',
+      [folderId]
+    );
+
+    if (!folderResult.success || folderResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Folder not found'
+      });
+    }
+
+    const folder = folderResult.data[0];
+
+    // Check permissions
+    if (folder.organization_id !== req.user.organization_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to move this folder'
+      });
+    }
+
+    // Cannot move folder into itself
+    if (parentId !== null && parentId === parseInt(folderId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot move folder into itself'
+      });
+    }
+
+    // If moving to a folder, verify the folder exists and belongs to same org
+    let targetFolder = null;
+    if (parentId !== null) {
+      const targetFolderResult = await executeQuery(
+        'SELECT id, name, path FROM folders WHERE id = ? AND organization_id = ? AND status = "active"',
+        [parentId, req.user.organization_id]
+      );
+
+      if (!targetFolderResult.success || targetFolderResult.data.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Target folder not found'
+        });
+      }
+
+      targetFolder = targetFolderResult.data[0];
+
+      // Check for circular reference - cannot move folder into its own descendant
+      const checkCircular = async (checkFolderId) => {
+        if (parseInt(checkFolderId) === parseInt(folderId)) {
+          return true; // Found circular reference
+        }
+        
+        const childrenResult = await executeQuery(
+          'SELECT id FROM folders WHERE parent_id = ? AND status = "active"',
+          [checkFolderId]
+        );
+
+        if (childrenResult.success && childrenResult.data.length > 0) {
+          for (const child of childrenResult.data) {
+            if (await checkCircular(child.id)) {
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+
+      const hasCircular = await checkCircular(parentId);
+      if (hasCircular) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot move folder into its own subfolder'
+        });
+      }
+    }
+
+    // Calculate new path
+    let newPath = '';
+    if (parentId === null || parentId === undefined) {
+      newPath = `/${folder.name}`;
+    } else {
+      const parentPath = targetFolder.path || `/${targetFolder.name}`;
+      newPath = `${parentPath}/${folder.name}`;
+    }
+
+    // Update folder parent and path
+    const updateResult = await executeQuery(
+      'UPDATE folders SET parent_id = ?, path = ?, updated_at = NOW() WHERE id = ?',
+      [parentId || null, newPath, folderId]
+    );
+
+    if (!updateResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to move folder'
+      });
+    }
+
+    // Update paths of all descendant folders recursively
+    const updateDescendantPaths = async (parentFolderId, parentPath) => {
+      const childrenResult = await executeQuery(
+        'SELECT id, name FROM folders WHERE parent_id = ? AND status = "active"',
+        [parentFolderId]
+      );
+
+      if (childrenResult.success && childrenResult.data.length > 0) {
+        for (const child of childrenResult.data) {
+          const childPath = `${parentPath}/${child.name}`;
+          await executeQuery(
+            'UPDATE folders SET path = ? WHERE id = ?',
+            [childPath, child.id]
+          );
+          // Recursively update children of this child
+          await updateDescendantPaths(child.id, childPath);
+        }
+      }
+    };
+
+    // Update all descendant paths
+    await updateDescendantPaths(folderId, newPath);
+
+    // Log move action
+    await executeQuery(
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, req.user.organization_id, 'MOVE', 'FOLDER', folderId, JSON.stringify({ fromParent: folder.parent_id, toParent: parentId })]
+    );
+
+    res.json({
+      success: true,
+      message: 'Folder moved successfully'
+    });
+  } catch (error) {
+    console.error('Move folder error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Download folder as zip
+router.get('/folders/:folderId/download', verifyToken, async (req, res) => {
+  try {
+    const { folderId } = req.params;
+
+    // Check if folder exists and user has access
+    const folderResult = await executeQuery(
+      'SELECT id, name, organization_id FROM folders WHERE id = ? AND status = "active"',
+      [folderId]
+    );
+
+    if (!folderResult.success || folderResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Folder not found'
+      });
+    }
+
+    const folder = folderResult.data[0];
+
+    // Check permissions
+    if (folder.organization_id !== req.user.organization_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to download this folder'
+      });
+    }
+
+    // Get all files in this folder and subfolders recursively
+    const getAllFilesInFolder = async (parentFolderId, basePath = '') => {
+      const files = [];
+      
+      // Get files in current folder
+      const filesResult = await executeQuery(
+        `SELECT f.id, f.name, f.storage_path, f.file_size 
+         FROM files f 
+         WHERE f.folder_id = ? AND f.status = "active" AND f.organization_id = ?`,
+        [parentFolderId, req.user.organization_id]
+      );
+
+      if (filesResult.success && filesResult.data) {
+        for (const file of filesResult.data) {
+          files.push({
+            id: file.id,
+            name: file.name,
+            file_path: file.storage_path,
+            file_size: file.file_size,
+            zipPath: basePath ? `${basePath}/${file.name}` : file.name
+          });
+        }
+      }
+
+      // Get subfolders
+      const subfoldersResult = await executeQuery(
+        'SELECT id, name FROM folders WHERE parent_id = ? AND status = "active" AND organization_id = ?',
+        [parentFolderId, req.user.organization_id]
+      );
+
+      if (subfoldersResult.success && subfoldersResult.data) {
+        for (const subfolder of subfoldersResult.data) {
+          const subfolderPath = basePath ? `${basePath}/${subfolder.name}` : subfolder.name;
+          const subfolderFiles = await getAllFilesInFolder(subfolder.id, subfolderPath);
+          files.push(...subfolderFiles);
+        }
+      }
+
+      return files;
+    };
+
+    const allFiles = await getAllFilesInFolder(folderId, '');
+
+    if (allFiles.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Folder is empty. Nothing to download.'
+      });
+    }
+
+    // Set response headers for zip download
+    const zipFileName = `${folder.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.zip`;
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${zipFileName}"`);
+
+    // Create archive
+    const archive = archiver('zip', {
+      zlib: { level: 6 } // Compression level
+    });
+
+    // Handle archive errors
+    archive.on('error', (err) => {
+      console.error('Archive error:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: 'Failed to create zip file'
+        });
+      }
+    });
+
+    // Pipe archive to response
+    archive.pipe(res);
+
+    // Add files to archive
+    const uploadPath = path.join(__dirname, '../uploads');
+    for (const file of allFiles) {
+      const filePath = path.join(uploadPath, path.basename(file.file_path));
+      
+      // Check if file exists on disk
+      try {
+        await fs.access(filePath);
+        archive.file(filePath, { name: file.zipPath });
+      } catch (err) {
+        console.warn(`File not found on disk: ${filePath}, skipping...`);
+      }
+    }
+
+    // Finalize archive
+    await archive.finalize();
+
+    // Log download action
+    await executeQuery(
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, req.user.organization_id, 'DOWNLOAD', 'FOLDER', folderId, JSON.stringify({ folderName: folder.name, fileCount: allFiles.length })]
+    );
+
+  } catch (error) {
+    console.error('Download folder error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  }
+});
+
+// Delete folder (soft delete - mark as deleted)
+router.delete('/folders/:folderId', verifyToken, async (req, res) => {
+  try {
+    const { folderId } = req.params;
+
+    // Check if folder exists and user has access
+    const folderResult = await executeQuery(
+      'SELECT id, name, organization_id, created_by FROM folders WHERE id = ? AND status = "active"',
+      [folderId]
+    );
+
+    if (!folderResult.success || folderResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Folder not found'
+      });
+    }
+
+    const folder = folderResult.data[0];
+
+    // Check permissions - user must be in the same organization
+    if (folder.organization_id !== req.user.organization_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to delete this folder'
+      });
+    }
+
+    // Check if folder has files
+    const filesInFolderResult = await executeQuery(
+      'SELECT COUNT(*) as count FROM files WHERE folder_id = ? AND status = "active"',
+      [folderId]
+    );
+
+    // Check if folder has subfolders
+    const subfoldersResult = await executeQuery(
+      'SELECT COUNT(*) as count FROM folders WHERE parent_id = ? AND status = "active"',
+      [folderId]
+    );
+
+    // Parse counts as integers (MySQL COUNT returns string or number depending on driver)
+    const fileCount = filesInFolderResult.success && filesInFolderResult.data[0]
+      ? parseInt(filesInFolderResult.data[0].count, 10) || 0
+      : 0;
+    const subfolderCount = subfoldersResult.success && subfoldersResult.data[0]
+      ? parseInt(subfoldersResult.data[0].count, 10) || 0
+      : 0;
+
+    // If folder is completely empty (no files and no subfolders), permanently delete it
+    if (fileCount === 0 && subfolderCount === 0) {
+      // Hard delete (permanently remove from database)
+      const deleteResult = await executeQuery(
+        'DELETE FROM folders WHERE id = ?',
+        [folderId]
+      );
+
+      if (!deleteResult.success) {
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to delete folder'
+        });
+      }
+
+      // Log deletion
+      await executeQuery(
+        'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+        [req.user.id, req.user.organization_id, 'DELETE', 'FOLDER', folderId, JSON.stringify({ folderName: folder.name, permanent: true })]
+      );
+
+      return res.json({
+        success: true,
+        message: 'Empty folder deleted permanently'
+      });
+    }
+
+    // If folder has content (files or subfolders), soft delete (move to trash)
+    const deleteResult = await executeQuery(
+      'UPDATE folders SET status = "deleted", deleted_at = NOW(), deleted_by = ? WHERE id = ?',
+      [req.user.id, folderId]
+    );
+
+    if (!deleteResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to delete folder'
+      });
+    }
+
+    // Log deletion
+    await executeQuery(
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, req.user.organization_id, 'DELETE', 'FOLDER', folderId, JSON.stringify({ folderName: folder.name })]
+    );
+
+    res.json({
+      success: true,
+      message: 'Folder deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete folder error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'

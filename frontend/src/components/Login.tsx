@@ -9,11 +9,13 @@ const Login: React.FC = () => {
   const [activeTab, setActiveTab] = useState('login');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (but only after loading is complete)
   useEffect(() => {
-    if (isAuthenticated && !isLoading) {
-      navigate('/dashboard');
-    }
+    // Only redirect if we're sure the user is authenticated and not loading
+      if (!isLoading && isAuthenticated) {
+        console.log('User is authenticated, redirecting to dashboard');
+        navigate('/dashboard/my-drive', { replace: true });
+      }
   }, [isAuthenticated, isLoading, navigate]);
 
   const showTab = (tab: string, event?: React.MouseEvent) => {
@@ -57,7 +59,7 @@ const Login: React.FC = () => {
       
       if (success) {
         console.log('✅ [LOGIN] Login successful, navigating to dashboard');
-        navigate('/dashboard');
+        navigate('/dashboard/my-drive');
       } else {
         console.error('❌ [LOGIN] Login failed');
       }

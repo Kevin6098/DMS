@@ -42,6 +42,42 @@ function App() {
               <Route path="/" element={<Navigate to="/login" replace />} />
               <Route 
                 path="/dashboard" 
+                element={<Navigate to="/dashboard/my-drive" replace />}
+              />
+              <Route 
+                path="/dashboard/my-drive" 
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/my-drive/folder/:folderId" 
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/starred" 
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/shared" 
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/trash" 
                 element={
                   <ProtectedRoute>
                     <Dashboard />
