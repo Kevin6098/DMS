@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { adminService, DashboardStats, ActivityItem, Invitation, StorageAnalytics } from '../services/adminService';
 import { organizationService, Organization } from '../services/organizationService';
@@ -10,9 +10,18 @@ import toast from 'react-hot-toast';
 
 const AdminPanel: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const params = useParams<{ tab?: string }>();
   const { user, logout, isPlatformOwner } = useAuth();
   
-  const [currentView, setCurrentView] = useState('overview');
+  // Get current view from URL or default to 'overview'
+  const getCurrentView = () => {
+    if (params.tab) return params.tab;
+    if (location.pathname === '/admin') return 'overview';
+    return 'overview';
+  };
+  
+  const [currentView, setCurrentView] = useState(getCurrentView());
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showAddOrgModal, setShowAddOrgModal] = useState(false);
   const [showGenerateInvitesModal, setShowGenerateInvitesModal] = useState(false);
@@ -63,11 +72,17 @@ const AdminPanel: React.FC = () => {
 
       if (statsRes.success && statsRes.data) setDashboardStats(statsRes.data);
       if (orgsRes.success && orgsRes.data) {
-        setOrganizations(orgsRes.data.data);
+        setOrganizations(orgsRes.data.data || []);
       }
-      if (usersRes.success && usersRes.data) setUsers(usersRes.data.data);
-      if (invitesRes.success && invitesRes.data) setInvitations(invitesRes.data.data);
-      if (activitiesRes.success && activitiesRes.data) setActivities(activitiesRes.data.data);
+      if (usersRes.success && usersRes.data) {
+        setUsers(usersRes.data.data || []);
+      }
+      if (invitesRes.success && invitesRes.data) {
+        setInvitations(invitesRes.data.data || []);
+      }
+      if (activitiesRes.success && activitiesRes.data) {
+        setActivities(activitiesRes.data.data || []);
+      }
       if (storageRes.success && storageRes.data) setStorageAnalytics(storageRes.data);
     } catch (error) {
       toast.error('Failed to load dashboard data');
@@ -80,14 +95,25 @@ const AdminPanel: React.FC = () => {
     try {
       const response = await auditService.getAuditLogs(1, 20);
       if (response.success && response.data) {
-        setAuditLogs(response.data.data);
+        setAuditLogs(response.data.data || []);
       }
     } catch (error) {
       toast.error('Failed to load audit logs');
     }
   };
 
+  // Sync currentView with URL
+  useEffect(() => {
+    const view = getCurrentView();
+    setCurrentView(view);
+    if (view === 'audit-logs') {
+      loadAuditLogs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, params.tab]);
+
   const handleViewChange = (view: string) => {
+    navigate(`/admin/${view}`);
     setCurrentView(view);
     if (view === 'audit-logs') {
       loadAuditLogs();
@@ -338,7 +364,7 @@ const AdminPanel: React.FC = () => {
                   <div className="recent-activity">
                     <h3>Recent Activity</h3>
                     <div className="activity-list">
-                      {activities.slice(0, 10).map((activity, index) => (
+                      {(activities || []).slice(0, 10).map((activity, index) => (
                         <div key={index} className="activity-item">
                           <div className="activity-icon">
                             <i className={auditService.getActionIcon(activity.action)}></i>
@@ -380,7 +406,7 @@ const AdminPanel: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {organizations.map((org) => (
+                        {(organizations || []).map((org) => (
                           <tr key={org.id}>
                             <td>
                               <div className="org-info">
@@ -443,7 +469,7 @@ const AdminPanel: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {users.map((user) => (
+                        {(users || []).map((user) => (
                           <tr key={user.id}>
                             <td>{user.firstName} {user.lastName}</td>
                             <td>{user.email}</td>
@@ -489,7 +515,7 @@ const AdminPanel: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {invitations.map((invitation) => (
+                        {(invitations || []).map((invitation) => (
                           <tr key={invitation.id}>
                             <td>
                               <code className="invitation-code">{invitation.code}</code>
@@ -543,7 +569,7 @@ const AdminPanel: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {auditLogs.map((log) => (
+                        {(auditLogs || []).map((log) => (
                           <tr key={log.id}>
                             <td>{auditService.formatDate(log.created_at)}</td>
                             <td>{log.first_name} {log.last_name}</td>

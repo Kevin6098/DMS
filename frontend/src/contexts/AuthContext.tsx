@@ -140,9 +140,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return true;
       }
       
+      // Show error message from response
+      const errorMessage = response.message || 'Registration failed';
+      toast.error(errorMessage);
       return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error);
+      // Extract error message from API response
+      const errorMessage = error?.response?.data?.message || 
+                          error?.response?.data?.errors?.[0]?.msg || 
+                          error?.message || 
+                          'Registration failed. Please check your input.';
+      toast.error(errorMessage);
       return false;
     } finally {
       setIsLoading(false);

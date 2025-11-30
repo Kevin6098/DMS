@@ -92,6 +92,14 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
+              <Route 
+                path="/admin/:tab" 
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <AdminPanel />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
           </div>

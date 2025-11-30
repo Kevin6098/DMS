@@ -20,10 +20,8 @@ const validateUserRegistration = [
     .normalizeEmail()
     .withMessage('Please provide a valid email address'),
   body('password')
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters long')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
+    .isLength({ min: 1 })
+    .withMessage('Password is required'),
   body('firstName')
     .trim()
     .isLength({ min: 1, max: 50 })

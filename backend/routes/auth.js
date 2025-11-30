@@ -29,7 +29,7 @@ router.post('/register', validateUserRegistration, async (req, res) => {
     let orgId = organizationId;
     if (invitationCode) {
       const invitationResult = await executeQuery(
-        'SELECT * FROM invitations WHERE code = ? AND status = "active" AND expires_at > NOW()',
+        'SELECT * FROM invitations WHERE code = ? AND status = "active" AND (expires_at IS NULL OR expires_at > NOW())',
         [invitationCode]
       );
 
@@ -41,12 +41,14 @@ router.post('/register', validateUserRegistration, async (req, res) => {
       }
 
       orgId = invitationResult.data[0].organization_id;
+    }
 
-      // Mark invitation as used
-      await executeQuery(
-        'UPDATE invitations SET status = "used", used_at = NOW() WHERE code = ?',
-        [invitationCode]
-      );
+    // Ensure organization ID is set
+    if (!orgId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Organization ID or invitation code is required'
+      });
     }
 
     // Hash password
@@ -64,6 +66,14 @@ router.post('/register', validateUserRegistration, async (req, res) => {
         success: false,
         message: 'Failed to create user'
       });
+    }
+
+    // Mark invitation as used (after user is created so we can set used_by)
+    if (invitationCode) {
+      await executeQuery(
+        'UPDATE invitations SET status = "used", used_at = NOW(), used_by = ? WHERE code = ?',
+        [userResult.data.insertId, invitationCode]
+      );
     }
 
     // Log user creation

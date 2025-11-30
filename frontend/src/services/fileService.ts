@@ -174,11 +174,25 @@ export const fileService = {
     return apiService.delete<void>(`/files/${fileId}/permanent`);
   },
 
+  // Get specific folder by ID
+  getFolder: async (folderId: number): Promise<ApiResponse<Folder>> => {
+    return apiService.get<Folder>(`/files/folders/${folderId}`);
+  },
+
   // Get folders
   getFolders: async (organizationId?: number, parentId?: number | null, search?: string): Promise<ApiResponse<Folder[]>> => {
     const params: any = {};
     if (organizationId) params.organizationId = organizationId;
-    if (parentId !== undefined) params.parentId = parentId;
+    // Only include parentId if it's a valid number, or explicitly null/undefined
+    // Convert null to string 'null' so backend can distinguish between null (root) and undefined (no filter)
+    if (parentId !== undefined) {
+      if (parentId === null) {
+        params.parentId = 'null';
+      } else if (typeof parentId === 'number' && parentId > 0) {
+        params.parentId = parentId;
+      }
+      // If parentId is undefined or invalid, don't include it in params
+    }
     if (search) params.q = search;
     return apiService.get<Folder[]>('/files/folders/list', params);
   },

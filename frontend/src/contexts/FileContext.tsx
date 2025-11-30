@@ -157,9 +157,15 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
         return true;
       }
       
+      // Show error message from response
+      const errorMessage = response.message || 'Failed to upload file';
+      toast.error(errorMessage);
       return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading file:', error);
+      // Extract error message from API response
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to upload file';
+      toast.error(errorMessage);
       return false;
     }
   };

@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login, register, isAuthenticated, isLoading } = useAuth();
+  const { login, register, isAuthenticated, isLoading, isPlatformOwner, isOrganizationAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState('login');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -13,10 +13,16 @@ const Login: React.FC = () => {
   useEffect(() => {
     // Only redirect if we're sure the user is authenticated and not loading
       if (!isLoading && isAuthenticated) {
-        console.log('User is authenticated, redirecting to dashboard');
-        navigate('/dashboard/my-drive', { replace: true });
+        // Check if user is admin (platform owner or organization admin)
+        if (isPlatformOwner() || isOrganizationAdmin()) {
+          console.log('User is authenticated admin, redirecting to admin panel');
+          navigate('/admin', { replace: true });
+        } else {
+          console.log('User is authenticated, redirecting to dashboard');
+          navigate('/dashboard/my-drive', { replace: true });
+        }
       }
-  }, [isAuthenticated, isLoading, navigate]);
+  }, [isAuthenticated, isLoading, navigate, isPlatformOwner, isOrganizationAdmin]);
 
   const showTab = (tab: string, event?: React.MouseEvent) => {
     if (event) event.preventDefault();
@@ -135,8 +141,13 @@ const Login: React.FC = () => {
         return;
       }
 
-      if (password.length < 6) {
-        toast.error('Password must be at least 6 characters long');
+      if (!password || password.trim() === '') {
+        toast.error('Password is required');
+        return;
+      }
+
+      if (!invitationCode || invitationCode.trim() === '') {
+        toast.error('Invitation code is required');
         return;
       }
 
@@ -145,7 +156,7 @@ const Login: React.FC = () => {
         lastName,
         email,
         password,
-        invitationCode: invitationCode || undefined,
+        invitationCode: invitationCode.trim() || undefined,
       });
 
       if (success) {

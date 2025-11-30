@@ -129,11 +129,17 @@ const Dashboard: React.FC = () => {
 
   // Get folder ID from URL
   const getFolderIdFromUrl = (): number | null => {
-    if (params.folderId) {
-      const folderId = parseInt(params.folderId, 10);
-      return isNaN(folderId) ? null : folderId;
+    // Check if folderId exists and is a valid string/number
+    if (!params.folderId || 
+        params.folderId === 'undefined' || 
+        params.folderId === 'null' || 
+        params.folderId.trim() === '') {
+      return null;
     }
-    return null;
+    
+    const folderId = parseInt(params.folderId, 10);
+    // Return null if not a valid positive number
+    return (isNaN(folderId) || folderId <= 0) ? null : folderId;
   };
 
   const [currentView, setCurrentView] = useState(getCurrentViewFromPath());
@@ -177,6 +183,8 @@ const Dashboard: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<{ item: FileItem | Folder; type: 'file' | 'folder' } | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [showNewMenu, setShowNewMenu] = useState(false);
+  const [showPermissionError, setShowPermissionError] = useState(false);
+  const [permissionErrorMessage, setPermissionErrorMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadModalFileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -245,16 +253,58 @@ const Dashboard: React.FC = () => {
         // Also load root folders to build breadcrumb path
         // This ensures we have parent chain in folders array
         loadFolders(null);
-        // If we're in a folder, also load its parent's folders to ensure we have the full chain
-        // This helps prevent "Loading..." in breadcrumb
-        if (folderIdFromUrl !== null) {
-          // Load all folders without filter to get the full folder tree for breadcrumb
-          // The cache will accumulate all folders we've seen
-          fileService.getFolders(user?.organizationId, undefined).then(response => {
-            if (response.success && response.data && Array.isArray(response.data)) {
+        // If we're in a folder (has valid folder ID), check permissions and load folder data
+        // Only check permissions if we have a valid numeric folder ID
+        if (folderIdFromUrl !== null && !isNaN(folderIdFromUrl) && folderIdFromUrl > 0) {
+          // Check folder access permission
+          fileService.getFolder(folderIdFromUrl).then(response => {
+            if (!response.success) {
+              // Permission denied or folder not found
+              const errorMessage = response.message || 'You do not have permission to access this folder';
+              setPermissionErrorMessage(errorMessage);
+              setShowPermissionError(true);
+              // Navigate back to root
+              navigate('/dashboard/my-drive');
+              setCurrentFolder(null);
+            } else {
+              // Permission granted, continue loading
+              // Load all folders without filter to get the full folder tree for breadcrumb
+              fileService.getFolders(user?.organizationId, undefined).then(foldersResponse => {
+                if (foldersResponse.success && foldersResponse.data && Array.isArray(foldersResponse.data)) {
+                  setAllFoldersCache(prev => {
+                    const newCache = [...prev];
+                    foldersResponse.data!.forEach(folder => {
+                      const existing = newCache.find(f => f.id === folder.id);
+                      if (!existing) {
+                        newCache.push(folder);
+                      } else {
+                        const index = newCache.indexOf(existing);
+                        newCache[index] = folder;
+                      }
+                    });
+                    return newCache;
+                  });
+                }
+              }).catch(error => {
+                console.error('Error loading all folders for breadcrumb:', error);
+              });
+            }
+          }).catch(error => {
+            console.error('Error checking folder permission:', error);
+            const errorMessage = error?.response?.data?.message || 'You do not have permission to access this folder';
+            setPermissionErrorMessage(errorMessage);
+            setShowPermissionError(true);
+            // Navigate back to root
+            navigate('/dashboard/my-drive');
+            setCurrentFolder(null);
+          });
+        } else {
+          // Root folder - no permission check needed, just load folders for breadcrumb
+          fileService.getFolders(user?.organizationId, undefined).then(foldersResponse => {
+            if (foldersResponse.success && foldersResponse.data && Array.isArray(foldersResponse.data)) {
               setAllFoldersCache(prev => {
                 const newCache = [...prev];
-                response.data!.forEach(folder => {
+                foldersResponse.data!.forEach(folder => {
                   const existing = newCache.find(f => f.id === folder.id);
                   if (!existing) {
                     newCache.push(folder);
@@ -2519,6 +2569,43 @@ const Dashboard: React.FC = () => {
             <div className="modal-footer">
               <button className="btn-secondary" onClick={() => { setShowMoveModal(false); setSelectedItem(null); }}>
                 <i className="fas fa-times"></i> Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Permission Error Dialog */}
+      {showPermissionError && (
+        <div className="modal-overlay" onClick={() => setShowPermissionError(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <h3 style={{ color: '#d32f2f', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <i className="fas fa-exclamation-triangle"></i>
+                Access Denied
+              </h3>
+              <button className="modal-close" onClick={() => setShowPermissionError(false)}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#333' }}>
+                {permissionErrorMessage || 'You do not have permission to access this folder.'}
+              </p>
+              <p style={{ fontSize: '14px', color: '#666', marginTop: '12px' }}>
+                This folder may not be shared with you, or you may not have the necessary permissions to view it.
+              </p>
+            </div>
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+              <button 
+                className="btn-primary" 
+                onClick={() => {
+                  setShowPermissionError(false);
+                  navigate('/dashboard/my-drive');
+                }}
+                style={{ padding: '10px 24px' }}
+              >
+                Go to My Drive
               </button>
             </div>
           </div>

@@ -67,6 +67,12 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       queryParams.push(req.user.organization_id);
     }
 
+    // Filter by uploaded_by - users can only see files they uploaded (unless platform owner or org admin)
+    if (req.user.role !== 'platform_owner' && req.user.role !== 'organization_admin') {
+      whereConditions.push('f.uploaded_by = ?');
+      queryParams.push(req.user.id);
+    }
+
     // Search filter (case-insensitive)
     if (search) {
       whereConditions.push('(LOWER(f.name) LIKE ? OR LOWER(f.description) LIKE ?)');
@@ -200,7 +206,7 @@ router.post('/upload', verifyToken, upload.single('file'), validateFileUpload, a
 
     // Check organization storage quota
     const orgResult = await executeQuery(
-      'SELECT storage_quota FROM organizations WHERE id = ?',
+      'SELECT storage_quota, storage_used FROM organizations WHERE id = ?',
       [req.user.organization_id]
     );
 
@@ -211,22 +217,23 @@ router.post('/upload', verifyToken, upload.single('file'), validateFileUpload, a
       });
     }
 
-    const storageQuota = orgResult.data[0].storage_quota * 1024 * 1024; // Convert MB to bytes
+    const storageQuota = orgResult.data[0].storage_quota; // Already in bytes
+    const currentStorageUsed = orgResult.data[0].storage_used || 0;
 
-    // Get current storage usage
-    const usageResult = await executeQuery(
-      'SELECT COALESCE(SUM(file_size), 0) as used FROM files WHERE organization_id = ? AND status = "active"',
-      [req.user.organization_id]
-    );
+    // Calculate new storage size
+    // If creating a new version, we need to account for the size difference
+    let sizeToAdd = file.size;
+    
+    // Check if this is a new version (will be determined later, but we need to check quota first)
+    // For now, we'll check quota with the new file size
+    // If it's a new version, we'll adjust the storage_used update later
 
-    const usedStorage = usageResult.success ? usageResult.data[0].used : 0;
-
-    if (usedStorage + file.size > storageQuota) {
+    if (currentStorageUsed + sizeToAdd > storageQuota) {
       // Delete uploaded file
       await fs.unlink(file.path);
       return res.status(400).json({
         success: false,
-        message: 'File upload would exceed organization storage quota'
+        message: 'Storage quota exceeded. Please contact your administrator to increase storage quota.'
       });
     }
 
@@ -266,6 +273,8 @@ router.post('/upload', verifyToken, upload.single('file'), validateFileUpload, a
     let fileId;
     let isNewVersion = false;
 
+    let sizeDifference = 0; // Track size change for storage_used update
+
     if (existingFileResult.success && existingFileResult.data.length > 0) {
       // File with same name exists - create a new version instead
       const existingFile = existingFileResult.data[0];
@@ -284,11 +293,17 @@ router.post('/upload', verifyToken, upload.single('file'), validateFileUpload, a
 
       if (oldVersionResult.success && oldVersionResult.data.length > 0) {
         const oldFile = oldVersionResult.data[0];
+        const oldSize = oldFile.file_size || 0;
+        sizeDifference = file.size - oldSize; // New size - old size
+        
         // Create version record for the old file
         await executeQuery(
           'INSERT INTO file_versions (file_id, version_number, file_size, storage_path, uploaded_by) VALUES (?, ?, ?, ?, ?)',
           [fileId, currentVersion, oldFile.file_size, oldFile.storage_path, req.user.id]
         );
+      } else {
+        // No old file found, treat as new file size
+        sizeDifference = file.size;
       }
 
       // Update file with new version
@@ -332,6 +347,15 @@ router.post('/upload', verifyToken, upload.single('file'), validateFileUpload, a
       }
 
       fileId = fileResult.data.insertId;
+      sizeDifference = file.size; // New file adds full size
+    }
+
+    // Update organization storage_used
+    if (sizeDifference !== 0) {
+      await executeQuery(
+        'UPDATE organizations SET storage_used = storage_used + ? WHERE id = ?',
+        [sizeDifference, req.user.organization_id]
+      );
     }
 
     // Log file upload/version
@@ -589,6 +613,28 @@ router.post('/:fileId/versions', verifyToken, requireFileAccess, upload.single('
     const file = fileResult.data[0];
     const currentVersion = file.current_version || 0;
     const newVersionNumber = currentVersion + 1;
+    const oldSize = file.file_size || 0;
+    const newSize = req.file.size;
+    const sizeDifference = newSize - oldSize;
+
+    // Check organization storage quota before uploading new version
+    const orgResult = await executeQuery(
+      'SELECT storage_quota, storage_used FROM organizations WHERE id = ?',
+      [req.user.organization_id]
+    );
+
+    if (orgResult.success && orgResult.data.length > 0) {
+      const storageQuota = orgResult.data[0].storage_quota;
+      const currentStorageUsed = orgResult.data[0].storage_used || 0;
+
+      if (currentStorageUsed + sizeDifference > storageQuota) {
+        await fs.unlink(req.file.path);
+        return res.status(400).json({
+          success: false,
+          message: 'Storage quota exceeded. Please contact your administrator to increase storage quota.'
+        });
+      }
+    }
 
     // Save current version to file_versions table
     await executeQuery(
@@ -608,6 +654,14 @@ router.post('/:fileId/versions', verifyToken, requireFileAccess, upload.single('
         success: false,
         message: 'Failed to upload new version'
       });
+    }
+
+    // Update organization storage_used
+    if (sizeDifference !== 0) {
+      await executeQuery(
+        'UPDATE organizations SET storage_used = storage_used + ? WHERE id = ?',
+        [sizeDifference, req.user.organization_id]
+      );
     }
 
     // Log version upload
@@ -1620,6 +1674,9 @@ router.delete('/:fileId/permanent', verifyToken, requireFileAccess, async (req, 
       // Continue with database deletion even if file doesn't exist on disk
     }
 
+    // Get file size before deletion for storage_used update
+    const fileSize = req.file.file_size || 0;
+
     // Permanently delete from database
     const deleteResult = await executeQuery(
       'DELETE FROM files WHERE id = ?',
@@ -1631,6 +1688,14 @@ router.delete('/:fileId/permanent', verifyToken, requireFileAccess, async (req, 
         success: false,
         message: 'Failed to permanently delete file'
       });
+    }
+
+    // Update organization storage_used (subtract file size)
+    if (fileSize > 0) {
+      await executeQuery(
+        'UPDATE organizations SET storage_used = GREATEST(0, storage_used - ?) WHERE id = ?',
+        [fileSize, req.user.organization_id]
+      );
     }
 
     // Log permanent deletion
@@ -1697,7 +1762,7 @@ router.delete('/:fileId', verifyToken, requireFileAccess, async (req, res) => {
   }
 });
 
-// Get folders
+// Get folders - MUST be before /folders/:folderId to avoid route conflict
 router.get('/folders/list', verifyToken, async (req, res) => {
   try {
     const { organizationId, parentId, q: search } = req.query;
@@ -1714,6 +1779,12 @@ router.get('/folders/list', verifyToken, async (req, res) => {
       queryParams.push(req.user.organization_id);
     }
 
+    // Filter by created_by - users can only see folders they created (unless platform owner or org admin)
+    if (req.user.role !== 'platform_owner' && req.user.role !== 'organization_admin') {
+      whereConditions.push('folders.created_by = ?');
+      queryParams.push(req.user.id);
+    }
+
     // Search filter (case-insensitive) - only apply if parentId is not specified (global search)
     if (search && parentId === undefined) {
       whereConditions.push('LOWER(folders.name) LIKE ?');
@@ -1722,13 +1793,19 @@ router.get('/folders/list', verifyToken, async (req, res) => {
     }
 
     // Filter by parentId (for folder navigation) - only if not searching
-    if (parentId !== undefined && !search) {
-      if (parentId === null || parentId === 'null' || parentId === '') {
+    if (parentId !== undefined && parentId !== null && parentId !== 'undefined' && parentId !== 'null' && parentId !== '' && !search) {
+      const parentIdNum = parseInt(parentId, 10);
+      if (!isNaN(parentIdNum) && parentIdNum > 0) {
+        whereConditions.push('folders.parent_id = ?');
+        queryParams.push(parentIdNum);
+      } else if (parentId === null || parentId === 'null' || parentId === '') {
         // Show root folders (no parent)
         whereConditions.push('(folders.parent_id IS NULL OR folders.parent_id = 0)');
-      } else {
-        whereConditions.push('folders.parent_id = ?');
-        queryParams.push(parseInt(parentId));
+      }
+    } else if (parentId === null || parentId === 'null' || parentId === '' || parentId === undefined) {
+      // Show root folders (no parent) when parentId is explicitly null/empty
+      if (!search) {
+        whereConditions.push('(folders.parent_id IS NULL OR folders.parent_id = 0)');
       }
     }
 
@@ -1761,6 +1838,78 @@ router.get('/folders/list', verifyToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Get folders error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Get specific folder by ID (with permission check) - MUST be after /folders/list
+router.get('/folders/:folderId', verifyToken, async (req, res) => {
+  try {
+    const { folderId } = req.params;
+    const folderIdNum = parseInt(folderId, 10);
+
+    if (isNaN(folderIdNum)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid folder ID'
+      });
+    }
+
+    // Get folder
+    const folderResult = await executeQuery(
+      'SELECT * FROM folders WHERE id = ? AND status = "active"',
+      [folderIdNum]
+    );
+
+    if (!folderResult.success || folderResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Folder not found'
+      });
+    }
+
+    const folder = folderResult.data[0];
+
+    // Check organization access
+    if (req.user.role !== 'platform_owner') {
+      if (folder.organization_id !== req.user.organization_id) {
+        return res.status(403).json({
+          success: false,
+          message: 'You do not have permission to access this folder'
+        });
+      }
+    }
+
+    // Check if user has permission to view this folder
+    // Platform owners and org admins can see all folders in their org
+    // Regular members can only see folders they created or folders shared with them
+    if (req.user.role !== 'platform_owner' && req.user.role !== 'organization_admin') {
+      // Check if folder was created by user
+      if (folder.created_by !== req.user.id) {
+        // Check if folder is shared with user
+        const shareResult = await executeQuery(
+          'SELECT * FROM folder_shares WHERE folder_id = ? AND shared_with = ? AND status = "active" AND (expires_at IS NULL OR expires_at > NOW())',
+          [folderIdNum, req.user.id]
+        );
+
+        if (!shareResult.success || shareResult.data.length === 0) {
+          return res.status(403).json({
+            success: false,
+            message: 'You do not have permission to access this folder'
+          });
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      data: folder
+    });
+  } catch (error) {
+    console.error('Get folder error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'

@@ -14,7 +14,7 @@ router.get('/dashboard/stats', verifyToken, requirePlatformOwner, async (req, re
         (SELECT COUNT(*) FROM organizations WHERE status = 'active') as active_organizations,
         (SELECT COUNT(*) FROM users WHERE status = 'active') as active_users,
         (SELECT COUNT(*) FROM files WHERE status = 'active') as total_files,
-        (SELECT COALESCE(SUM(size), 0) FROM files WHERE status = 'active') as total_storage_used,
+        (SELECT COALESCE(SUM(file_size), 0) FROM files WHERE status = 'active') as total_storage_used,
         (SELECT SUM(storage_quota) FROM organizations WHERE status = 'active') as total_storage_quota
     `);
 
@@ -48,9 +48,9 @@ router.get('/dashboard/stats', verifyToken, requirePlatformOwner, async (req, re
     // Get top organizations by storage usage
     const topOrgsByStorage = await executeQuery(`
       SELECT o.name, o.id, 
-             COALESCE(SUM(f.size), 0) as storage_used,
-             o.storage_quota * 1024 * 1024 as storage_quota,
-             ROUND((COALESCE(SUM(f.size), 0) / (o.storage_quota * 1024 * 1024)) * 100, 2) as usage_percentage
+             COALESCE(SUM(f.file_size), 0) as storage_used,
+             o.storage_quota as storage_quota,
+             ROUND((COALESCE(SUM(f.file_size), 0) / o.storage_quota) * 100, 2) as usage_percentage
       FROM organizations o
       LEFT JOIN files f ON o.id = f.organization_id AND f.status = 'active'
       WHERE o.status = 'active'
@@ -376,9 +376,9 @@ router.get('/storage/analytics', verifyToken, requirePlatformOwner, async (req, 
       SELECT 
         COUNT(DISTINCT o.id) as total_organizations,
         SUM(o.storage_quota) as total_quota_mb,
-        SUM(o.storage_quota) * 1024 * 1024 as total_quota_bytes,
-        COALESCE(SUM(f.size), 0) as total_used_bytes,
-        ROUND((COALESCE(SUM(f.size), 0) / (SUM(o.storage_quota) * 1024 * 1024)) * 100, 2) as usage_percentage
+        SUM(o.storage_quota) as total_quota_bytes,
+        COALESCE(SUM(f.file_size), 0) as total_used_bytes,
+        ROUND((COALESCE(SUM(f.file_size), 0) / SUM(o.storage_quota)) * 100, 2) as usage_percentage
       FROM organizations o
       LEFT JOIN files f ON o.id = f.organization_id AND f.status = 'active'
       WHERE o.status = 'active'
@@ -387,8 +387,8 @@ router.get('/storage/analytics', verifyToken, requirePlatformOwner, async (req, 
     // Get storage by organization
     const storageByOrg = await executeQuery(`
       SELECT o.name, o.id, o.storage_quota,
-             COALESCE(SUM(f.size), 0) as used_bytes,
-             ROUND((COALESCE(SUM(f.size), 0) / (o.storage_quota * 1024 * 1024)) * 100, 2) as usage_percentage,
+             COALESCE(SUM(f.file_size), 0) as used_bytes,
+             ROUND((COALESCE(SUM(f.file_size), 0) / o.storage_quota) * 100, 2) as usage_percentage,
              COUNT(f.id) as file_count
       FROM organizations o
       LEFT JOIN files f ON o.id = f.organization_id AND f.status = 'active'
@@ -399,13 +399,13 @@ router.get('/storage/analytics', verifyToken, requirePlatformOwner, async (req, 
 
     // Get storage by file type
     const storageByType = await executeQuery(`
-      SELECT type, 
+      SELECT file_type as type, 
              COUNT(*) as file_count,
-             SUM(size) as total_size,
-             ROUND(AVG(size), 2) as avg_size
+             SUM(file_size) as total_size,
+             ROUND(AVG(file_size), 2) as avg_size
       FROM files 
       WHERE status = 'active'
-      GROUP BY type
+      GROUP BY file_type
       ORDER BY total_size DESC
     `);
 
@@ -413,7 +413,7 @@ router.get('/storage/analytics', verifyToken, requirePlatformOwner, async (req, 
     const storageTrends = await executeQuery(`
       SELECT DATE(created_at) as date,
              COUNT(*) as files_uploaded,
-             SUM(size) as daily_storage_added
+             SUM(file_size) as daily_storage_added
       FROM files 
       WHERE status = 'active' AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
       GROUP BY DATE(created_at)
