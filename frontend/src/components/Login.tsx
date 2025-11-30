@@ -21,7 +21,7 @@ const Login: React.FC = () => {
           console.log('User is authenticated, redirecting to dashboard');
           navigate('/dashboard/my-drive', { replace: true });
         }
-      }
+    }
   }, [isAuthenticated, isLoading, navigate, isPlatformOwner, isOrganizationAdmin]);
 
   const showTab = (tab: string, event?: React.MouseEvent) => {

@@ -111,8 +111,8 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       if (folderId === null || folderId === 'null' || folderId === '') {
         whereConditions.push('f.folder_id IS NULL');
       } else {
-        whereConditions.push('f.folder_id = ?');
-        queryParams.push(folderId);
+      whereConditions.push('f.folder_id = ?');
+      queryParams.push(folderId);
       }
     }
 
@@ -442,30 +442,30 @@ router.post('/upload', verifyToken, (req, res, next) => {
       }
     } else {
       // Create new file record
-      const fileResult = await executeQuery(
+    const fileResult = await executeQuery(
         'INSERT INTO files (name, original_name, storage_path, file_size, file_type, description, organization_id, uploaded_by, folder_id, status, current_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [
+      [
           fileName,
           decodedOriginalName, // Use decoded original name for proper UTF-8 encoding
-          file.path,
-          file.size,
+        file.path,
+        file.size,
           path.extname(decodedOriginalName).toLowerCase(),
-          description || null,
-          req.user.organization_id,
-          req.user.id,
+        description || null,
+        req.user.organization_id,
+        req.user.id,
           targetFolderId,
           'active',
           1 // First version
-        ]
-      );
+      ]
+    );
 
-      if (!fileResult.success) {
-        await fs.unlink(file.path);
-        return res.status(500).json({
-          success: false,
-          message: 'Failed to save file record'
-        });
-      }
+    if (!fileResult.success) {
+      await fs.unlink(file.path);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to save file record'
+      });
+    }
 
       fileId = fileResult.data.insertId;
       sizeDifference = file.size; // New file adds full size

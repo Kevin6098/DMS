@@ -89,7 +89,7 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
         } else {
           // If folderIdToUse is undefined, remove the filter to show all files
           delete currentFilters.folderId;
-        }
+      }
       }
       
       // Merge with existing filters but prioritize newFilters
@@ -151,15 +151,14 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
       const response = await fileService.uploadFile(file, fileData, onProgress);
       
       if (response.success) {
-        toast.success('File uploaded successfully!');
+        // Don't show individual success toast - let the caller handle batch success messages
         await refreshFiles();
         await refreshStats();
         return true;
       }
       
-      // Show error message from response
-      const errorMessage = response.message || 'Failed to upload file';
-      toast.error(errorMessage);
+      // Don't show individual error toast - let the caller handle batch error messages
+      // The error message is available in response.message for the caller to use
       return false;
     } catch (error: any) {
       console.error('Error uploading file:', error);
@@ -171,21 +170,8 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
         fullResponse: error?.response?.data ? JSON.stringify(error.response.data, null, 2) : 'No response data'
       });
       
-      // Extract error message from API response
-      let errorMessage = 'Failed to upload file';
-      
-      if (error?.response?.data) {
-        // Check for validation errors
-        if (error.response.data.errors && Array.isArray(error.response.data.errors)) {
-          errorMessage = error.response.data.errors.map((e: any) => e.msg || e.message).join(', ');
-        } else if (error.response.data.message) {
-          errorMessage = error.response.data.message;
-        }
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-      
-      toast.error(errorMessage);
+      // Don't show individual error toast - let the caller handle batch error messages
+      // The error details are logged above for debugging
       return false;
     }
   };

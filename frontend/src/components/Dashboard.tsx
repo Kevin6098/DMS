@@ -152,6 +152,7 @@ const Dashboard: React.FC = () => {
   const [uploadingFileName, setUploadingFileName] = useState<string>('');
   const [uploadingFileSize, setUploadingFileSize] = useState<number>(0);
   const [isDragging, setIsDragging] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [dragCounter, setDragCounter] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FileFilters>({ search: '', folderId: undefined });
@@ -379,6 +380,9 @@ const Dashboard: React.FC = () => {
     setIsUploading(true);
     setUploadProgress(0);
 
+    let uploadedCount = 0;
+    let failedCount = 0;
+
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -386,21 +390,40 @@ const Dashboard: React.FC = () => {
         setUploadingFileSize(file.size);
         setUploadProgress(0);
         
-        await uploadFile(file, {
+        const success = await uploadFile(file, {
           name: file.name,
           folderId: currentFolder || undefined,
         }, (progress) => {
           setUploadProgress(progress);
         });
+        
+        if (success) {
+          uploadedCount++;
+        } else {
+          failedCount++;
+        }
       }
+      
       setShowUploadModal(false);
-      toast.success(`${files.length} file(s) uploaded successfully!`);
+      
+      // Show appropriate message based on upload results
+      if (uploadedCount > 0 && failedCount === 0) {
+        toast.success(`${uploadedCount} file(s) uploaded successfully!`);
+      } else if (uploadedCount > 0 && failedCount > 0) {
+        toast.error(`${failedCount} file(s) failed to upload. ${uploadedCount} file(s) uploaded successfully.`);
+      } else if (uploadedCount === 0 && failedCount > 0) {
+        toast.error(`${failedCount} file(s) failed to upload.`);
+      }
+      
       // Refresh file list to show newly uploaded files
       await loadFiles();
       await loadFolders();
       await refreshStats();
     } catch (error) {
-      toast.error('Failed to upload files');
+      console.error('Error uploading files:', error);
+      if (uploadedCount === 0) {
+        toast.error('Failed to upload files');
+      }
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -778,15 +801,20 @@ const Dashboard: React.FC = () => {
           const finalTargetFolderId = targetFolderId;
           for (let fileIndex = 0; fileIndex < folderFiles.length; fileIndex++) {
             const file = folderFiles[fileIndex];
+            // Capture uploadedCount at the start of each iteration to avoid closure issues
+            const currentUploadedCount = uploadedCount;
             try {
-              await uploadFile(file, {
+              const success = await uploadFile(file, {
                 name: file.name,
                 folderId: finalTargetFolderId,
               }, (progress) => {
-                const currentCount = uploadedCount + fileIndex + 1;
+                // Calculate progress based on current file index and captured count
+                const currentCount = currentUploadedCount + fileIndex + 1;
                 setUploadProgress((currentCount / totalFiles) * 100);
               });
-              uploadedCount++;
+              if (success) {
+                uploadedCount++;
+              }
             } catch (error) {
               console.error('Error uploading file:', error);
             }
@@ -854,7 +882,16 @@ const Dashboard: React.FC = () => {
           }
         }
 
-        toast.success(`${uploadedCount} file(s) uploaded successfully!`);
+        // Show appropriate message based on upload results
+        const failedCount = totalFiles - uploadedCount;
+        if (uploadedCount > 0 && failedCount === 0) {
+          toast.success(`${uploadedCount} file(s) uploaded successfully!`);
+        } else if (uploadedCount > 0 && failedCount > 0) {
+          toast.error(`${failedCount} file(s) failed to upload. ${uploadedCount} file(s) uploaded successfully.`);
+        } else if (uploadedCount === 0 && failedCount > 0) {
+          toast.error(`${failedCount} file(s) failed to upload.`);
+        }
+        
         await loadFiles();
         await loadFolders();
         await refreshStats();
@@ -967,17 +1004,21 @@ const Dashboard: React.FC = () => {
         const finalTargetFolderId = targetFolderId;
         for (let fileIndex = 0; fileIndex < folderFiles.length; fileIndex++) {
           const file = folderFiles[fileIndex];
+          // Capture uploadedCount at the start of each iteration to avoid closure issues
+          const currentUploadedCount = uploadedCount;
           try {
             // Always specify folderId explicitly - undefined means root, number means specific folder
-            await uploadFile(file, {
+            const success = await uploadFile(file, {
               name: file.name,
               folderId: finalTargetFolderId, // This will be baseFolderId for root files, or created folder ID for nested files
             }, (progress) => {
-              // Calculate progress based on current file index to avoid closure issues
-              const currentCount = uploadedCount + fileIndex + 1;
+              // Calculate progress based on current file index and captured count
+              const currentCount = currentUploadedCount + fileIndex + 1;
               setUploadProgress((currentCount / totalFiles) * 100);
             });
-            uploadedCount++;
+            if (success) {
+              uploadedCount++;
+            }
           } catch (error) {
             console.error('Error uploading file:', error);
           }
@@ -1046,7 +1087,17 @@ const Dashboard: React.FC = () => {
         }
       }
 
-      toast.success(`${uploadedCount} file(s) uploaded successfully!`);
+      // Only show success if at least one file uploaded successfully
+      if (uploadedCount > 0) {
+        const failedCount = totalFiles - uploadedCount;
+        if (failedCount === 0) {
+          toast.success(`${uploadedCount} file(s) uploaded successfully!`);
+        } else {
+          toast.error(`${failedCount} file(s) failed to upload. ${uploadedCount} file(s) uploaded successfully.`);
+        }
+      }
+      // If uploadedCount is 0, error messages are already shown by uploadFile function
+      
       await loadFiles();
       await loadFolders(null);
     } catch (error) {
@@ -1505,33 +1556,35 @@ const Dashboard: React.FC = () => {
           boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
           zIndex: 100000,
           minWidth: '300px',
-          maxWidth: '400px'
+          maxWidth: '400px',
+          wordWrap: 'break-word',
+          overflowWrap: 'break-word'
         }}>
           <div style={{
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'space-between',
-            marginBottom: '12px'
+            marginBottom: '12px',
+            gap: '12px'
           }}>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{
                 fontSize: '14px',
                 fontWeight: 500,
                 color: '#333',
                 marginBottom: '4px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
+                display: 'flex',
+                alignItems: 'center'
               }}>
-                <i className="fas fa-cloud-upload-alt" style={{ marginRight: '8px', color: '#1a73e8' }}></i>
-                Uploading...
+                <i className="fas fa-cloud-upload-alt" style={{ marginRight: '8px', color: '#1a73e8', flexShrink: 0 }}></i>
+                <span>Uploading...</span>
               </div>
               <div style={{
                 fontSize: '12px',
                 color: '#666',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
+                wordWrap: 'break-word',
+                overflowWrap: 'break-word',
+                lineHeight: '1.4'
               }}>
                 {uploadingFileName || 'Preparing upload...'}
               </div>
@@ -1539,7 +1592,7 @@ const Dashboard: React.FC = () => {
                 <div style={{
                   fontSize: '11px',
                   color: '#999',
-                  marginTop: '2px'
+                  marginTop: '4px'
                 }}>
                   {fileService.formatFileSize(uploadingFileSize)}
                 </div>
@@ -1557,8 +1610,11 @@ const Dashboard: React.FC = () => {
                 border: 'none',
                 cursor: 'pointer',
                 color: '#666',
-                padding: '4px',
-                marginLeft: '12px'
+                padding: '4px 8px',
+                flexShrink: 0,
+                alignSelf: 'flex-start',
+                fontSize: '18px',
+                lineHeight: 1
               }}
               title="Hide progress"
             >
@@ -1840,6 +1896,7 @@ const Dashboard: React.FC = () => {
                     <th className="col-type">Type</th>
                     <th className="col-size">Size</th>
                     <th className="col-owner">Owner</th>
+                    <th className="col-uploaded">Uploaded</th>
                     <th className="col-actions"></th>
                   </tr>
                 </thead>
@@ -1869,6 +1926,13 @@ const Dashboard: React.FC = () => {
                         {folder.first_name && folder.last_name 
                           ? `${folder.first_name} ${folder.last_name}`
                           : 'Unknown'}
+                      </td>
+                      <td className="col-uploaded">
+                        {new Date(folder.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
                       </td>
                       <td className="col-actions">
                         <div className="table-actions">
@@ -1909,6 +1973,13 @@ const Dashboard: React.FC = () => {
                           ? `${file.first_name} ${file.last_name}`
                           : file.email || 'Unknown'}
                       </td>
+                      <td className="col-uploaded">
+                        {new Date(file.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </td>
                       <td className="col-actions">
                         <div className="table-actions">
                           {currentView === 'trash' ? (
@@ -1943,7 +2014,7 @@ const Dashboard: React.FC = () => {
                     
                     return isEmpty && (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: 'center', padding: '40px', color: '#6c757d' }}>
+                        <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#6c757d' }}>
                           <i className={
                             currentView === 'trash' ? 'fas fa-trash' : 
                             currentView === 'starred' ? 'fas fa-star' : 
@@ -2190,8 +2261,8 @@ const Dashboard: React.FC = () => {
                       position: 'relative'
                     }}>
                       <div style={{
-                        width: `${uploadProgress}%`,
-                        height: '100%',
+                          width: `${uploadProgress}%`,
+                          height: '100%',
                         background: 'linear-gradient(90deg, #1a73e8 0%, #4285f4 100%)',
                         borderRadius: '5px',
                         transition: 'width 0.3s ease',
@@ -2210,7 +2281,7 @@ const Dashboard: React.FC = () => {
                             {uploadProgress}%
                           </span>
                         )}
-                      </div>
+                    </div>
                     </div>
                     <div style={{
                       display: 'flex',
@@ -2864,7 +2935,24 @@ const Dashboard: React.FC = () => {
                 To avoid deletion, open the context menu on the file version and select <strong>Keep forever</strong>. 
                 These versions are kept forever and count towards your storage limit. 
                 Versions are displayed in the order they were uploaded to Drive.{' '}
-                <a href="#" style={{ color: '#141464' }}>Learn more</a>
+                <button 
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    // TODO: Add learn more functionality
+                  }}
+                  style={{ 
+                    background: 'none', 
+                    border: 'none', 
+                    color: '#141464', 
+                    cursor: 'pointer', 
+                    textDecoration: 'underline',
+                    padding: 0,
+                    font: 'inherit'
+                  }}
+                >
+                  Learn more
+                </button>
               </p>
             </div>
 

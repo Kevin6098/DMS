@@ -56,19 +56,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             return;
           }
           
-          // Verify token is still valid
-          try {
-            const response = await authService.verifyToken();
-            if (response.success && response.data) {
-              setToken(storedToken);
-              setUser(response.data.user);
-            } else {
-              // Token is invalid, clear auth data
+            // Verify token is still valid
+            try {
+              const response = await authService.verifyToken();
+              if (response.success && response.data) {
+                setToken(storedToken);
+                setUser(response.data.user);
+              } else {
+                // Token is invalid, clear auth data
               console.log('Token verification failed, clearing auth data');
-              authService.clearAuthData();
+                authService.clearAuthData();
               setToken(null);
               setUser(null);
-            }
+              }
           } catch (error: any) {
             // If backend is not available or verification fails, clear auth data to prevent loops
             console.warn('Token verification error:', error?.message || error);

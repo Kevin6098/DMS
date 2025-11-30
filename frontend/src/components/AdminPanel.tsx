@@ -192,7 +192,7 @@ const AdminPanel: React.FC = () => {
         loadDashboardData();
       } else {
         toast.error(response.message || 'Failed to create organization');
-      }
+    }
     } catch (error: any) {
       console.error('Create organization error:', error);
       toast.error(error.response?.data?.message || 'Failed to create organization');
@@ -521,44 +521,44 @@ const AdminPanel: React.FC = () => {
                   <h2>Platform Overview</h2>
                   {dashboardStats ? (
                     <>
-                      <div className="stats-grid">
-                        <div className="stat-card">
-                          <div className="stat-icon">
-                            <i className="fas fa-building"></i>
-                          </div>
-                          <div className="stat-content">
-                            <h3>{dashboardStats.platformStats?.active_organizations || 0}</h3>
-                            <p>Active Organizations</p>
-                          </div>
-                        </div>
-                        <div className="stat-card">
-                          <div className="stat-icon">
-                            <i className="fas fa-users"></i>
-                          </div>
-                          <div className="stat-content">
-                            <h3>{dashboardStats.platformStats?.active_users || 0}</h3>
-                            <p>Active Users</p>
-                          </div>
-                        </div>
-                        <div className="stat-card">
-                          <div className="stat-icon">
-                            <i className="fas fa-file"></i>
-                          </div>
-                          <div className="stat-content">
-                            <h3>{dashboardStats.platformStats?.total_files || 0}</h3>
-                            <p>Total Files</p>
-                          </div>
-                        </div>
-                        <div className="stat-card">
-                          <div className="stat-icon">
-                            <i className="fas fa-hdd"></i>
-                          </div>
-                          <div className="stat-content">
-                            <h3>{dashboardStats.platformStats?.total_storage_used ? Math.round(dashboardStats.platformStats.total_storage_used / 1024 / 1024 / 1024) : 0} GB</h3>
-                            <p>Storage Used</p>
-                          </div>
-                        </div>
+                  <div className="stats-grid">
+                    <div className="stat-card">
+                      <div className="stat-icon">
+                        <i className="fas fa-building"></i>
                       </div>
+                      <div className="stat-content">
+                            <h3>{dashboardStats.platformStats?.active_organizations || 0}</h3>
+                        <p>Active Organizations</p>
+                      </div>
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-icon">
+                        <i className="fas fa-users"></i>
+                      </div>
+                      <div className="stat-content">
+                            <h3>{dashboardStats.platformStats?.active_users || 0}</h3>
+                        <p>Active Users</p>
+                      </div>
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-icon">
+                        <i className="fas fa-file"></i>
+                      </div>
+                      <div className="stat-content">
+                            <h3>{dashboardStats.platformStats?.total_files || 0}</h3>
+                        <p>Total Files</p>
+                      </div>
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-icon">
+                        <i className="fas fa-hdd"></i>
+                      </div>
+                      <div className="stat-content">
+                            <h3>{dashboardStats.platformStats?.total_storage_used ? Math.round(dashboardStats.platformStats.total_storage_used / 1024 / 1024 / 1024) : 0} GB</h3>
+                        <p>Storage Used</p>
+                      </div>
+                    </div>
+                  </div>
 
                       <div className="stats-grid-secondary">
                         <div className="stat-card">
@@ -622,8 +622,8 @@ const AdminPanel: React.FC = () => {
                             <div className="health-item">
                               <span className="health-label">Daily Activity</span>
                               <span className="health-value">{dashboardStats.systemHealth.daily_activity || 0}</span>
-                            </div>
-                          </div>
+                    </div>
+                  </div>
                         </div>
                       )}
 
@@ -771,13 +771,13 @@ const AdminPanel: React.FC = () => {
                                 >
                                   <i className="fas fa-edit"></i>
                                 </button>
-                                <button 
-                                  className="btn-danger btn-sm"
-                                  onClick={() => handleDeleteOrganization(org.id)}
+                              <button 
+                                className="btn-danger btn-sm"
+                                onClick={() => handleDeleteOrganization(org.id)}
                                   title="Delete Organization"
-                                >
+                              >
                                   <i className="fas fa-trash-alt"></i>
-                                </button>
+                              </button>
                               </div>
                             </td>
                           </tr>
@@ -829,7 +829,7 @@ const AdminPanel: React.FC = () => {
                           <option key={org.id} value={org.id}>{org.name}</option>
                         ))}
                       </select>
-                    </div>
+                  </div>
                     <div className="filter-group">
                       <select
                         className="filter-select"
@@ -841,7 +841,7 @@ const AdminPanel: React.FC = () => {
                         <option value="organization_admin">Organization Admin</option>
                         <option value="member">Member</option>
                       </select>
-                    </div>
+                </div>
                     <div className="filter-group">
                       <select
                         className="filter-select"
@@ -861,7 +861,7 @@ const AdminPanel: React.FC = () => {
                         title="Clear Filters"
                       >
                         <i className="fas fa-times"></i> Clear
-                      </button>
+                    </button>
                     )}
                   </div>
                   
@@ -907,14 +907,14 @@ const AdminPanel: React.FC = () => {
                                 >
                                   <i className="fas fa-edit"></i>
                                 </button>
-                                <button 
-                                  className="btn-danger btn-sm"
+                              <button 
+                                className="btn-danger btn-sm"
                                   onClick={() => handleDeleteUser(u.id)}
                                   title="Delete User"
                                   disabled={u.id === user?.id}
-                                >
+                              >
                                   <i className="fas fa-trash-alt"></i>
-                                </button>
+                              </button>
                               </div>
                             </td>
                           </tr>
@@ -985,17 +985,17 @@ const AdminPanel: React.FC = () => {
                   <h2>Storage Analytics</h2>
                   {storageAnalytics ? (
                     <>
-                      <div className="storage-overview">
-                        <div className="storage-stats">
-                          <div className="stat-item">
+                  <div className="storage-overview">
+                    <div className="storage-stats">
+                      <div className="stat-item">
                             <h3>{storageAnalytics.overview?.total_organizations || 0}</h3>
-                            <p>Total Organizations</p>
-                          </div>
-                          <div className="stat-item">
+                        <p>Total Organizations</p>
+                      </div>
+                      <div className="stat-item">
                             <h3>{storageAnalytics.overview?.total_used_bytes ? Math.round(storageAnalytics.overview.total_used_bytes / 1024 / 1024 / 1024) : 0} GB</h3>
-                            <p>Total Storage Used</p>
-                          </div>
-                          <div className="stat-item">
+                        <p>Total Storage Used</p>
+                      </div>
+                      <div className="stat-item">
                             <h3>{storageAnalytics.overview?.total_quota_bytes ? Math.round(storageAnalytics.overview.total_quota_bytes / 1024 / 1024 / 1024) : 0} GB</h3>
                             <p>Total Storage Quota</p>
                           </div>
@@ -1006,9 +1006,9 @@ const AdminPanel: React.FC = () => {
                               const numUsage = typeof usage === 'number' ? usage : parseFloat(String(usage)) || 0;
                               return isNaN(numUsage) ? '0' : numUsage.toFixed(1);
                             })()}%</h3>
-                            <p>Usage Percentage</p>
-                          </div>
-                        </div>
+                        <p>Usage Percentage</p>
+                      </div>
+                    </div>
                       </div>
 
                       {storageAnalytics.byOrganization && storageAnalytics.byOrganization.length > 0 && (
@@ -1085,9 +1085,9 @@ const AdminPanel: React.FC = () => {
                                 ))}
                               </tbody>
                             </table>
-                          </div>
-                        </div>
-                      )}
+                  </div>
+                </div>
+              )}
                     </>
                   ) : (
                     <div className="empty-state">

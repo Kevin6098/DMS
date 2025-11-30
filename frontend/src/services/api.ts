@@ -84,7 +84,7 @@ api.interceptors.response.use(
             toast.error('Session expired. Please login again.');
             // Use setTimeout to allow React Router to handle navigation
             setTimeout(() => {
-              window.location.href = '/login';
+          window.location.href = '/login';
             }, 100);
           }
           break;
