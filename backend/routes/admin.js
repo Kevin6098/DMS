@@ -197,13 +197,13 @@ router.post('/invitations/generate', verifyToken, requirePlatformOwner, async (r
     const code = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
 
-    // Create invitation
-    const invitationResult = await executeQuery(
-      'INSERT INTO invitations (code, organization_id, role, expires_at, generated_by, status) VALUES (?, ?, ?, ?, ?, ?)',
-      [code, organizationId, role, expiresAt, req.user.id, 'active']
+    // Update organization with invitation code
+    const updateResult = await executeQuery(
+      'UPDATE organizations SET invitation_code = ?, invitation_role = ?, invitation_expires_at = ?, invitation_generated_by = ? WHERE id = ?',
+      [code, role, expiresAt, req.user.id, organizationId]
     );
 
-    if (!invitationResult.success) {
+    if (!updateResult.success) {
       return res.status(500).json({
         success: false,
         message: 'Failed to generate invitation code'
@@ -213,14 +213,13 @@ router.post('/invitations/generate', verifyToken, requirePlatformOwner, async (r
     // Log invitation creation
     await executeQuery(
       'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
-      [req.user.id, organizationId, 'CREATE', 'INVITATION', invitationResult.data.insertId, JSON.stringify({ code, organizationId, role, expiresAt })]
+      [req.user.id, organizationId, 'CREATE', 'INVITATION', organizationId, JSON.stringify({ code, organizationId, role, expiresAt })]
     );
 
     res.status(201).json({
       success: true,
       message: 'Invitation code generated successfully',
       data: {
-        invitationId: invitationResult.data.insertId,
         code,
         organizationId,
         organizationName: orgResult.data[0].name,
@@ -237,44 +236,40 @@ router.post('/invitations/generate', verifyToken, requirePlatformOwner, async (r
   }
 });
 
-// Get all invitations
+// Get all invitations (from organizations table)
 router.get('/invitations', verifyToken, requirePlatformOwner, validatePagination, validateSearch, async (req, res) => {
   try {
-    const { page = 1, limit = 10, q: search, organizationId, status } = req.query;
+    const { page = 1, limit = 10, q: search, organizationId } = req.query;
     const offset = (page - 1) * limit;
 
-    let whereConditions = [];
+    let whereConditions = ['o.invitation_code IS NOT NULL'];
     let queryParams = [];
 
     // Search filter
     if (search) {
-      whereConditions.push('(i.code LIKE ? OR o.name LIKE ?)');
+      whereConditions.push('(o.invitation_code LIKE ? OR o.name LIKE ?)');
       const searchPattern = `%${search}%`;
       queryParams.push(searchPattern, searchPattern);
     }
 
     // Organization filter
     if (organizationId) {
-      whereConditions.push('i.organization_id = ?');
+      whereConditions.push('o.id = ?');
       queryParams.push(organizationId);
-    }
-
-    // Status filter
-    if (status) {
-      whereConditions.push('i.status = ?');
-      queryParams.push(status);
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    // Get invitations
+    // Get invitations from organizations
     const invitationsQuery = `
-      SELECT i.*, o.name as organization_name, u.first_name, u.last_name
-      FROM invitations i
-      LEFT JOIN organizations o ON i.organization_id = o.id
-      LEFT JOIN users u ON i.generated_by = u.id
+      SELECT o.id as organization_id, o.name as organization_name, 
+             o.invitation_code as code, o.invitation_role as role, 
+             o.invitation_expires_at as expires_at, o.invitation_generated_by as generated_by,
+             u.first_name, u.last_name
+      FROM organizations o
+      LEFT JOIN users u ON o.invitation_generated_by = u.id
       ${whereClause}
-      ORDER BY i.created_at DESC
+      ORDER BY o.updated_at DESC
       LIMIT ? OFFSET ?
     `;
 
@@ -283,8 +278,7 @@ router.get('/invitations', verifyToken, requirePlatformOwner, validatePagination
     // Get total count
     const countQuery = `
       SELECT COUNT(*) as total 
-      FROM invitations i
-      LEFT JOIN organizations o ON i.organization_id = o.id
+      FROM organizations o
       ${whereClause}
     `;
 
@@ -318,28 +312,30 @@ router.get('/invitations', verifyToken, requirePlatformOwner, validatePagination
   }
 });
 
-// Delete invitation
-router.delete('/invitations/:id', verifyToken, requirePlatformOwner, async (req, res) => {
+// Delete invitation (clear from organization)
+router.delete('/invitations/:organizationId', verifyToken, requirePlatformOwner, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { organizationId } = req.params;
 
-    // Check if invitation exists
-    const invitationResult = await executeQuery(
-      'SELECT * FROM invitations WHERE id = ?',
-      [id]
+    // Check if organization exists and has invitation code
+    const orgResult = await executeQuery(
+      'SELECT * FROM organizations WHERE id = ? AND invitation_code IS NOT NULL',
+      [organizationId]
     );
 
-    if (!invitationResult.success || invitationResult.data.length === 0) {
+    if (!orgResult.success || orgResult.data.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Invitation not found'
+        message: 'Organization or invitation not found'
       });
     }
 
-    // Delete invitation
+    const org = orgResult.data[0];
+
+    // Clear invitation from organization
     const deleteResult = await executeQuery(
-      'UPDATE invitations SET status = "cancelled", cancelled_at = NOW() WHERE id = ?',
-      [id]
+      'UPDATE organizations SET invitation_code = NULL, invitation_role = NULL, invitation_expires_at = NULL, invitation_generated_by = NULL WHERE id = ?',
+      [organizationId]
     );
 
     if (!deleteResult.success) {
@@ -352,7 +348,7 @@ router.delete('/invitations/:id', verifyToken, requirePlatformOwner, async (req,
     // Log deletion
     await executeQuery(
       'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
-      [req.user.id, invitationResult.data[0].organization_id, 'DELETE', 'INVITATION', id, JSON.stringify({ code: invitationResult.data[0].code })]
+      [req.user.id, parseInt(organizationId), 'DELETE', 'INVITATION', parseInt(organizationId), JSON.stringify({ code: org.invitation_code })]
     );
 
     res.json({
@@ -372,16 +368,17 @@ router.delete('/invitations/:id', verifyToken, requirePlatformOwner, async (req,
 router.get('/storage/analytics', verifyToken, requirePlatformOwner, async (req, res) => {
   try {
     // Get storage overview
+    // Calculate total quota separately to avoid duplication from JOIN
     const storageOverview = await executeQuery(`
       SELECT 
-        COUNT(DISTINCT o.id) as total_organizations,
-        SUM(o.storage_quota) as total_quota_mb,
-        SUM(o.storage_quota) as total_quota_bytes,
-        COALESCE(SUM(f.file_size), 0) as total_used_bytes,
-        ROUND((COALESCE(SUM(f.file_size), 0) / SUM(o.storage_quota)) * 100, 2) as usage_percentage
-      FROM organizations o
-      LEFT JOIN files f ON o.id = f.organization_id AND f.status = 'active'
-      WHERE o.status = 'active'
+        (SELECT COUNT(DISTINCT id) FROM organizations WHERE status = 'active') as total_organizations,
+        (SELECT COALESCE(SUM(storage_quota), 0) FROM organizations WHERE status = 'active') as total_quota_bytes,
+        (SELECT COALESCE(SUM(file_size), 0) FROM files WHERE status = 'active') as total_used_bytes,
+        ROUND(
+          (SELECT COALESCE(SUM(file_size), 0) FROM files WHERE status = 'active') / 
+          NULLIF((SELECT COALESCE(SUM(storage_quota), 0) FROM organizations WHERE status = 'active'), 0) * 100, 
+          2
+        ) as usage_percentage
     `);
 
     // Get storage by organization

@@ -113,9 +113,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return true;
       }
       
+      // Show error message if available
+      if (response.message) {
+        toast.error(response.message);
+      }
+      
       return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
+      
+      // Extract and show error message
+      const errorMessage = error?.response?.data?.message || 
+                          error?.response?.data?.errors?.[0]?.msg ||
+                          error?.message || 
+                          'Login failed. Please check your credentials.';
+      toast.error(errorMessage);
+      
       return false;
     } finally {
       setIsLoading(false);

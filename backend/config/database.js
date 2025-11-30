@@ -13,11 +13,27 @@ const dbConfig = {
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
-  charset: 'utf8mb4'
+  charset: 'utf8mb4',
+  // Ensure UTF-8 encoding for all connections
+  typeCast: function (field, next) {
+    if (field.type === 'VAR_STRING' || field.type === 'STRING' || field.type === 'TEXT') {
+      return field.string();
+    }
+    return next();
+  }
 };
 
 // Create connection pool
 const pool = mysql.createPool(dbConfig);
+
+// Set charset on every new connection
+pool.on('connection', (connection) => {
+  connection.query('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci', (err) => {
+    if (err) {
+      console.error('Failed to set charset on connection:', err);
+    }
+  });
+});
 
 // Test database connection
 const testConnection = async () => {
@@ -35,6 +51,8 @@ const testConnection = async () => {
 // Execute query with error handling
 const executeQuery = async (query, params = []) => {
   try {
+    // Use pool.execute which automatically manages connections
+    // The charset is set via the pool's 'connection' event handler
     const [results] = await pool.execute(query, params);
     return { success: true, data: results };
   } catch (error) {

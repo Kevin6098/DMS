@@ -13,15 +13,45 @@ const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // DO NOT use transformRequest - it interferes with axios's automatic JSON serialization
+  // FormData handling is done in the request interceptor instead
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token and handle FormData
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Handle FormData - delete Content-Type to let browser set it with boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+    
+    // Log and validate requests for debugging
+    if (config.url?.includes('/folders') || config.url?.includes('/auth/login')) {
+      console.log('📤 [API REQUEST INTERCEPTOR]', {
+        url: config.url,
+        method: config.method,
+        data: config.data,
+        dataType: typeof config.data,
+        isObject: typeof config.data === 'object' && config.data !== null,
+        isFormData: config.data instanceof FormData,
+        contentType: config.headers['Content-Type'],
+        dataString: typeof config.data === 'object' && !(config.data instanceof FormData) 
+          ? JSON.stringify(config.data) 
+          : config.data
+      });
+      
+      // Prevent "[object Object]" string from being sent
+      if (config.data && typeof config.data === 'string' && config.data === '[object Object]') {
+        console.error('❌ [API REQUEST] Detected "[object Object]" string! This should not happen.');
+        throw new Error('Data was incorrectly converted to "[object Object]" string');
+      }
+    }
+    
     return config;
   },
   (error) => {
@@ -56,6 +86,17 @@ api.interceptors.response.use(
             setTimeout(() => {
               window.location.href = '/login';
             }, 100);
+          }
+          break;
+        case 400:
+          // Bad Request - show validation errors or error message
+          const validationErrors = (data as any)?.errors;
+          if (validationErrors && Array.isArray(validationErrors) && validationErrors.length > 0) {
+            validationErrors.forEach((err: any) => {
+              toast.error(err.msg || err.message || 'Validation error');
+            });
+          } else {
+            toast.error(errorMessage);
           }
           break;
         case 403:
@@ -144,7 +185,38 @@ export const apiService = {
       console.warn('Offline mode: API call blocked', url);
       return { success: false, message: 'Offline mode - backend not available' };
     }
-    const response = await api.post(url, data);
+    
+    // Log the data being sent for debugging
+    if (url.includes('/folders') || url.includes('/auth/login')) {
+      console.log('📤 [API POST] Request details:', {
+        url,
+        data,
+        dataType: typeof data,
+        isObject: typeof data === 'object' && data !== null,
+        isFormData: data instanceof FormData,
+        stringified: typeof data === 'object' ? JSON.stringify(data) : data
+      });
+    }
+    
+    // Ensure data is a plain object, not a stringified object
+    // For JSON requests (non-FormData), ensure it's an object
+    let requestData = data;
+    if (data && typeof data === 'string' && data === '[object Object]') {
+      console.error('❌ [API POST] Detected "[object Object]" string - this should not happen!');
+      throw new Error('Invalid data format: object was converted to "[object Object]" string');
+    }
+    
+    // Explicitly ensure JSON serialization for non-FormData requests
+    // Axios should handle this automatically, but we'll be explicit
+    const config: any = {};
+    if (data && typeof data === 'object' && !(data instanceof FormData)) {
+      // Ensure Content-Type is set for JSON
+      config.headers = {
+        'Content-Type': 'application/json'
+      };
+    }
+    
+    const response = await api.post(url, requestData, config);
     return response.data;
   },
 
@@ -184,11 +256,25 @@ export const apiService = {
       console.warn('Offline mode: API call blocked', url);
       return { success: false, message: 'Offline mode - backend not available' };
     }
+    // For large file uploads, use a much longer timeout (2 hours = 7200000ms)
+    // This allows for 2GB+ files even on slow connections
+    const uploadTimeout = parseInt(process.env.REACT_APP_UPLOAD_TIMEOUT || '7200000'); // 2 hours default
+    
+    // Log FormData contents for debugging
+    console.log('📤 [UPLOAD] Sending file upload:', {
+      url,
+      formDataKeys: Array.from(formData.keys()),
+      hasFile: formData.has('file'),
+      file: formData.get('file') ? {
+        name: (formData.get('file') as File)?.name,
+        size: (formData.get('file') as File)?.size,
+        type: (formData.get('file') as File)?.type
+      } : 'no file'
+    });
+    
     const response = await api.post(url, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      onUploadProgress: (progressEvent) => {
+      timeout: uploadTimeout, // Override default timeout for uploads
+      onUploadProgress: (progressEvent: any) => {
         if (onProgress && progressEvent.total) {
           const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
           onProgress(progress);

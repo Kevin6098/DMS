@@ -8,6 +8,23 @@ const { executeQuery } = require('../config/database');
 const { verifyToken, requireFileAccess } = require('../middleware/auth');
 const { validateFileUpload, validateFileUpdate, validateFolder, validatePagination, validateSearch } = require('../middleware/validation');
 
+// Helper function to decode filename (handles URL encoding from browser)
+const decodeFilename = (filename) => {
+  if (!filename) return filename;
+  try {
+    // Try to decode URL-encoded filename (browsers may encode special characters)
+    // First check if it's URL encoded
+    if (filename.includes('%')) {
+      return decodeURIComponent(filename);
+    }
+    return filename;
+  } catch (error) {
+    // If decoding fails, return original
+    console.warn('Failed to decode filename:', filename, error);
+    return filename;
+  }
+};
+
 const router = express.Router();
 
 // Configure multer for file uploads
@@ -18,13 +35,17 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    // Decode filename to preserve extension with special characters
+    const decodedName = decodeFilename(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(decodedName));
   }
 });
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = (process.env.ALLOWED_FILE_TYPES || 'pdf,doc,docx,txt,jpg,jpeg,png,gif,mp4,avi,mov').split(',');
-  const fileExtension = path.extname(file.originalname).toLowerCase().substring(1);
+  // Decode filename to handle URL-encoded characters
+  const decodedName = decodeFilename(file.originalname);
+  const fileExtension = path.extname(decodedName).toLowerCase().substring(1);
   
   if (allowedTypes.includes(fileExtension)) {
     cb(null, true);
@@ -37,7 +58,9 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024 // 10MB default
+    // Default to 2GB if MAX_FILE_SIZE is not set
+    // 2GB = 2 * 1024 * 1024 * 1024 = 2147483648 bytes
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 2 * 1024 * 1024 * 1024 // 2GB default
   }
 });
 
@@ -191,13 +214,109 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
   }
 });
 
+// Test upload endpoint (for debugging)
+router.post('/upload/test', verifyToken, (req, res) => {
+  console.log('📤 [UPLOAD TEST] Request received:', {
+    headers: req.headers,
+    body: req.body,
+    files: req.files,
+    file: req.file
+  });
+  res.json({
+    success: true,
+    message: 'Test endpoint reached',
+    hasFile: !!req.file,
+    body: req.body
+  });
+});
+
 // Upload file
-router.post('/upload', verifyToken, upload.single('file'), validateFileUpload, async (req, res) => {
-  try {
-    if (!req.file) {
+router.post('/upload', verifyToken, (req, res, next) => {
+  console.log('📤 [UPLOAD] Multer middleware starting:', {
+    contentType: req.headers['content-type'],
+    contentLength: req.headers['content-length'],
+    hasBody: !!req.body,
+    method: req.method,
+    url: req.url,
+    headers: {
+      'content-type': req.headers['content-type'],
+      'content-length': req.headers['content-length'],
+      'authorization': req.headers['authorization'] ? 'present' : 'missing'
+    }
+  });
+  
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      console.error('📤 [UPLOAD] Multer error:', {
+        code: err.code,
+        message: err.message,
+        field: err.field,
+        name: err.name,
+        stack: err.stack
+      });
+      
+      // Handle multer errors
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        const maxSize = parseInt(process.env.MAX_FILE_SIZE) || 2 * 1024 * 1024 * 1024;
+        const maxSizeGB = (maxSize / (1024 * 1024 * 1024)).toFixed(2);
+        return res.status(400).json({
+          success: false,
+          message: `File too large. Maximum file size is ${maxSizeGB} GB.`,
+          code: 'LIMIT_FILE_SIZE'
+        });
+      }
+      // Handle other multer errors
+      if (err instanceof multer.MulterError) {
+        return res.status(400).json({
+          success: false,
+          message: `Upload error: ${err.message}`,
+          code: err.code
+        });
+      }
+      // Handle file filter errors
+      if (err.message && err.message.includes('not allowed')) {
+        return res.status(400).json({
+          success: false,
+          message: err.message
+        });
+      }
+      // Generic multer error
       return res.status(400).json({
         success: false,
-        message: 'No file uploaded'
+        message: err.message || 'File upload failed',
+        code: err.code || 'UPLOAD_ERROR'
+      });
+    }
+    console.log('📤 [UPLOAD] Multer processed successfully:', {
+      hasFile: !!req.file,
+      fileName: req.file?.originalname,
+      fileSize: req.file?.size,
+      fieldname: req.file?.fieldname,
+      mimetype: req.file?.mimetype
+    });
+    next();
+  });
+}, validateFileUpload, async (req, res) => {
+  try {
+    console.log('📤 [UPLOAD] Upload handler reached:', {
+      hasFile: !!req.file,
+      fileSize: req.file?.size,
+      fileName: req.file?.originalname,
+      contentType: req.file?.mimetype,
+      fieldname: req.file?.fieldname,
+      body: req.body,
+      bodyKeys: Object.keys(req.body || {}),
+      headers: {
+        'content-type': req.headers['content-type'],
+        'content-length': req.headers['content-length']
+      }
+    });
+
+    if (!req.file) {
+      console.error('📤 [UPLOAD] No file in request');
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded. Please select a file to upload.'
       });
     }
 
@@ -253,7 +372,9 @@ router.post('/upload', verifyToken, upload.single('file'), validateFileUpload, a
       }
     }
 
-    const fileName = name || file.originalname;
+    // Decode the original filename to handle URL-encoded Chinese characters
+    const decodedOriginalName = decodeFilename(file.originalname);
+    const fileName = name || decodedOriginalName;
     const targetFolderId = folderId || null;
 
     // Check if a file with the same name exists in the same folder
@@ -325,10 +446,10 @@ router.post('/upload', verifyToken, upload.single('file'), validateFileUpload, a
         'INSERT INTO files (name, original_name, storage_path, file_size, file_type, description, organization_id, uploaded_by, folder_id, status, current_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           fileName,
-          file.originalname,
+          decodedOriginalName, // Use decoded original name for proper UTF-8 encoding
           file.path,
           file.size,
-          path.extname(file.originalname).toLowerCase(),
+          path.extname(decodedOriginalName).toLowerCase(),
           description || null,
           req.user.organization_id,
           req.user.id,
@@ -371,7 +492,7 @@ router.post('/upload', verifyToken, upload.single('file'), validateFileUpload, a
         fileId: fileId,
         name: fileName,
         size: file.size,
-        type: path.extname(file.originalname).toLowerCase(),
+        type: path.extname(decodedOriginalName).toLowerCase(),
         isNewVersion: isNewVersion
       }
     });
@@ -1920,7 +2041,31 @@ router.get('/folders/:folderId', verifyToken, async (req, res) => {
 // Create folder
 router.post('/folders', verifyToken, validateFolder, async (req, res) => {
   try {
-    const { name, description, parentId } = req.body;
+    console.log('📁 [FOLDERS] Create folder request:', {
+      body: req.body,
+      bodyType: typeof req.body,
+      bodyString: JSON.stringify(req.body),
+      user: req.user.email,
+      organizationId: req.user.organization_id
+    });
+    
+    // Ensure parentId is a number or null, not an object
+    let { name, description, parentId } = req.body;
+    
+    // Handle parentId if it's an object (shouldn't happen, but just in case)
+    if (parentId && typeof parentId === 'object') {
+      parentId = parentId.id || null;
+    }
+    
+    // Convert parentId to number or null
+    if (parentId !== null && parentId !== undefined) {
+      parentId = parseInt(parentId, 10);
+      if (isNaN(parentId) || parentId <= 0) {
+        parentId = null;
+      }
+    } else {
+      parentId = null;
+    }
 
     // Validate parent folder if provided
     if (parentId) {

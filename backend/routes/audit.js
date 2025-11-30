@@ -5,8 +5,15 @@ const { validatePagination, validateSearch, validateDateRange } = require('../mi
 
 const router = express.Router();
 
-// Get audit logs
-router.get('/', verifyToken, requireOrgAdmin, validatePagination, validateSearch, validateDateRange, async (req, res) => {
+// Get audit logs (platform owner or org admin)
+router.get('/', verifyToken, validatePagination, validateSearch, validateDateRange, async (req, res) => {
+  // Check permissions manually
+  if (req.user.role !== 'platform_owner' && req.user.role !== 'organization_admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied'
+    });
+  }
   try {
     const { page = 1, limit = 20, q: search, action, resourceType, startDate, endDate, userId, organizationId } = req.query;
     const offset = (page - 1) * limit;
@@ -16,7 +23,7 @@ router.get('/', verifyToken, requireOrgAdmin, validatePagination, validateSearch
 
     // Platform owner can see all logs, org admin only sees their org logs
     if (req.user.role === 'organization_admin') {
-      whereConditions.push('u.organization_id = ?');
+      whereConditions.push('al.organization_id = ?');
       queryParams.push(req.user.organization_id);
     }
 
@@ -58,7 +65,7 @@ router.get('/', verifyToken, requireOrgAdmin, validatePagination, validateSearch
 
     // Organization filter (for platform owner)
     if (organizationId && req.user.role === 'platform_owner') {
-      whereConditions.push('u.organization_id = ?');
+      whereConditions.push('al.organization_id = ?');
       queryParams.push(organizationId);
     }
 
@@ -69,7 +76,7 @@ router.get('/', verifyToken, requireOrgAdmin, validatePagination, validateSearch
       SELECT al.*, u.first_name, u.last_name, u.email, u.role, o.name as organization_name
       FROM audit_logs al
       LEFT JOIN users u ON al.user_id = u.id
-      LEFT JOIN organizations o ON u.organization_id = o.id
+      LEFT JOIN organizations o ON al.organization_id = o.id
       ${whereClause}
       ORDER BY al.created_at DESC
       LIMIT ? OFFSET ?
@@ -82,7 +89,7 @@ router.get('/', verifyToken, requireOrgAdmin, validatePagination, validateSearch
       SELECT COUNT(*) as total 
       FROM audit_logs al
       LEFT JOIN users u ON al.user_id = u.id
-      LEFT JOIN organizations o ON u.organization_id = o.id
+      LEFT JOIN organizations o ON al.organization_id = o.id
       ${whereClause}
     `;
 
@@ -98,7 +105,7 @@ router.get('/', verifyToken, requireOrgAdmin, validatePagination, validateSearch
     res.json({
       success: true,
       data: {
-        logs: logsResult.data,
+        data: logsResult.data, // Changed from 'logs' to 'data' to match PaginationResponse format
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),

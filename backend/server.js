@@ -58,8 +58,10 @@ app.use(compression());
 app.use(morgan('combined'));
 
 // Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Note: For file uploads, multer handles size limits separately
+// These limits are for JSON/URL-encoded data
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Static files
 app.use('/uploads', express.static('uploads'));
@@ -92,12 +94,48 @@ app.use('*', (req, res) => {
 
 // Global error handler
 app.use((error, req, res, next) => {
-  console.error('Global error handler:', error);
+  console.error('Global error handler:', {
+    message: error.message,
+    code: error.code,
+    status: error.status,
+    url: req.url,
+    method: req.method,
+    contentType: req.headers['content-type'],
+    body: req.body,
+    stack: error.stack
+  });
+  
+  // Handle JSON parse errors
+  if (error instanceof SyntaxError && error.message.includes('JSON')) {
+    console.error('JSON Parse Error - Request body:', {
+      body: req.body,
+      bodyType: typeof req.body,
+      headers: req.headers
+    });
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid JSON in request body. Please check your request data.',
+      error: error.message
+    });
+  }
+  
+  // Handle multer errors that weren't caught
+  if (error.code === 'LIMIT_FILE_SIZE') {
+    const maxSize = parseInt(process.env.MAX_FILE_SIZE) || 2 * 1024 * 1024 * 1024;
+    const maxSizeGB = (maxSize / (1024 * 1024 * 1024)).toFixed(2);
+    return res.status(400).json({
+      success: false,
+      message: `File too large. Maximum file size is ${maxSizeGB} GB.`
+    });
+  }
   
   res.status(error.status || 500).json({
     success: false,
     message: error.message || 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+    ...(process.env.NODE_ENV === 'development' && { 
+      stack: error.stack,
+      code: error.code 
+    })
   });
 });
 

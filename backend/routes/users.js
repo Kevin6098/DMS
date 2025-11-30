@@ -153,7 +153,7 @@ router.get('/:id', verifyToken, requireOrgAccess, async (req, res) => {
 router.put('/:id', verifyToken, requireOrgAdmin, validateUserUpdate, async (req, res) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, email, role, status } = req.body;
+    const { firstName, lastName, email, role, status, organizationId } = req.body;
 
     // Check if user exists
     const existingUser = await executeQuery(
@@ -171,11 +171,34 @@ router.put('/:id', verifyToken, requireOrgAdmin, validateUserUpdate, async (req,
     const user = existingUser.data[0];
 
     // Check permissions
-    if (req.user.role === 'organization_admin' && user.organization_id !== req.user.organization_id) {
-      return res.status(403).json({
-        success: false,
-        message: 'You can only update users in your organization'
-      });
+    if (req.user.role === 'organization_admin') {
+      if (user.organization_id !== req.user.organization_id) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can only update users in your organization'
+        });
+      }
+      // Org admins cannot change organization_id
+      if (organizationId && organizationId !== user.organization_id) {
+        return res.status(403).json({
+          success: false,
+          message: 'You cannot change user organization'
+        });
+      }
+    }
+    
+    // Platform owners can change organization_id, but validate it exists
+    if (organizationId && req.user.role === 'platform_owner') {
+      const orgCheck = await executeQuery(
+        'SELECT id FROM organizations WHERE id = ?',
+        [organizationId]
+      );
+      if (!orgCheck.success || orgCheck.data.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Organization not found'
+        });
+      }
     }
 
     // Check if email is already taken by another user
@@ -220,6 +243,11 @@ router.put('/:id', verifyToken, requireOrgAdmin, validateUserUpdate, async (req,
     if (status) {
       updateFields.push('status = ?');
       updateValues.push(status);
+    }
+
+    if (organizationId && req.user.role === 'platform_owner') {
+      updateFields.push('organization_id = ?');
+      updateValues.push(organizationId);
     }
 
     if (updateFields.length === 0) {

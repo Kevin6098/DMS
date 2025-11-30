@@ -2,12 +2,23 @@ import { apiService, ApiResponse, PaginationResponse } from './api';
 import { User } from './authService';
 
 // Types
+export interface UserCreateRequest {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  organizationId: number;
+  role?: string;
+  status?: string;
+}
+
 export interface UserUpdateRequest {
   firstName?: string;
   lastName?: string;
   email?: string;
   role?: string;
   status?: string;
+  organizationId?: number;
 }
 
 export interface PasswordChangeRequest {
@@ -31,6 +42,11 @@ export interface UserStats {
 
 // User Service
 export const userService = {
+  // Create user
+  createUser: async (userData: UserCreateRequest): Promise<ApiResponse<{ userId: number; email: string; firstName: string; lastName: string; organizationId: number; role: string }>> => {
+    return apiService.post<{ userId: number; email: string; firstName: string; lastName: string; organizationId: number; role: string }>('/users', userData);
+  },
+
   // Get all users with pagination and filters
   getUsers: async (
     page: number = 1,

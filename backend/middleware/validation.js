@@ -4,6 +4,11 @@ const { body, param, query, validationResult } = require('express-validator');
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.error('❌ [VALIDATION] Validation errors:', {
+      errors: errors.array(),
+      body: req.body,
+      file: req.file ? { name: req.file.originalname, size: req.file.size } : 'no file'
+    });
     return res.status(400).json({
       success: false,
       message: 'Validation failed',
@@ -92,6 +97,7 @@ const validateOrganization = [
 // File validation rules
 const validateFileUpload = [
   body('name')
+    .optional() // Make name optional - can use original filename if not provided
     .trim()
     .isLength({ min: 1, max: 255 })
     .withMessage('File name must be between 1 and 255 characters'),
@@ -133,7 +139,7 @@ const validateFolder = [
     .isLength({ max: 1000 })
     .withMessage('Description must not exceed 1000 characters'),
   body('parentId')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isInt({ min: 1 })
     .withMessage('Parent folder ID must be a positive integer'),
   handleValidationErrors

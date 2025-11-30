@@ -184,9 +184,9 @@ export const adminService = {
     return apiService.get<PaginationResponse<Invitation>>('/admin/invitations', params);
   },
 
-  // Delete invitation
-  deleteInvitation: async (invitationId: number): Promise<ApiResponse<void>> => {
-    return apiService.delete<void>(`/admin/invitations/${invitationId}`);
+  // Delete invitation (by organizationId)
+  deleteInvitation: async (organizationId: number): Promise<ApiResponse<void>> => {
+    return apiService.delete<void>(`/admin/invitations/${organizationId}`);
   },
 
   // Get storage analytics

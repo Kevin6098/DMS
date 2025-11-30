@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { adminService, DashboardStats, ActivityItem, StorageAnalytics } from '../services/adminService';
+import { adminService, DashboardStats, StorageAnalytics } from '../services/adminService';
 import { organizationService, Organization } from '../services/organizationService';
 import { userService } from '../services/userService';
 import { User } from '../services/authService';
@@ -25,12 +25,23 @@ const AdminPanel: React.FC = () => {
   const [currentView, setCurrentView] = useState(getCurrentView());
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showAddOrgModal, setShowAddOrgModal] = useState(false);
+  const [showEditOrgModal, setShowEditOrgModal] = useState(false);
+  const [selectedOrg, setSelectedOrg] = useState<any>(null);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Debug: Log when modal state changes
+  useEffect(() => {
+    if (showAddOrgModal) {
+      console.log('Add Organization Modal should be visible');
+    }
+  }, [showAddOrgModal]);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [storageAnalytics, setStorageAnalytics] = useState<StorageAnalytics | null>(null);
   const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
@@ -68,10 +79,9 @@ const AdminPanel: React.FC = () => {
   const loadDashboardData = async () => {
     setIsLoading(true);
     try {
-      const [statsRes, orgsRes, activitiesRes, storageRes] = await Promise.all([
+      const [statsRes, orgsRes, storageRes] = await Promise.all([
         adminService.getDashboardStats(),
         organizationService.getOrganizations(1, 100), // Load all for filter dropdown
-        adminService.getActivityTimeline(1, 20),
         adminService.getStorageAnalytics(),
       ]);
 
@@ -92,15 +102,6 @@ const AdminPanel: React.FC = () => {
         setOrganizations([]);
       }
 
-      // Handle activities - PaginationResponse has 'data' property
-      if (activitiesRes.success && activitiesRes.data) {
-        const activitiesData = activitiesRes.data.data || [];
-        setActivities(Array.isArray(activitiesData) ? activitiesData : []);
-        console.log('Activities loaded:', activitiesData.length);
-      } else {
-        console.error('Activities error:', activitiesRes);
-        setActivities([]);
-      }
 
       // Handle storage analytics
       if (storageRes.success && storageRes.data) {
@@ -120,10 +121,17 @@ const AdminPanel: React.FC = () => {
     try {
       const response = await auditService.getAuditLogs(1, 20);
       if (response.success && response.data) {
-        setAuditLogs(response.data.data || []);
+        const logsData = response.data.data || [];
+        setAuditLogs(Array.isArray(logsData) ? logsData : []);
+        console.log('Audit logs loaded:', logsData.length);
+      } else {
+        console.error('Audit logs error:', response);
+        setAuditLogs([]);
       }
     } catch (error) {
+      console.error('Failed to load audit logs:', error);
       toast.error('Failed to load audit logs');
+      setAuditLogs([]);
     }
   };
 
@@ -157,18 +165,24 @@ const AdminPanel: React.FC = () => {
 
   const handleCreateOrganization = async () => {
     const orgName = (document.getElementById('org-name') as HTMLInputElement)?.value;
-    const orgDescription = (document.getElementById('org-description') as HTMLInputElement)?.value;
-    const storageQuota = parseInt((document.getElementById('storage-quota') as HTMLInputElement)?.value || '5368709120');
+    const orgDescription = (document.getElementById('org-description') as HTMLTextAreaElement)?.value;
+    const storageQuotaGB = parseFloat((document.getElementById('storage-quota') as HTMLInputElement)?.value || '5');
+    const storageQuota = Math.round(storageQuotaGB * 1024 * 1024 * 1024); // Convert GB to bytes
 
     if (!orgName) {
       toast.error('Please enter organization name');
       return;
     }
 
+    if (storageQuotaGB < 1) {
+      toast.error('Storage quota must be at least 1 GB');
+      return;
+    }
+
     try {
       const response = await organizationService.createOrganization({
         name: orgName,
-        description: orgDescription,
+        description: orgDescription || undefined,
         storageQuota,
       });
 
@@ -176,9 +190,12 @@ const AdminPanel: React.FC = () => {
         toast.success('Organization created successfully!');
         setShowAddOrgModal(false);
         loadDashboardData();
+      } else {
+        toast.error(response.message || 'Failed to create organization');
       }
-    } catch (error) {
-      toast.error('Failed to create organization');
+    } catch (error: any) {
+      console.error('Create organization error:', error);
+      toast.error(error.response?.data?.message || 'Failed to create organization');
     }
   };
 
@@ -202,36 +219,46 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  const handleRegenerateInvitation = async (orgId: number, invitationId?: number) => {
-    if (window.confirm('Are you sure you want to regenerate the invitation code? The old code will be cancelled.')) {
-      try {
-        // Delete old invitation if exists
-        if (invitationId) {
-          await adminService.deleteInvitation(invitationId);
-        }
-        // Generate new invitation
-        await handleGenerateInvitationForOrg(orgId);
-      } catch (error: any) {
-        console.error('Regenerate invitation error:', error);
-        toast.error(error.response?.data?.message || 'Failed to regenerate invitation');
-      }
-    }
-  };
 
-  const handleDeleteInvitation = async (invitationId: number) => {
-    if (window.confirm('Are you sure you want to delete this invitation? This action cannot be undone.')) {
-      try {
-        const response = await adminService.deleteInvitation(invitationId);
-        if (response.success) {
-          toast.success('Invitation deleted successfully!');
-          loadDashboardData();
-        } else {
-          toast.error(response.message || 'Failed to delete invitation');
-        }
-      } catch (error: any) {
-        console.error('Delete invitation error:', error);
-        toast.error(error.response?.data?.message || 'Failed to delete invitation');
+  const handleUpdateOrganization = async () => {
+    const orgName = (document.getElementById('edit-org-name') as HTMLInputElement)?.value;
+    const orgDescription = (document.getElementById('edit-org-description') as HTMLTextAreaElement)?.value;
+    const storageQuotaGB = parseFloat((document.getElementById('edit-storage-quota') as HTMLInputElement)?.value || '0');
+    const storageQuota = Math.round(storageQuotaGB * 1024 * 1024 * 1024); // Convert GB to bytes
+
+    if (!orgName) {
+      toast.error('Please enter organization name');
+      return;
+    }
+
+    if (!selectedOrg) {
+      toast.error('No organization selected');
+      return;
+    }
+
+    if (storageQuotaGB < 1) {
+      toast.error('Storage quota must be at least 1 GB');
+      return;
+    }
+
+    try {
+      const response = await organizationService.updateOrganization(selectedOrg.id, {
+        name: orgName,
+        description: orgDescription || undefined,
+        storageQuota,
+      });
+
+      if (response.success) {
+        toast.success('Organization updated successfully!');
+        setShowEditOrgModal(false);
+        setSelectedOrg(null);
+        loadDashboardData();
+      } else {
+        toast.error(response.message || 'Failed to update organization');
       }
+    } catch (error: any) {
+      console.error('Update organization error:', error);
+      toast.error(error.response?.data?.message || 'Failed to update organization');
     }
   };
 
@@ -281,6 +308,109 @@ const AdminPanel: React.FC = () => {
     setUserFilters({});
   };
 
+  // Handle create user
+  const handleCreateUser = async () => {
+    const email = (document.getElementById('user-email') as HTMLInputElement)?.value;
+    const password = (document.getElementById('user-password') as HTMLInputElement)?.value;
+    const firstName = (document.getElementById('user-first-name') as HTMLInputElement)?.value;
+    const lastName = (document.getElementById('user-last-name') as HTMLInputElement)?.value;
+    const organizationId = parseInt((document.getElementById('user-organization') as HTMLSelectElement)?.value || '0');
+    const role = (document.getElementById('user-role') as HTMLSelectElement)?.value;
+    const status = (document.getElementById('user-status') as HTMLSelectElement)?.value;
+
+    if (!email || !password || !firstName || !lastName || !organizationId) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const response = await userService.createUser({
+        email,
+        password,
+        firstName,
+        lastName,
+        organizationId,
+        role: role || 'member',
+        status: status || 'active',
+      });
+
+      if (response.success) {
+        toast.success('User created successfully!');
+        setShowAddUserModal(false);
+        loadUsers();
+      } else {
+        toast.error(response.message || 'Failed to create user');
+      }
+    } catch (error: any) {
+      console.error('Create user error:', error);
+      toast.error(error.response?.data?.message || 'Failed to create user');
+    }
+  };
+
+  // Handle update user
+  const handleUpdateUser = async () => {
+    if (!selectedUser) return;
+
+    const firstName = (document.getElementById('edit-user-first-name') as HTMLInputElement)?.value;
+    const lastName = (document.getElementById('edit-user-last-name') as HTMLInputElement)?.value;
+    const email = (document.getElementById('edit-user-email') as HTMLInputElement)?.value;
+    const organizationId = parseInt((document.getElementById('edit-user-organization') as HTMLSelectElement)?.value || '0');
+    const role = (document.getElementById('edit-user-role') as HTMLSelectElement)?.value;
+    const status = (document.getElementById('edit-user-status') as HTMLSelectElement)?.value;
+
+    if (!email || !firstName || !lastName) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const updateData: any = {
+        firstName,
+        lastName,
+        email,
+        role,
+        status,
+      };
+
+      // Only include organizationId if it's different and user is platform owner
+      if (isOwner && organizationId && organizationId !== selectedUser.organizationId) {
+        updateData.organizationId = organizationId;
+      }
+
+      const response = await userService.updateUser(selectedUser.id, updateData);
+
+      if (response.success) {
+        toast.success('User updated successfully!');
+        setShowEditUserModal(false);
+        setSelectedUser(null);
+        loadUsers();
+      } else {
+        toast.error(response.message || 'Failed to update user');
+      }
+    } catch (error: any) {
+      console.error('Update user error:', error);
+      toast.error(error.response?.data?.message || 'Failed to update user');
+    }
+  };
+
+  // Handle delete user
+  const handleDeleteUser = async (userId: number) => {
+    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      try {
+        const response = await userService.deleteUser(userId);
+        if (response.success) {
+          toast.success('User deleted successfully!');
+          loadUsers();
+        } else {
+          toast.error(response.message || 'Failed to delete user');
+        }
+      } catch (error: any) {
+        console.error('Delete user error:', error);
+        toast.error(error.response?.data?.message || 'Failed to delete user');
+      }
+    }
+  };
+
   const handleExportAuditLogs = async () => {
     try {
       await auditService.exportAuditLogs();
@@ -304,11 +434,11 @@ const AdminPanel: React.FC = () => {
   }
 
   return (
-    <div className="admin-panel">
+    <div className="admin-panel" style={{ position: 'relative' }}>
       {/* Header */}
       <header className="admin-header">
         <div className="header-left">
-          <div className="logo">
+          <div className="logo" onClick={() => navigate('/admin/overview')} style={{ cursor: 'pointer' }}>
             <img src="/logo-square.png" alt="Task Insight Admin" className="header-logo" />
             <span>Task Insight Admin</span>
           </div>
@@ -360,13 +490,6 @@ const AdminPanel: React.FC = () => {
               <span>Users</span>
             </button>
             <button 
-              className={`nav-item ${currentView === 'activity' ? 'active' : ''}`}
-              onClick={() => handleViewChange('activity')}
-            >
-              <i className="fas fa-history"></i>
-              <span>Activity</span>
-            </button>
-            <button 
               className={`nav-item ${currentView === 'audit-logs' ? 'active' : ''}`}
               onClick={() => handleViewChange('audit-logs')}
             >
@@ -379,13 +502,6 @@ const AdminPanel: React.FC = () => {
             >
               <i className="fas fa-hdd"></i>
               <span>Storage</span>
-            </button>
-            <button 
-              className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
-              onClick={() => handleViewChange('settings')}
-            >
-              <i className="fas fa-cog"></i>
-              <span>Settings</span>
             </button>
           </nav>
         </aside>
@@ -481,7 +597,7 @@ const AdminPanel: React.FC = () => {
                             <i className="fas fa-user-friends"></i>
                           </div>
                           <div className="stat-content">
-                            <h3>{users.length}</h3>
+                            <h3>{dashboardStats.platformStats?.active_users || 0}</h3>
                             <p>Total Users</p>
                           </div>
                         </div>
@@ -574,7 +690,10 @@ const AdminPanel: React.FC = () => {
                 <div className="organizations-section">
                   <div className="section-header">
                     <h2>Organizations & Invitations</h2>
-                    <button className="btn-primary" onClick={() => setShowAddOrgModal(true)}>
+                    <button className="btn-primary" onClick={() => {
+                      console.log('Add Organization button clicked');
+                      setShowAddOrgModal(true);
+                    }}>
                       <i className="fas fa-plus"></i> Add Organization
                     </button>
                   </div>
@@ -615,12 +734,12 @@ const AdminPanel: React.FC = () => {
                               </div>
                             </td>
                             <td>
-                              {org.invitation_code ? (
+                              {org.invitationCode ? (
                                 <div className="invitation-cell">
-                                  <code className="invitation-code">{org.invitation_code}</code>
-                                  {org.invitation_expires_at && (
+                                  <code className="invitation-code">{org.invitationCode}</code>
+                                  {org.invitationExpiresAt && (
                                     <small className="expiry-date">
-                                      Expires: {new Date(org.invitation_expires_at).toLocaleDateString()}
+                                      Expires: {new Date(org.invitationExpiresAt).toLocaleDateString()}
                                     </small>
                                   )}
                                 </div>
@@ -639,27 +758,19 @@ const AdminPanel: React.FC = () => {
                                 {org.status}
                               </span>
                             </td>
-                            <td>{new Date(org.created_at).toLocaleDateString()}</td>
+                            <td>{new Date(org.createdAt).toLocaleDateString()}</td>
                             <td>
                               <div className="action-buttons">
-                                {org.invitation_code && (
-                                  <button 
-                                    className="btn-secondary btn-sm"
-                                    onClick={() => handleRegenerateInvitation(org.id, org.invitation_id)}
-                                    title="Regenerate Invitation Code"
-                                  >
-                                    <i className="fas fa-sync"></i>
-                                  </button>
-                                )}
-                                {org.invitation_id && (
-                                  <button 
-                                    className="btn-danger btn-sm"
-                                    onClick={() => handleDeleteInvitation(org.invitation_id!)}
-                                    title="Delete Invitation Code"
-                                  >
-                                    <i className="fas fa-trash"></i>
-                                  </button>
-                                )}
+                                <button 
+                                  className="btn-secondary btn-sm"
+                                  onClick={() => {
+                                    setSelectedOrg(org);
+                                    setShowEditOrgModal(true);
+                                  }}
+                                  title="Edit Organization"
+                                >
+                                  <i className="fas fa-edit"></i>
+                                </button>
                                 <button 
                                   className="btn-danger btn-sm"
                                   onClick={() => handleDeleteOrganization(org.id)}
@@ -691,6 +802,9 @@ const AdminPanel: React.FC = () => {
                 <div className="users-section">
                   <div className="section-header">
                     <h2>Users</h2>
+                    <button className="btn-primary" onClick={() => setShowAddUserModal(true)}>
+                      <i className="fas fa-plus"></i> Add User
+                    </button>
                   </div>
                   
                   {/* User Filters */}
@@ -761,25 +875,48 @@ const AdminPanel: React.FC = () => {
                           <th>Role</th>
                           <th>Status</th>
                           <th>Last Login</th>
+                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {(users || []).map((user) => (
-                          <tr key={user.id}>
-                            <td>{user.firstName} {user.lastName}</td>
-                            <td>{user.email}</td>
-                            <td>{user.organizationName}</td>
+                        {(users || []).map((u) => (
+                          <tr key={u.id}>
+                            <td>{u.firstName} {u.lastName}</td>
+                            <td>{u.email}</td>
+                            <td>{u.organizationName}</td>
                             <td>
-                              <span className={`role-badge ${user.role}`}>
-                                {user.role.replace('_', ' ')}
+                              <span className={`role-badge ${u.role}`}>
+                                {u.role.replace('_', ' ')}
                               </span>
                             </td>
                             <td>
-                              <span className={`status-badge ${user.status}`}>
-                                {user.status}
+                              <span className={`status-badge ${u.status}`}>
+                                {u.status}
                               </span>
                             </td>
-                            <td>{user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}</td>
+                            <td>{u.lastLogin ? new Date(u.lastLogin).toLocaleDateString() : 'Never'}</td>
+                            <td>
+                              <div className="action-buttons">
+                                <button 
+                                  className="btn-secondary btn-sm"
+                                  onClick={() => {
+                                    setSelectedUser(u);
+                                    setShowEditUserModal(true);
+                                  }}
+                                  title="Edit User"
+                                >
+                                  <i className="fas fa-edit"></i>
+                                </button>
+                                <button 
+                                  className="btn-danger btn-sm"
+                                  onClick={() => handleDeleteUser(u.id)}
+                                  title="Delete User"
+                                  disabled={u.id === user?.id}
+                                >
+                                  <i className="fas fa-trash-alt"></i>
+                                </button>
+                              </div>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -794,75 +931,6 @@ const AdminPanel: React.FC = () => {
                 </div>
               )}
 
-
-              {/* Activity Timeline */}
-              {currentView === 'activity' && (
-                <div className="activity-section">
-                  <div className="section-header">
-                    <h2>Activity Timeline</h2>
-                  </div>
-                  <div className="table-container">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Date</th>
-                          <th>User</th>
-                          <th>Action</th>
-                          <th>Resource Type</th>
-                          <th>Resource ID</th>
-                          <th>Details</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(activities && activities.length > 0) ? (
-                          activities.map((activity) => (
-                            <tr key={activity.id}>
-                              <td>{new Date(activity.created_at).toLocaleString()}</td>
-                              <td>
-                                {activity.first_name || 'Unknown'} {activity.last_name || ''}
-                                {activity.email && (
-                                  <>
-                                    <br />
-                                    <small>{activity.email}</small>
-                                  </>
-                                )}
-                              </td>
-                              <td>
-                                <span className="action-badge">
-                                  <i className={auditService.getActionIcon(activity.action)}></i>
-                                  {auditService.formatAction(activity.action)}
-                                </span>
-                              </td>
-                              <td>{auditService.formatResourceType(activity.resource_type)}</td>
-                              <td>{activity.resource_id}</td>
-                              <td>
-                                <div className="details-cell">
-                                  {activity.details ? (
-                                    typeof activity.details === 'string' ? (
-                                      <span>{activity.details}</span>
-                                    ) : (
-                                      <pre>{JSON.stringify(activity.details, null, 2)}</pre>
-                                    )
-                                  ) : (
-                                    <span className="text-muted">No details</span>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={6} className="empty-state">
-                              <i className="fas fa-history"></i>
-                              <p>No activity found</p>
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
 
               {/* Audit Logs */}
               {currentView === 'audit-logs' && (
@@ -932,7 +1000,12 @@ const AdminPanel: React.FC = () => {
                             <p>Total Storage Quota</p>
                           </div>
                           <div className="stat-item">
-                            <h3>{storageAnalytics.overview?.usage_percentage ? storageAnalytics.overview.usage_percentage.toFixed(1) : 0}%</h3>
+                            <h3>{(() => {
+                              const usage = storageAnalytics.overview?.usage_percentage;
+                              if (usage === null || usage === undefined) return '0';
+                              const numUsage = typeof usage === 'number' ? usage : parseFloat(String(usage)) || 0;
+                              return isNaN(numUsage) ? '0' : numUsage.toFixed(1);
+                            })()}%</h3>
                             <p>Usage Percentage</p>
                           </div>
                         </div>
@@ -953,23 +1026,35 @@ const AdminPanel: React.FC = () => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {storageAnalytics.byOrganization.map((org) => (
-                                  <tr key={org.id}>
-                                    <td><strong>{org.name}</strong></td>
-                                    <td>{Math.round(org.used_bytes / 1024 / 1024)} MB</td>
-                                    <td>{Math.round(org.storage_quota / 1024 / 1024)} MB</td>
-                                    <td>
-                                      <div className="usage-bar">
-                                        <div 
-                                          className="usage-fill" 
-                                          style={{ width: `${org.usage_percentage}%` }}
-                                        ></div>
-                                        <span>{org.usage_percentage.toFixed(1)}%</span>
-                                      </div>
-                                    </td>
-                                    <td>{org.file_count || 0}</td>
-                                  </tr>
-                                ))}
+                                {storageAnalytics.byOrganization.map((org) => {
+                                  // Ensure usage_percentage is a number
+                                  let usagePercentage = 0;
+                                  if (org.usage_percentage !== null && org.usage_percentage !== undefined) {
+                                    usagePercentage = typeof org.usage_percentage === 'number' 
+                                      ? org.usage_percentage 
+                                      : parseFloat(String(org.usage_percentage)) || 0;
+                                  }
+                                  if (isNaN(usagePercentage)) {
+                                    usagePercentage = 0;
+                                  }
+                                  return (
+                                    <tr key={org.id}>
+                                      <td><strong>{org.name}</strong></td>
+                                      <td>{Math.round((org.used_bytes || 0) / 1024 / 1024)} MB</td>
+                                      <td>{Math.round((org.storage_quota || 0) / 1024 / 1024)} MB</td>
+                                      <td>
+                                        <div className="usage-bar">
+                                          <div 
+                                            className="usage-fill" 
+                                            style={{ width: `${Math.min(usagePercentage, 100)}%` }}
+                                          ></div>
+                                          <span>{usagePercentage.toFixed(1)}%</span>
+                                        </div>
+                                      </td>
+                                      <td>{org.file_count || 0}</td>
+                                    </tr>
+                                  );
+                                })}
                               </tbody>
                             </table>
                           </div>
@@ -1013,103 +1098,170 @@ const AdminPanel: React.FC = () => {
                 </div>
               )}
 
-              {/* Settings */}
-              {currentView === 'settings' && (
-                <div className="settings-section">
-                  <h2>System Settings</h2>
-                  <div className="settings-content">
-                    <div className="settings-group">
-                      <h3>File Upload Settings</h3>
-                      <div className="setting-item">
-                        <label>Maximum File Size</label>
-                        <div className="setting-value">
-                          <span>10 MB</span>
-                          <button className="btn-secondary btn-sm">Change</button>
-                        </div>
-                      </div>
-                      <div className="setting-item">
-                        <label>Allowed File Types</label>
-                        <div className="setting-value">
-                          <span>All common file types</span>
-                          <button className="btn-secondary btn-sm">Configure</button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="settings-group">
-                      <h3>Storage Settings</h3>
-                      <div className="setting-item">
-                        <label>Default Storage Quota</label>
-                        <div className="setting-value">
-                          <span>5 GB per organization</span>
-                          <button className="btn-secondary btn-sm">Change</button>
-                        </div>
-                      </div>
-                      <div className="setting-item">
-                        <label>Storage Warning Threshold</label>
-                        <div className="setting-value">
-                          <span>80%</span>
-                          <button className="btn-secondary btn-sm">Change</button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="settings-group">
-                      <h3>User Management</h3>
-                      <div className="setting-item">
-                        <label>Registration</label>
-                        <div className="setting-value">
-                          <span>Requires invitation code</span>
-                          <button className="btn-secondary btn-sm">Change</button>
-                        </div>
-                      </div>
-                      <div className="setting-item">
-                        <label>Session Timeout</label>
-                        <div className="setting-value">
-                          <span>24 hours</span>
-                          <button className="btn-secondary btn-sm">Change</button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="settings-group">
-                      <h3>Security Settings</h3>
-                      <div className="setting-item">
-                        <label>Password Requirements</label>
-                        <div className="setting-value">
-                          <span>Minimum 6 characters</span>
-                          <button className="btn-secondary btn-sm">Configure</button>
-                        </div>
-                      </div>
-                      <div className="setting-item">
-                        <label>Two-Factor Authentication</label>
-                        <div className="setting-value">
-                          <span>Not enabled</span>
-                          <button className="btn-secondary btn-sm">Enable</button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="settings-actions">
-                      <button className="btn-primary">
-                        <i className="fas fa-save"></i> Save All Settings
-                      </button>
-                      <button className="btn-secondary">
-                        <i className="fas fa-undo"></i> Reset to Defaults
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </>
           )}
         </main>
       </div>
 
+      {/* Add User Modal */}
+      {showAddUserModal && (
+        <div className="modal-overlay" onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowAddUserModal(false);
+          }
+        }}>
+          <div className="modal modal-large">
+            <div className="modal-header">
+              <h3>Add User</h3>
+              <button onClick={() => setShowAddUserModal(false)}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="user-first-name">First Name *</label>
+                  <input type="text" id="user-first-name" required />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="user-last-name">Last Name *</label>
+                  <input type="text" id="user-last-name" required />
+                </div>
+              </div>
+              <div className="form-group">
+                <label htmlFor="user-email">Email *</label>
+                <input type="email" id="user-email" required />
+              </div>
+              <div className="form-group">
+                <label htmlFor="user-password">Password *</label>
+                <input type="password" id="user-password" required />
+                <small className="form-help">Password can be any length</small>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="user-organization">Organization *</label>
+                  <select id="user-organization" required>
+                    <option value="">Select Organization</option>
+                    {(organizations || []).map((org) => (
+                      <option key={org.id} value={org.id}>{org.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="user-role">Role</label>
+                  <select id="user-role">
+                    <option value="member">Member</option>
+                    <option value="organization_admin">Organization Admin</option>
+                    <option value="platform_owner">Platform Owner</option>
+                  </select>
+                </div>
+              </div>
+              <div className="form-group">
+                <label htmlFor="user-status">Status</label>
+                <select id="user-status">
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="suspended">Suspended</option>
+                </select>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setShowAddUserModal(false)}>
+                Cancel
+              </button>
+              <button className="btn-primary" onClick={handleCreateUser}>
+                <i className="fas fa-plus"></i> Create User
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditUserModal && selectedUser && (
+        <div className="modal-overlay" onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowEditUserModal(false);
+            setSelectedUser(null);
+          }
+        }}>
+          <div className="modal modal-large">
+            <div className="modal-header">
+              <h3>Edit User</h3>
+              <button onClick={() => {
+                setShowEditUserModal(false);
+                setSelectedUser(null);
+              }}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="edit-user-first-name">First Name *</label>
+                  <input type="text" id="edit-user-first-name" defaultValue={selectedUser.firstName} required />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="edit-user-last-name">Last Name *</label>
+                  <input type="text" id="edit-user-last-name" defaultValue={selectedUser.lastName} required />
+                </div>
+              </div>
+              <div className="form-group">
+                <label htmlFor="edit-user-email">Email *</label>
+                <input type="email" id="edit-user-email" defaultValue={selectedUser.email} required />
+              </div>
+              {isOwner && (
+                <div className="form-group">
+                  <label htmlFor="edit-user-organization">Organization</label>
+                  <select id="edit-user-organization" defaultValue={selectedUser.organizationId}>
+                    {(organizations || []).map((org) => (
+                      <option key={org.id} value={org.id}>{org.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="edit-user-role">Role</label>
+                  <select id="edit-user-role" defaultValue={selectedUser.role}>
+                    <option value="member">Member</option>
+                    <option value="organization_admin">Organization Admin</option>
+                    {isOwner && <option value="platform_owner">Platform Owner</option>}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="edit-user-status">Status</label>
+                  <select id="edit-user-status" defaultValue={selectedUser.status}>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="suspended">Suspended</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => {
+                setShowEditUserModal(false);
+                setSelectedUser(null);
+              }}>
+                Cancel
+              </button>
+              <button className="btn-primary" onClick={handleUpdateUser}>
+                <i className="fas fa-save"></i> Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Organization Modal */}
       {showAddOrgModal && (
-        <div className="modal-overlay">
-          <div className="modal">
+        <div className="modal-overlay" onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowAddOrgModal(false);
+          }
+        }}>
+          <div className="modal modal-large">
             <div className="modal-header">
               <h3>Add Organization</h3>
               <button onClick={() => setShowAddOrgModal(false)}>
@@ -1118,16 +1270,17 @@ const AdminPanel: React.FC = () => {
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label htmlFor="org-name">Organization Name</label>
+                <label htmlFor="org-name">Organization Name *</label>
                 <input type="text" id="org-name" required />
               </div>
               <div className="form-group">
                 <label htmlFor="org-description">Description</label>
-                <textarea id="org-description" rows={3}></textarea>
+                <textarea id="org-description" rows={4}></textarea>
               </div>
               <div className="form-group">
-                <label htmlFor="storage-quota">Storage Quota (bytes)</label>
-                <input type="number" id="storage-quota" defaultValue="5368709120" />
+                <label htmlFor="storage-quota">Storage Quota (GB) *</label>
+                <input type="number" id="storage-quota" defaultValue="5" min="1" step="0.1" />
+                <small className="form-help">Enter storage quota in GB (1 GB = 1,073,741,824 bytes)</small>
               </div>
             </div>
             <div className="modal-footer">
@@ -1136,6 +1289,62 @@ const AdminPanel: React.FC = () => {
               </button>
               <button className="btn-primary" onClick={handleCreateOrganization}>
                 Create Organization
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Organization Modal */}
+      {showEditOrgModal && selectedOrg && (
+        <div className="modal-overlay" onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowEditOrgModal(false);
+            setSelectedOrg(null);
+          }
+        }}>
+          <div className="modal modal-large">
+            <div className="modal-header">
+              <h3>Edit Organization</h3>
+              <button onClick={() => {
+                setShowEditOrgModal(false);
+                setSelectedOrg(null);
+              }}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label htmlFor="edit-org-name">Organization Name *</label>
+                <input type="text" id="edit-org-name" defaultValue={selectedOrg.name} required />
+              </div>
+              <div className="form-group">
+                <label htmlFor="edit-org-description">Description</label>
+                <textarea id="edit-org-description" rows={4} defaultValue={selectedOrg.description || ''}></textarea>
+              </div>
+              <div className="form-group">
+                <label htmlFor="edit-storage-quota">Storage Quota (GB) *</label>
+                <input 
+                  type="number" 
+                  id="edit-storage-quota" 
+                  defaultValue={Math.round((selectedOrg.storageQuota || 0) / 1024 / 1024 / 1024 * 10) / 10} 
+                  min="1" 
+                  step="0.1" 
+                />
+                <small className="form-help">
+                  Current: {Math.round((selectedOrg.storageUsed || 0) / 1024 / 1024)} MB used of {Math.round((selectedOrg.storageQuota || 0) / 1024 / 1024)} MB ({Math.round((selectedOrg.storageUsed / selectedOrg.storageQuota) * 100)}%)
+                </small>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => {
+                setShowEditOrgModal(false);
+                setSelectedOrg(null);
+              }}>
+                Cancel
+              </button>
+              <button className="btn-primary" onClick={handleUpdateOrganization}>
+                <i className="fas fa-save"></i> Save Changes
               </button>
             </div>
           </div>

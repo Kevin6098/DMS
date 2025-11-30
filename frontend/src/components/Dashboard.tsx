@@ -149,6 +149,8 @@ const Dashboard: React.FC = () => {
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadingFileName, setUploadingFileName] = useState<string>('');
+  const [uploadingFileSize, setUploadingFileSize] = useState<number>(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragCounter, setDragCounter] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -206,7 +208,10 @@ const Dashboard: React.FC = () => {
     };
 
     if (showNewMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
+      // Use a small delay to avoid closing immediately when opening
+      setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+      }, 100);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
@@ -375,7 +380,12 @@ const Dashboard: React.FC = () => {
     setUploadProgress(0);
 
     try {
-      for (const file of files) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setUploadingFileName(file.name);
+        setUploadingFileSize(file.size);
+        setUploadProgress(0);
+        
         await uploadFile(file, {
           name: file.name,
           folderId: currentFolder || undefined,
@@ -394,6 +404,8 @@ const Dashboard: React.FC = () => {
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
+      setUploadingFileName('');
+      setUploadingFileSize(0);
       // Reset file inputs
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -415,11 +427,43 @@ const Dashboard: React.FC = () => {
     }
 
     try {
-      const success = await createFolder({
+      // Only include parentId if it's a valid number
+      const folderData: any = {
         name: folderName,
-        description: folderDescription || undefined,
-        parentId: currentFolder || undefined,
+      };
+      
+      if (folderDescription && folderDescription.trim()) {
+        folderData.description = folderDescription.trim();
+      }
+      
+      // Only include parentId if currentFolder is a valid number
+      // currentFolder is typed as number | null from FileContext
+      const parentIdValue = typeof currentFolder === 'number' && currentFolder > 0 ? currentFolder : null;
+      
+      if (parentIdValue) {
+        folderData.parentId = parentIdValue;
+      }
+      
+      // Ensure we're sending a clean object without undefined values
+      const cleanFolderData: any = {
+        name: folderData.name.trim()
+      };
+      
+      if (folderData.description && folderData.description.trim()) {
+        cleanFolderData.description = folderData.description.trim();
+      }
+      
+      if (parentIdValue && typeof parentIdValue === 'number' && parentIdValue > 0) {
+        cleanFolderData.parentId = parentIdValue;
+      }
+      
+      console.log('📁 [CREATE FOLDER] Sending folder data:', {
+        cleanFolderData,
+        currentFolder,
+        parentIdValue
       });
+      
+      const success = await createFolder(cleanFolderData);
       
       if (success) {
         setShowCreateFolderModal(false);
@@ -1024,7 +1068,7 @@ const Dashboard: React.FC = () => {
 
   const handleNewFileUpload = () => {
     setShowNewMenu(false);
-    fileInputRef.current?.click();
+    setShowUploadModal(true);
   };
 
   const handleNewFolderUpload = () => {
@@ -1449,6 +1493,119 @@ const Dashboard: React.FC = () => {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      {/* Global Upload Progress Indicator */}
+      {isUploading && (
+        <div className="global-upload-progress" style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          background: 'white',
+          borderRadius: '8px',
+          padding: '16px 20px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 100000,
+          minWidth: '300px',
+          maxWidth: '400px'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '12px'
+          }}>
+            <div style={{ flex: 1 }}>
+              <div style={{
+                fontSize: '14px',
+                fontWeight: 500,
+                color: '#333',
+                marginBottom: '4px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                <i className="fas fa-cloud-upload-alt" style={{ marginRight: '8px', color: '#1a73e8' }}></i>
+                Uploading...
+              </div>
+              <div style={{
+                fontSize: '12px',
+                color: '#666',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                {uploadingFileName || 'Preparing upload...'}
+              </div>
+              {uploadingFileSize > 0 && (
+                <div style={{
+                  fontSize: '11px',
+                  color: '#999',
+                  marginTop: '2px'
+                }}>
+                  {fileService.formatFileSize(uploadingFileSize)}
+                </div>
+              )}
+            </div>
+            <button 
+              onClick={() => {
+                setIsUploading(false);
+                setUploadProgress(0);
+                setUploadingFileName('');
+                setUploadingFileSize(0);
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#666',
+                padding: '4px',
+                marginLeft: '12px'
+              }}
+              title="Hide progress"
+            >
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+          <div style={{
+            width: '100%',
+            height: '8px',
+            background: '#e0e0e0',
+            borderRadius: '4px',
+            overflow: 'hidden',
+            marginBottom: '8px'
+          }}>
+            <div style={{
+              width: `${uploadProgress}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, #1a73e8 0%, #4285f4 100%)',
+              borderRadius: '4px',
+              transition: 'width 0.3s ease',
+              position: 'relative'
+            }}>
+              {uploadProgress > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  right: '4px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontSize: '10px',
+                  color: 'white',
+                  fontWeight: 500
+                }}>
+                  {uploadProgress}%
+                </div>
+              )}
+            </div>
+          </div>
+          <div style={{
+            fontSize: '11px',
+            color: '#999',
+            textAlign: 'right'
+          }}>
+            {uploadProgress < 100 ? 'Uploading...' : 'Processing...'}
+          </div>
+        </div>
+      )}
+      
       {/* Sidebar Overlay for Mobile */}
       <div 
         className={`sidebar-overlay ${isMobileSidebarOpen ? 'active' : ''}`}
@@ -1461,7 +1618,7 @@ const Dashboard: React.FC = () => {
           <button className="mobile-menu-toggle" onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}>
             <i className="fas fa-bars"></i>
           </button>
-          <div className="logo">
+          <div className="logo" onClick={() => navigate('/dashboard/my-drive')} style={{ cursor: 'pointer' }}>
             <img src="/logo-square.png" alt="Task Insight" className="header-logo" />
             <span>Task Insight</span>
           </div>
@@ -1597,19 +1754,19 @@ const Dashboard: React.FC = () => {
             <div className="new-button-container">
               <button 
                 className="btn-new"
-                onClick={() => setShowNewMenu(!showNewMenu)}
-                onBlur={(e) => {
-                  // Close menu when clicking outside
-                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                    setTimeout(() => setShowNewMenu(false), 200);
-                  }
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowNewMenu(!showNewMenu);
                 }}
               >
                 <i className="fas fa-plus"></i>
                 <span>New</span>
               </button>
               {showNewMenu && (
-                <div className="new-menu-dropdown">
+                <div 
+                  className="new-menu-dropdown"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <button className="new-menu-item" onClick={handleNewFolder}>
                     <i className="fas fa-folder"></i>
                     <div>
@@ -2015,22 +2172,56 @@ const Dashboard: React.FC = () => {
                 {isUploading && (
                   <div style={{marginTop: '20px'}}>
                     <div style={{
-                      width: '100%',
-                      height: '20px',
-                      background: '#eee',
-                      borderRadius: '10px',
-                      overflow: 'hidden'
+                      fontSize: '14px',
+                      color: '#666',
+                      marginBottom: '8px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
                     }}>
-                      <div 
-                        style={{ 
-                          width: `${uploadProgress}%`,
-                          height: '100%',
-                          background: '#4CAF50',
-                          transition: 'width 0.3s'
-                        }}
-                      ></div>
+                      {uploadingFileName || 'Uploading...'}
                     </div>
-                    <span style={{marginTop: '10px', display: 'block'}}>{uploadProgress}%</span>
+                    <div style={{
+                      width: '100%',
+                      height: '10px',
+                      background: '#e0e0e0',
+                      borderRadius: '5px',
+                      overflow: 'hidden',
+                      position: 'relative'
+                    }}>
+                      <div style={{
+                        width: `${uploadProgress}%`,
+                        height: '100%',
+                        background: 'linear-gradient(90deg, #1a73e8 0%, #4285f4 100%)',
+                        borderRadius: '5px',
+                        transition: 'width 0.3s ease',
+                        position: 'relative'
+                      }}>
+                        {uploadProgress > 10 && (
+                          <span style={{
+                            position: 'absolute',
+                            right: '6px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            fontSize: '10px',
+                            color: 'white',
+                            fontWeight: 500
+                          }}>
+                            {uploadProgress}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      marginTop: '8px',
+                      fontSize: '12px',
+                      color: '#999'
+                    }}>
+                      <span>{uploadProgress < 100 ? 'Uploading...' : 'Processing...'}</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
                   </div>
                 )}
               </div>

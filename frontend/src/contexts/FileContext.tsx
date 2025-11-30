@@ -163,8 +163,28 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
       return false;
     } catch (error: any) {
       console.error('Error uploading file:', error);
+      console.error('Error details:', {
+        response: error?.response,
+        data: error?.response?.data,
+        status: error?.response?.status,
+        message: error?.message,
+        fullResponse: error?.response?.data ? JSON.stringify(error.response.data, null, 2) : 'No response data'
+      });
+      
       // Extract error message from API response
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to upload file';
+      let errorMessage = 'Failed to upload file';
+      
+      if (error?.response?.data) {
+        // Check for validation errors
+        if (error.response.data.errors && Array.isArray(error.response.data.errors)) {
+          errorMessage = error.response.data.errors.map((e: any) => e.msg || e.message).join(', ');
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast.error(errorMessage);
       return false;
     }
@@ -244,8 +264,31 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
       }
       
       return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating folder:', error);
+      console.error('Error details:', {
+        response: error?.response,
+        data: error?.response?.data,
+        status: error?.response?.status,
+        message: error?.message,
+        fullResponse: error?.response?.data ? JSON.stringify(error.response.data, null, 2) : 'No response data'
+      });
+      
+      // Extract error message from API response
+      let errorMessage = 'Failed to create folder';
+      
+      if (error?.response?.data) {
+        // Check for validation errors
+        if (error.response.data.errors && Array.isArray(error.response.data.errors)) {
+          errorMessage = error.response.data.errors.map((e: any) => e.msg || e.message).join(', ');
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
       return false;
     }
   };

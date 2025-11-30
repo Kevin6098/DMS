@@ -10,13 +10,13 @@ export interface Organization {
   storageUsed: number;
   status: string;
   userCount: number;
-  created_at: string;
-  updated_at?: string;
-  invitation_code?: string;
-  invitation_id?: number;
-  invitation_role?: string;
-  invitation_expires_at?: string;
-  invitation_status?: string;
+  createdAt: string;
+  updatedAt?: string;
+  invitationCode?: string;
+  invitationId?: number;
+  invitationRole?: string;
+  invitationExpiresAt?: string;
+  invitationGeneratedBy?: number;
 }
 
 export interface OrganizationCreateRequest {
