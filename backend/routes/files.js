@@ -874,7 +874,18 @@ router.get('/:fileId/download', verifyToken, requireFileAccess, async (req, res)
   try {
     const { fileId } = req.params;
 
-    if (!req.file.path || !await fs.access(req.file.path).then(() => true).catch(() => false)) {
+    if (!req.file || !req.file.path) {
+      return res.status(404).json({
+        success: false,
+        message: 'File not found on disk'
+      });
+    }
+
+    // Check if file exists
+    try {
+      await fs.access(req.file.path);
+    } catch (error) {
+      console.error('File not found at path:', req.file.path, error);
       return res.status(404).json({
         success: false,
         message: 'File not found on disk'
@@ -902,7 +913,18 @@ router.get('/:fileId/preview', verifyToken, requireFileAccess, async (req, res) 
   try {
     const { fileId } = req.params;
 
-    if (!req.file.path || !await fs.access(req.file.path).then(() => true).catch(() => false)) {
+    if (!req.file || !req.file.path) {
+      return res.status(404).json({
+        success: false,
+        message: 'File not found on disk'
+      });
+    }
+
+    // Check if file exists
+    try {
+      await fs.access(req.file.path);
+    } catch (error) {
+      console.error('File not found at path:', req.file.path, error);
       return res.status(404).json({
         success: false,
         message: 'File not found on disk'
