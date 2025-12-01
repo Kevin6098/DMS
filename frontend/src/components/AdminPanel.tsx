@@ -429,6 +429,20 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  // Helper function to format audit log details
+  const formatAuditDetails = (details: any): string => {
+    if (!details) return '-';
+    if (typeof details === 'string') {
+      try {
+        const parsed = JSON.parse(details);
+        return typeof parsed === 'object' ? JSON.stringify(parsed, null, 2) : String(parsed);
+      } catch {
+        return details;
+      }
+    }
+    return JSON.stringify(details, null, 2);
+  };
+
   if (!isPlatformOwner()) {
     return <div>Access denied. You must be a platform owner to access this panel.</div>;
   }
@@ -964,7 +978,9 @@ const AdminPanel: React.FC = () => {
                               </span>
                             </td>
                             <td>{auditService.formatResourceType(log.resource_type)}</td>
-                            <td>{log.details}</td>
+                            <td style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxWidth: '300px' }}>
+                              {formatAuditDetails(log.details)}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
