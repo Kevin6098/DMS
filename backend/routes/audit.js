@@ -79,10 +79,10 @@ router.get('/', verifyToken, validatePagination, validateSearch, validateDateRan
       LEFT JOIN organizations o ON al.organization_id = o.id
       ${whereClause}
       ORDER BY al.created_at DESC
-      LIMIT ? OFFSET ?
+      LIMIT ${parseInt(limit)} OFFSET ${offset}
     `;
 
-    const logsResult = await executeQuery(logsQuery, [...queryParams, parseInt(limit), offset]);
+    const logsResult = await executeQuery(logsQuery, queryParams);
 
     // Get total count
     const countQuery = `

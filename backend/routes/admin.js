@@ -132,10 +132,10 @@ router.get('/activity/timeline', verifyToken, requirePlatformOwner, validatePagi
       LEFT JOIN organizations o ON u.organization_id = o.id
       ${whereClause}
       ORDER BY al.created_at DESC
-      LIMIT ? OFFSET ?
+      LIMIT ${parseInt(limit)} OFFSET ${offset}
     `;
 
-    const activityResult = await executeQuery(activityQuery, [...queryParams, parseInt(limit), offset]);
+    const activityResult = await executeQuery(activityQuery, queryParams);
 
     // Get total count
     const countQuery = `
@@ -270,10 +270,10 @@ router.get('/invitations', verifyToken, requirePlatformOwner, validatePagination
       LEFT JOIN users u ON o.invitation_generated_by = u.id
       ${whereClause}
       ORDER BY o.updated_at DESC
-      LIMIT ? OFFSET ?
+      LIMIT ${parseInt(limit)} OFFSET ${offset}
     `;
 
-    const invitationsResult = await executeQuery(invitationsQuery, [...queryParams, parseInt(limit), offset]);
+    const invitationsResult = await executeQuery(invitationsQuery, queryParams);
 
     // Get total count
     const countQuery = `

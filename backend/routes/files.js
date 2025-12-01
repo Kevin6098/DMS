@@ -1701,10 +1701,10 @@ router.get('/trash/list', verifyToken, validatePagination, async (req, res) => {
       LEFT JOIN organizations o ON f.organization_id = o.id
       ${whereClause}
       ORDER BY f.deleted_at DESC 
-      LIMIT ? OFFSET ?
+      LIMIT ${parseInt(limit)} OFFSET ${offset}
     `;
 
-    const filesResult = await executeQuery(filesQuery, [...queryParams, parseInt(limit), offset]);
+    const filesResult = await executeQuery(filesQuery, queryParams);
 
     // Get total count
     const countQuery = `

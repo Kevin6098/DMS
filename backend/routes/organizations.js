@@ -44,10 +44,10 @@ router.get('/', verifyToken, requirePlatformOwner, validatePagination, validateS
                o.invitation_code, o.invitation_role, o.invitation_expires_at, o.invitation_generated_by,
                o.created_at, o.updated_at
       ORDER BY o.created_at DESC 
-      LIMIT ? OFFSET ?
+      LIMIT ${parseInt(limit)} OFFSET ${offset}
     `;
 
-    const orgsResult = await executeQuery(orgsQuery, [...queryParams, parseInt(limit), offset]);
+    const orgsResult = await executeQuery(orgsQuery, queryParams);
 
     // Get total count
     const countQuery = `
@@ -423,10 +423,10 @@ router.get('/:id/users', verifyToken, requireOrgAdmin, validatePagination, async
       FROM users u 
       ${whereClause}
       ORDER BY u.created_at DESC 
-      LIMIT ? OFFSET ?
+      LIMIT ${parseInt(limit)} OFFSET ${offset}
     `;
 
-    const usersResult = await executeQuery(usersQuery, [...queryParams, parseInt(limit), offset]);
+    const usersResult = await executeQuery(usersQuery, queryParams);
 
     // Get total count
     const countQuery = `
