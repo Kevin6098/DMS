@@ -1,6 +1,6 @@
 const express = require('express');
 const { executeQuery } = require('../config/database');
-const { verifyToken, requirePlatformOwner } = require('../middleware/auth');
+const { verifyToken, requirePlatformOwner, requireOrgAdmin } = require('../middleware/auth');
 const { validatePagination, validateSearch, validateDateRange } = require('../middleware/validation');
 
 const router = express.Router();
@@ -494,6 +494,160 @@ router.put('/settings', verifyToken, requirePlatformOwner, async (req, res) => {
     });
   } catch (error) {
     console.error('Update system settings error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// ============================================
+// ORGANIZATION ADMIN ENDPOINTS
+// ============================================
+
+// Get organization dashboard statistics (for organization admin)
+router.get('/organization/stats', verifyToken, requireOrgAdmin, async (req, res) => {
+  try {
+    const orgId = req.user.organization_id;
+
+    // Get organization statistics
+    const orgStats = await executeQuery(`
+      SELECT 
+        (SELECT COUNT(*) FROM users WHERE organization_id = ? AND status = 'active') as active_users,
+        (SELECT COUNT(*) FROM files WHERE organization_id = ? AND status = 'active') as total_files,
+        (SELECT COALESCE(SUM(file_size), 0) FROM files WHERE organization_id = ? AND status = 'active') as total_storage_used,
+        (SELECT storage_quota FROM organizations WHERE id = ?) as storage_quota,
+        (SELECT name FROM organizations WHERE id = ?) as organization_name
+    `, [orgId, orgId, orgId, orgId, orgId]);
+
+    // Get recent activity (last 7 days) for this organization
+    const recentActivity = await executeQuery(`
+      SELECT action, COUNT(*) as count, DATE(created_at) as date
+      FROM audit_logs 
+      WHERE organization_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+      GROUP BY action, DATE(created_at)
+      ORDER BY date DESC
+    `, [orgId]);
+
+    // Get user registrations by day (last 30 days) for this organization
+    const userRegistrations = await executeQuery(`
+      SELECT DATE(created_at) as date, COUNT(*) as count
+      FROM users 
+      WHERE organization_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      GROUP BY DATE(created_at)
+      ORDER BY date DESC
+    `, [orgId]);
+
+    // Get system health metrics for this organization
+    const systemHealth = await executeQuery(`
+      SELECT 
+        (SELECT COUNT(*) FROM users WHERE organization_id = ? AND status = 'active' AND last_login >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as active_users_30d,
+        (SELECT COUNT(*) FROM files WHERE organization_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) as files_uploaded_7d,
+        (SELECT COUNT(*) FROM audit_logs WHERE organization_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)) as daily_activity
+    `, [orgId, orgId, orgId]);
+
+    if (!orgStats.success || !recentActivity.success || !userRegistrations.success || !systemHealth.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch organization statistics'
+      });
+    }
+
+    const stats = orgStats.data[0];
+    const quota = stats.storage_quota || 0;
+    const used = stats.total_storage_used || 0;
+    const usagePercentage = quota > 0 ? ((used / quota) * 100).toFixed(2) : 0;
+
+    res.json({
+      success: true,
+      data: {
+        organizationStats: {
+          ...stats,
+          usage_percentage: parseFloat(usagePercentage)
+        },
+        recentActivity: recentActivity.data,
+        userRegistrations: userRegistrations.data,
+        systemHealth: systemHealth.data[0]
+      }
+    });
+  } catch (error) {
+    console.error('Get organization stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Get organization storage analytics
+router.get('/organization/storage', verifyToken, requireOrgAdmin, async (req, res) => {
+  try {
+    const orgId = req.user.organization_id;
+
+    // Get organization storage overview
+    const orgResult = await executeQuery(
+      'SELECT id, name, storage_quota, storage_used FROM organizations WHERE id = ?',
+      [orgId]
+    );
+
+    if (!orgResult.success || orgResult.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Organization not found'
+      });
+    }
+
+    const org = orgResult.data[0];
+    const quota = org.storage_quota || 0;
+    const used = org.storage_used || 0;
+    const usagePercentage = quota > 0 ? ((used / quota) * 100).toFixed(2) : 0;
+
+    // Get storage by file type for this organization
+    const storageByType = await executeQuery(`
+      SELECT file_type as type, 
+             COUNT(*) as file_count,
+             SUM(file_size) as total_size,
+             ROUND(AVG(file_size), 2) as avg_size
+      FROM files 
+      WHERE organization_id = ? AND status = 'active'
+      GROUP BY file_type
+      ORDER BY total_size DESC
+    `, [orgId]);
+
+    // Get storage trends (last 30 days) for this organization
+    const storageTrends = await executeQuery(`
+      SELECT DATE(created_at) as date,
+             COUNT(*) as files_uploaded,
+             SUM(file_size) as daily_storage_added
+      FROM files 
+      WHERE organization_id = ? AND status = 'active' AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      GROUP BY DATE(created_at)
+      ORDER BY date DESC
+    `, [orgId]);
+
+    if (!storageByType.success || !storageTrends.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch storage analytics'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        overview: {
+          organization_id: org.id,
+          organization_name: org.name,
+          total_quota_bytes: quota,
+          total_used_bytes: used,
+          usage_percentage: parseFloat(usagePercentage)
+        },
+        byFileType: storageByType.data,
+        trends: storageTrends.data
+      }
+    });
+  } catch (error) {
+    console.error('Get organization storage analytics error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'

@@ -130,6 +130,52 @@ export interface SystemSettingsUpdate {
   invitationRequired?: boolean;
 }
 
+export interface OrganizationStats {
+  organizationStats: {
+    active_users: number;
+    total_files: number;
+    total_storage_used: number;
+    storage_quota: number;
+    organization_name: string;
+    usage_percentage: number;
+  };
+  recentActivity: Array<{
+    action: string;
+    count: number;
+    date: string;
+  }>;
+  userRegistrations: Array<{
+    date: string;
+    count: number;
+  }>;
+  systemHealth: {
+    active_users_30d: number;
+    files_uploaded_7d: number;
+    daily_activity: number;
+  };
+}
+
+export interface OrganizationStorageAnalytics {
+  overview: {
+    organization_id: number;
+    organization_name: string;
+    total_quota_bytes: number;
+    total_used_bytes: number;
+    usage_percentage: number;
+  };
+  byFileType: Array<{
+    type: string;
+    file_count: number;
+    total_size: number;
+    avg_size: number;
+  }>;
+  trends: Array<{
+    date: string;
+    files_uploaded: number;
+    daily_storage_added: number;
+  }>;
+}
+
 // Admin Service
 export const adminService = {
   // Get dashboard statistics
@@ -202,5 +248,19 @@ export const adminService = {
   // Update system settings
   updateSystemSettings: async (settings: SystemSettingsUpdate): Promise<ApiResponse<void>> => {
     return apiService.put<void>('/admin/settings', settings);
+  },
+
+  // ============================================
+  // ORGANIZATION ADMIN METHODS
+  // ============================================
+
+  // Get organization dashboard statistics
+  getOrganizationStats: async (): Promise<ApiResponse<OrganizationStats>> => {
+    return apiService.get<OrganizationStats>('/admin/organization/stats');
+  },
+
+  // Get organization storage analytics
+  getOrganizationStorage: async (): Promise<ApiResponse<OrganizationStorageAnalytics>> => {
+    return apiService.get<OrganizationStorageAnalytics>('/admin/organization/storage');
   },
 };

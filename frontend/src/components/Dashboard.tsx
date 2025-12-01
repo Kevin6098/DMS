@@ -76,7 +76,7 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams<{ folderId?: string }>();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, isOrganizationAdmin } = useAuth();
   const { 
     files = [], 
     folders = [], 
@@ -1709,6 +1709,14 @@ const Dashboard: React.FC = () => {
                   <h4>{user.firstName} {user.lastName}</h4>
                   <p>{user.email}</p>
                 </div>
+                {isOrganizationAdmin() && (
+                  <button onClick={() => {
+                    setShowUserMenu(false);
+                    navigate('/admin/organization');
+                  }}>
+                    <i className="fas fa-cog"></i> Admin Panel
+                  </button>
+                )}
                 <button onClick={handleLogout}>
                   <i className="fas fa-sign-out-alt"></i> Logout
                 </button>

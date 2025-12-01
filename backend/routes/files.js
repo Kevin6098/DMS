@@ -90,8 +90,9 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       queryParams.push(req.user.organization_id);
     }
 
-    // Filter by uploaded_by - users can only see files they uploaded (unless platform owner or org admin)
-    if (req.user.role !== 'platform_owner' && req.user.role !== 'organization_admin') {
+    // Filter by uploaded_by - users can only see files they uploaded (unless platform owner)
+    // Organization admins also only see their own files for privacy
+    if (req.user.role !== 'platform_owner') {
       whereConditions.push('f.uploaded_by = ?');
       queryParams.push(req.user.id);
     }
@@ -1379,8 +1380,16 @@ router.post('/folders/:folderId/share', verifyToken, async (req, res) => {
 
     const folder = folderResult.data[0];
 
-    // Check permissions
-    if (folder.created_by !== req.user.id && folder.organization_id !== req.user.organization_id) {
+    // Check permissions - users can only share folders they created
+    // First check organization (security)
+    if (req.user.role !== 'platform_owner' && folder.organization_id !== req.user.organization_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to share this folder'
+      });
+    }
+    // Then check if user created the folder (privacy - org admins also only see their own)
+    if (folder.created_by !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to share this folder'
@@ -1900,8 +1909,9 @@ router.get('/folders/list', verifyToken, async (req, res) => {
       queryParams.push(req.user.organization_id);
     }
 
-    // Filter by created_by - users can only see folders they created (unless platform owner or org admin)
-    if (req.user.role !== 'platform_owner' && req.user.role !== 'organization_admin') {
+    // Filter by created_by - users can only see folders they created (unless platform owner)
+    // Organization admins also only see their own folders for privacy
+    if (req.user.role !== 'platform_owner') {
       whereConditions.push('folders.created_by = ?');
       queryParams.push(req.user.id);
     }
@@ -2005,9 +2015,9 @@ router.get('/folders/:folderId', verifyToken, async (req, res) => {
     }
 
     // Check if user has permission to view this folder
-    // Platform owners and org admins can see all folders in their org
-    // Regular members can only see folders they created or folders shared with them
-    if (req.user.role !== 'platform_owner' && req.user.role !== 'organization_admin') {
+    // Platform owners can see all folders
+    // Organization admins and regular members can only see folders they created or folders shared with them
+    if (req.user.role !== 'platform_owner') {
       // Check if folder was created by user
       if (folder.created_by !== req.user.id) {
         // Check if folder is shared with user

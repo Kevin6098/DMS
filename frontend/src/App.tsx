@@ -6,6 +6,7 @@ import { FileProvider } from './contexts/FileContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import AdminPanel from './components/AdminPanel';
+import OrganizationAdminPanel from './components/OrganizationAdminPanel';
 import ProtectedRoute from './components/ProtectedRoute';
 import './styles/main.css';
 import './styles/auth.css';
@@ -97,6 +98,22 @@ function App() {
                 element={
                   <ProtectedRoute requireAdmin={true}>
                     <AdminPanel />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/organization" 
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <OrganizationAdminPanel />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/organization/:tab" 
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <OrganizationAdminPanel />
                   </ProtectedRoute>
                 } 
               />
