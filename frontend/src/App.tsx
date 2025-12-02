@@ -14,6 +14,7 @@ import './styles/dashboard.css';
 import './styles/admin.css';
 import './styles/modals.css';
 import './styles/avatars.css';
+import './styles/reminders.css';
 
 function App() {
   return (
@@ -79,6 +80,14 @@ function App() {
               />
               <Route 
                 path="/dashboard/trash" 
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/todo" 
                 element={
                   <ProtectedRoute>
                     <Dashboard />

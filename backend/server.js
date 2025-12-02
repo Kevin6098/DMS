@@ -15,6 +15,7 @@ const organizationRoutes = require('./routes/organizations');
 const fileRoutes = require('./routes/files');
 const adminRoutes = require('./routes/admin');
 const auditRoutes = require('./routes/audit');
+const reminderRoutes = require('./routes/reminders');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -87,6 +88,7 @@ app.use('/api/organizations', organizationRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/audit', auditRoutes);
+app.use('/api/reminders', reminderRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

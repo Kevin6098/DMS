@@ -3,8 +3,10 @@ import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useFiles } from '../contexts/FileContext';
 import { fileService, FileItem, Folder, FileFilters } from '../services/fileService';
+import { reminderService, TodoDocument, TodoSummary, Reminder } from '../services/reminderService';
 import FileSharingModal from './FileSharingModal';
 import FilePreviewModal from './FilePreviewModal';
+import ReminderModal from './ReminderModal';
 import toast from 'react-hot-toast';
 
 // Image Thumbnail Component
@@ -124,6 +126,7 @@ const Dashboard: React.FC = () => {
     if (path.includes('/starred')) return 'starred';
     if (path.includes('/shared')) return 'shared';
     if (path.includes('/trash')) return 'trash';
+    if (path.includes('/todo')) return 'todo';
     return 'my-drive';
   };
 
@@ -161,6 +164,16 @@ const Dashboard: React.FC = () => {
   const [starredFiles, setStarredFiles] = useState<FileItem[]>([]);
   const [starredFolders, setStarredFolders] = useState<Folder[]>([]);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  
+  // To-Do Documents / Reminders state
+  const [todoDocuments, setTodoDocuments] = useState<TodoDocument[]>([]);
+  const [todoSummary, setTodoSummary] = useState<TodoSummary | null>(null);
+  const [todoFilter, setTodoFilter] = useState<'all' | 'overdue' | 'today' | 'upcoming'>('all');
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [reminderFile, setReminderFile] = useState<{ id: number; name: string } | null>(null);
+  const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
+  const [pendingReminders, setPendingReminders] = useState<Reminder[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
@@ -338,6 +351,7 @@ const Dashboard: React.FC = () => {
       loadFiles();
       loadFolders();
       refreshStats();
+      loadPendingReminders(); // Load notifications
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, hasLoadedInitialData]); // Functions are stable from context
@@ -1447,7 +1461,8 @@ const Dashboard: React.FC = () => {
       'my-drive': '/dashboard/my-drive',
       'starred': '/dashboard/starred',
       'shared': '/dashboard/shared',
-      'trash': '/dashboard/trash'
+      'trash': '/dashboard/trash',
+      'todo': '/dashboard/todo'
     };
     
     const route = routeMap[view] || '/dashboard/my-drive';
@@ -1466,6 +1481,10 @@ const Dashboard: React.FC = () => {
       case 'trash':
         // Load deleted files
         await loadDeletedFiles();
+        break;
+      case 'todo':
+        // Load to-do documents
+        await loadTodoDocuments();
         break;
       default:
         // My Drive - load regular files
@@ -1515,6 +1534,75 @@ const Dashboard: React.FC = () => {
       console.error('Error loading trash:', error);
       toast.error('Failed to load trash');
     }
+  };
+
+  // Load to-do documents (files with reminders)
+  const loadTodoDocuments = async (filter: 'all' | 'overdue' | 'today' | 'upcoming' = todoFilter) => {
+    try {
+      const response = await reminderService.getTodoDocuments(1, 50, filter);
+      if (response.success && response.data) {
+        setTodoDocuments(response.data.documents || []);
+        setTodoSummary(response.data.summary);
+      }
+    } catch (error) {
+      console.error('Error loading to-do documents:', error);
+      toast.error('Failed to load to-do documents');
+    }
+  };
+
+  // Load pending reminders for notification bell
+  const loadPendingReminders = async () => {
+    try {
+      const response = await reminderService.getPendingReminders();
+      if (response.success && response.data) {
+        setPendingReminders(response.data.reminders || []);
+      }
+    } catch (error) {
+      console.error('Error loading pending reminders:', error);
+    }
+  };
+
+  // Handle reminder complete
+  const handleCompleteReminder = async (reminderId: number) => {
+    try {
+      const response = await reminderService.completeReminder(reminderId);
+      if (response.success) {
+        toast.success('Reminder completed!');
+        await loadTodoDocuments();
+        await loadPendingReminders();
+      }
+    } catch (error) {
+      console.error('Error completing reminder:', error);
+      toast.error('Failed to complete reminder');
+    }
+  };
+
+  // Handle reminder dismiss
+  const handleDismissReminder = async (reminderId: number) => {
+    try {
+      const response = await reminderService.dismissReminder(reminderId);
+      if (response.success) {
+        toast.success('Reminder dismissed');
+        await loadTodoDocuments();
+        await loadPendingReminders();
+      }
+    } catch (error) {
+      console.error('Error dismissing reminder:', error);
+      toast.error('Failed to dismiss reminder');
+    }
+  };
+
+  // Open reminder modal for a file
+  const openReminderModal = (fileId: number, fileName: string, existingReminder?: Reminder) => {
+    setReminderFile({ id: fileId, name: fileName });
+    setEditingReminder(existingReminder || null);
+    setShowReminderModal(true);
+  };
+
+  // Handle todo filter change
+  const handleTodoFilterChange = (filter: 'all' | 'overdue' | 'today' | 'upcoming') => {
+    setTodoFilter(filter);
+    loadTodoDocuments(filter);
   };
 
   // Handle logout
@@ -1698,6 +1786,72 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
         <div className="header-right">
+          {/* Notification Bell */}
+          <div className="notification-bell">
+            <button 
+              className="bell-icon" 
+              onClick={() => setShowNotifications(!showNotifications)}
+              title="Reminders"
+            >
+              <i className="fas fa-bell"></i>
+              {pendingReminders.length > 0 && (
+                <span className="notification-badge">{pendingReminders.length > 9 ? '9+' : pendingReminders.length}</span>
+              )}
+            </button>
+            {showNotifications && (
+              <div className="notification-dropdown">
+                <div className="notification-header">
+                  <h4>Reminders</h4>
+                  <button 
+                    onClick={() => {
+                      setShowNotifications(false);
+                      showView('todo');
+                    }}
+                    style={{ background: 'none', border: 'none', color: '#141464', cursor: 'pointer', fontSize: '0.875rem' }}
+                  >
+                    View all
+                  </button>
+                </div>
+                <div className="notification-list">
+                  {pendingReminders.length > 0 ? (
+                    pendingReminders.slice(0, 5).map((reminder) => (
+                      <div 
+                        key={reminder.id}
+                        className={`notification-item ${reminderService.isOverdue(reminder.reminder_datetime) ? 'overdue' : ''}`}
+                        onClick={() => {
+                          setShowNotifications(false);
+                          showView('todo');
+                        }}
+                      >
+                        <div className="notification-icon">
+                          <i className="fas fa-bell"></i>
+                        </div>
+                        <div className="notification-content">
+                          <div className="notification-title">{reminder.title || reminder.file_name}</div>
+                          <div className="notification-time">
+                            {reminderService.formatReminderTime(reminder.reminder_datetime)}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="notification-empty">
+                      <i className="fas fa-bell-slash"></i>
+                      <p>No pending reminders</p>
+                    </div>
+                  )}
+                </div>
+                {pendingReminders.length > 5 && (
+                  <div className="notification-footer">
+                    <a href="#" onClick={(e) => { e.preventDefault(); setShowNotifications(false); showView('todo'); }}>
+                      View all {pendingReminders.length} reminders
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          
           <div className="user-menu">
             <button className="user-avatar" onClick={() => setShowUserMenu(!showUserMenu)}>
               {user.firstName?.charAt(0) || user.email?.charAt(0).toUpperCase() || 'U'}
@@ -1749,6 +1903,16 @@ const Dashboard: React.FC = () => {
           >
             <i className="fas fa-share-alt"></i>
             <span>Shared with me</span>
+          </button>
+          <button 
+            className={`nav-item ${currentView === 'todo' ? 'active' : ''}`}
+            onClick={() => showView('todo')}
+          >
+            <i className="fas fa-bell"></i>
+            <span>To-Do Documents</span>
+            {todoSummary && todoSummary.overdue > 0 && (
+              <span className="nav-badge">{todoSummary.overdue}</span>
+            )}
           </button>
           <button 
             className={`nav-item ${currentView === 'trash' ? 'active' : ''}`}
@@ -1887,8 +2051,144 @@ const Dashboard: React.FC = () => {
         />
 
 
-        {/* Files Grid/List */}
-        {viewMode === 'list' ? (
+        {/* To-Do Documents View */}
+        {currentView === 'todo' ? (
+          <div className="todo-documents-view">
+            <div className="todo-header">
+              <h2><i className="fas fa-bell"></i> To-Do Documents</h2>
+            </div>
+            
+            {/* Summary Cards */}
+            <div className="todo-summary-cards">
+              <div 
+                className={`todo-summary-card overdue ${todoFilter === 'overdue' ? 'active' : ''}`}
+                onClick={() => handleTodoFilterChange('overdue')}
+              >
+                <div className="count">{todoSummary?.overdue || 0}</div>
+                <div className="label">Overdue</div>
+              </div>
+              <div 
+                className={`todo-summary-card today ${todoFilter === 'today' ? 'active' : ''}`}
+                onClick={() => handleTodoFilterChange('today')}
+              >
+                <div className="count">{todoSummary?.today || 0}</div>
+                <div className="label">Due Today</div>
+              </div>
+              <div 
+                className={`todo-summary-card upcoming ${todoFilter === 'upcoming' ? 'active' : ''}`}
+                onClick={() => handleTodoFilterChange('upcoming')}
+              >
+                <div className="count">{todoSummary?.upcoming || 0}</div>
+                <div className="label">Upcoming</div>
+              </div>
+              <div 
+                className={`todo-summary-card ${todoFilter === 'all' ? 'active' : ''}`}
+                onClick={() => handleTodoFilterChange('all')}
+              >
+                <div className="count">{todoSummary?.total || 0}</div>
+                <div className="label">All</div>
+              </div>
+            </div>
+
+            {/* Todo Table */}
+            {todoDocuments.length > 0 ? (
+              <div className="todo-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Document</th>
+                      <th>Due Date</th>
+                      <th>Priority</th>
+                      <th>Note</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {todoDocuments.map((doc) => {
+                      const isOverdue = reminderService.isOverdue(doc.reminder_datetime);
+                      const isToday = reminderService.isDueToday(doc.reminder_datetime);
+                      return (
+                        <tr key={doc.id} className={isOverdue ? 'overdue' : ''}>
+                          <td>
+                            <div className="todo-file-cell">
+                              <i className={fileService.getFileIcon(doc.file_type || '')}></i>
+                              <div className="todo-file-info">
+                                <span 
+                                  className="todo-file-name"
+                                  onClick={() => {
+                                    // Navigate to file
+                                    if (doc.folder_id) {
+                                      navigate(`/dashboard/my-drive/folder/${doc.folder_id}`);
+                                    } else {
+                                      navigate('/dashboard/my-drive');
+                                    }
+                                  }}
+                                >
+                                  {doc.file_name}
+                                </span>
+                                {doc.folder_name && (
+                                  <span className="todo-file-folder">
+                                    <i className="fas fa-folder"></i> {doc.folder_name}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div className={`todo-due-date ${isOverdue ? 'overdue' : isToday ? 'today' : ''}`}>
+                              <span className="date">
+                                {reminderService.formatReminderTime(doc.reminder_datetime)}
+                              </span>
+                            </div>
+                          </td>
+                          <td>
+                            <span className={`priority-badge ${doc.priority}`}>
+                              <i className="fas fa-flag"></i> {doc.priority}
+                            </span>
+                          </td>
+                          <td>
+                            {doc.title || doc.note || '-'}
+                          </td>
+                          <td>
+                            <div className="todo-actions">
+                              <button 
+                                className="btn-complete" 
+                                onClick={() => handleCompleteReminder(doc.id)}
+                                title="Mark as complete"
+                              >
+                                <i className="fas fa-check"></i>
+                              </button>
+                              <button 
+                                className="btn-edit"
+                                onClick={() => openReminderModal(doc.file_id, doc.file_name || '', doc as Reminder)}
+                                title="Edit reminder"
+                              >
+                                <i className="fas fa-edit"></i>
+                              </button>
+                              <button 
+                                className="btn-dismiss" 
+                                onClick={() => handleDismissReminder(doc.id)}
+                                title="Dismiss"
+                              >
+                                <i className="fas fa-times"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="todo-empty">
+                <i className="fas fa-bell-slash"></i>
+                <h3>No reminders</h3>
+                <p>Set reminders on your files to see them here</p>
+              </div>
+            )}
+          </div>
+        ) : viewMode === 'list' ? (
           /* Table View (Windows-style) */
           <div className="files-table-container">
             {isLoading ? (
@@ -2160,8 +2460,8 @@ const Dashboard: React.FC = () => {
                 );
               })()}
 
-        {/* Pagination */}
-        {pagination.pages > 1 && (
+        {/* Pagination - only show for file views, not for todo */}
+        {currentView !== 'todo' && pagination.pages > 1 && (
           <div className="pagination">
             <button 
               disabled={pagination.page === 1}
@@ -2480,10 +2780,23 @@ const Dashboard: React.FC = () => {
             <span>{contextMenu.type === 'file' ? 'File' : 'Folder'} information</span>
           </button>
           {contextMenu.type === 'file' && (
-            <button className="context-menu-item" onClick={handleManageVersions}>
-              <i className="fas fa-history"></i>
-              <span>Manage versions</span>
-            </button>
+            <>
+              <button className="context-menu-item" onClick={handleManageVersions}>
+                <i className="fas fa-history"></i>
+                <span>Manage versions</span>
+              </button>
+              <button 
+                className="context-menu-item" 
+                onClick={() => {
+                  const file = contextMenu.item as FileItem;
+                  openReminderModal(file.id, file.name);
+                  closeContextMenu();
+                }}
+              >
+                <i className="fas fa-bell"></i>
+                <span>Set reminder</span>
+              </button>
+            </>
           )}
           <div className="context-menu-divider" style={{ height: '1px', background: '#e0e0e0', margin: '8px 0' }}></div>
           <button 
@@ -3128,6 +3441,25 @@ const Dashboard: React.FC = () => {
           onClose={() => {
             setShowPreviewModal(false);
             setPreviewFile(null);
+          }}
+        />
+      )}
+
+      {/* Reminder Modal */}
+      {showReminderModal && reminderFile && (
+        <ReminderModal
+          isOpen={showReminderModal}
+          onClose={() => {
+            setShowReminderModal(false);
+            setReminderFile(null);
+            setEditingReminder(null);
+          }}
+          fileId={reminderFile.id}
+          fileName={reminderFile.name}
+          existingReminder={editingReminder}
+          onReminderCreated={() => {
+            loadTodoDocuments();
+            loadPendingReminders();
           }}
         />
       )}
