@@ -63,6 +63,10 @@ app.use(morgan('combined'));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Increase server timeout for large file uploads (2 hours)
+// This is important for uploads of files up to 2GB
+const serverTimeout = parseInt(process.env.SERVER_TIMEOUT) || 7200000; // 2 hours default
+
 // Static files
 app.use('/uploads', express.static('uploads'));
 
@@ -148,11 +152,17 @@ const startServer = async () => {
       console.log('⚠️  Server starting without database connection');
     }
 
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🔗 API Base URL: http://localhost:${PORT}/api`);
+      console.log(`⏱️  Server timeout: ${serverTimeout / 1000}s (${serverTimeout / 3600000}h)`);
     });
+    
+    // Set server timeout for large file uploads
+    server.timeout = serverTimeout;
+    server.keepAliveTimeout = serverTimeout;
+    server.headersTimeout = serverTimeout + 1000; // Slightly longer than keepAliveTimeout
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);

@@ -2078,8 +2078,18 @@ router.post('/folders', verifyToken, validateFolder, async (req, res) => {
       bodyType: typeof req.body,
       bodyString: JSON.stringify(req.body),
       user: req.user.email,
-      organizationId: req.user.organization_id
+      organizationId: req.user.organization_id,
+      contentType: req.headers['content-type']
     });
+    
+    // Check if body is empty or malformed
+    if (!req.body || Object.keys(req.body).length === 0) {
+      console.error('📁 [FOLDERS] Empty or missing request body');
+      return res.status(400).json({
+        success: false,
+        message: 'Request body is empty or missing. Please send a valid JSON body with name field.'
+      });
+    }
     
     // Ensure parentId is a number or null, not an object
     let { name, description, parentId } = req.body;
@@ -2115,10 +2125,18 @@ router.post('/folders', verifyToken, validateFolder, async (req, res) => {
     }
 
     // Check if folder name already exists in the same parent
-    const existingFolder = await executeQuery(
-      'SELECT id FROM folders WHERE name = ? AND parent_id = ? AND organization_id = ? AND status = "active"',
-      [name, parentId || null, req.user.organization_id]
-    );
+    // Use IS NULL for null comparison, = for number comparison
+    let existingFolderQuery;
+    let existingFolderParams;
+    if (parentId === null || parentId === undefined) {
+      existingFolderQuery = 'SELECT id FROM folders WHERE name = ? AND parent_id IS NULL AND organization_id = ? AND status = "active"';
+      existingFolderParams = [name, req.user.organization_id];
+    } else {
+      existingFolderQuery = 'SELECT id FROM folders WHERE name = ? AND parent_id = ? AND organization_id = ? AND status = "active"';
+      existingFolderParams = [name, parentId, req.user.organization_id];
+    }
+    
+    const existingFolder = await executeQuery(existingFolderQuery, existingFolderParams);
 
     if (existingFolder.success && existingFolder.data.length > 0) {
       return res.status(400).json({
@@ -2128,15 +2146,25 @@ router.post('/folders', verifyToken, validateFolder, async (req, res) => {
     }
 
     // Create folder
+    console.log('📁 [FOLDERS] Creating folder with params:', {
+      name,
+      description,
+      organizationId: req.user.organization_id,
+      createdBy: req.user.id,
+      parentId: parentId || null
+    });
+    
     const folderResult = await executeQuery(
       'INSERT INTO folders (name, description, organization_id, created_by, parent_id, status) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, description, req.user.organization_id, req.user.id, parentId || null, 'active']
+      [name, description || null, req.user.organization_id, req.user.id, parentId || null, 'active']
     );
 
     if (!folderResult.success) {
+      console.error('📁 [FOLDERS] Failed to create folder:', folderResult.error);
       return res.status(500).json({
         success: false,
-        message: 'Failed to create folder'
+        message: 'Failed to create folder',
+        error: process.env.NODE_ENV === 'development' ? folderResult.error : undefined
       });
     }
 
