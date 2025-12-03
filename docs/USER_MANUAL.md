@@ -15,11 +15,12 @@
 5. [Dashboard Overview](#5-dashboard-overview)
 6. [File Management](#6-file-management)
 7. [Folder Management](#7-folder-management)
-8. [Storage Quota](#8-storage-quota)
-9. [Organization Admin Panel](#9-organization-admin-panel)
-10. [Platform Admin Panel](#10-platform-admin-panel)
-11. [Troubleshooting](#11-troubleshooting)
-12. [Support](#12-support)
+8. [File Reminders & To-Do Documents](#8-file-reminders--to-do-documents)
+9. [Storage Quota](#9-storage-quota)
+10. [Organization Admin Panel](#10-organization-admin-panel)
+11. [Platform Admin Panel](#11-platform-admin-panel)
+12. [Troubleshooting](#12-troubleshooting)
+13. [Support](#13-support)
 
 ---
 
@@ -124,12 +125,14 @@ After logging in, you will see your main dashboard (My Drive):
 **Header Bar:**
 - Task Insight logo (click to go home)
 - Search bar for finding files and folders
+- Notification bell (shows pending reminders with badge)
 - User profile icon (shows your initials)
 
 **Sidebar Navigation:**
 - **My Drive**: Your personal file storage
 - **Starred**: Files you've marked as important
 - **Shared with me**: Files others have shared with you
+- **To-Do Documents**: Files with reminders and due dates
 - **Trash**: Deleted files (recoverable for 30 days)
 
 **Storage Indicator:**
@@ -194,6 +197,23 @@ Each file has action buttons:
 - **Star**: Mark as important (appears in Starred section)
 - **More options**: Additional actions like download, delete, share
 
+### 6.5 File Context Menu
+
+Right-click on any file to access additional options:
+
+![File Context Menu](screenshots/12_file_context_menu.png)
+
+Available actions:
+- **Download**: Download the file to your computer
+- **Rename**: Change the file name
+- **Share**: Share with other users
+- **Copy link**: Get a shareable link
+- **Move**: Move to another folder
+- **File information**: View file details and metadata
+- **Manage versions**: View and restore previous versions
+- **Set reminder**: Create a reminder for this file (NEW!)
+- **Move to trash**: Delete the file
+
 ---
 
 ## 7. Folder Management
@@ -215,7 +235,184 @@ Each folder shows:
 
 ---
 
-## 8. Storage Quota
+## 8. File Reminders & To-Do Documents
+
+Task Insight DMS includes a powerful reminder system to help you stay on top of important documents and deadlines.
+
+### 8.1 Setting a Reminder
+
+**Method 1: Using Context Menu**
+
+**Step 1:** Right-click on any file
+
+**Step 2:** Select **Set reminder** from the menu
+
+![Set Reminder Context Menu](screenshots/13_set_reminder_menu.png)
+
+**Method 2: From File Actions**
+
+Click the "More options" button (⋮) on a file and select "Set reminder"
+
+### 8.2 Reminder Modal
+
+When you set a reminder, a modal will appear:
+
+![Reminder Modal](screenshots/14_reminder_modal.png)
+
+**Quick Preset Buttons:**
+- **Today 2PM**: Set reminder for today at 2:00 PM
+- **Today 6PM**: Set reminder for today at 6:00 PM
+- **Tomorrow 9AM**: Set reminder for tomorrow at 9:00 AM
+- **Tomorrow 2PM**: Set reminder for tomorrow at 2:00 PM
+- **Next Week**: Set reminder for 7 days from now
+- **Next Month**: Set reminder for 30 days from now
+
+**Custom Settings:**
+
+1. **Date & Time**: Choose specific date and time
+   - Use the date picker for the date
+   - Use the time picker for the time
+
+2. **Title** (Optional): Give your reminder a descriptive title
+   - Example: "Review contract", "Submit report"
+
+3. **Note** (Optional): Add additional details
+   - Example: "Need to get approval from manager first"
+
+4. **Priority**: Choose reminder importance
+   - **Low** (Green flag): Nice to have
+   - **Medium** (Yellow flag): Important
+   - **High** (Red flag): Urgent
+
+5. **Repeat this reminder** (Optional):
+   - Check the box to make it recurring
+   - Choose frequency: Daily, Weekly, Monthly, or Yearly
+   - Set an end date (optional)
+
+**Step 3:** Click **Set Reminder** to save
+
+### 8.3 Notification Bell
+
+The notification bell in the header shows pending reminders:
+
+![Notification Bell](screenshots/15_notification_bell.png)
+
+**Features:**
+- **Red badge**: Shows number of pending reminders
+- **Click to open**: View reminder dropdown
+- **Overdue items**: Highlighted in red background
+- **Quick access**: Click any reminder to go to To-Do Documents
+
+**Notification Dropdown:**
+
+![Notification Dropdown](screenshots/16_notification_dropdown.png)
+
+Shows:
+- File name or reminder title
+- Due date/time with status (overdue, today, upcoming)
+- Click "View all" to see complete list
+
+### 8.4 To-Do Documents View
+
+Access your reminders from the sidebar:
+
+![To-Do Documents Sidebar](screenshots/17_todo_sidebar.png)
+
+**Step 1:** Click **To-Do Documents** in the sidebar
+
+**Step 2:** View your reminder dashboard
+
+![To-Do Documents View](screenshots/18_todo_documents_view.png)
+
+**Summary Cards:**
+
+The top of the page shows four summary cards:
+- **Overdue** (Red): Reminders past their due date
+- **Due Today** (Yellow): Reminders due today
+- **Upcoming** (Green): Reminders due within 7 days
+- **All**: Total number of active reminders
+
+Click any card to filter the list below.
+
+**To-Do Table:**
+
+The table displays all your reminders with:
+
+| Column | Description |
+|--------|-------------|
+| **Document** | File name with folder location |
+| **Due Date** | When the reminder is due (color-coded) |
+| **Priority** | Low/Medium/High with flag icon |
+| **Note** | Your reminder title or note |
+| **Actions** | Complete, Edit, or Dismiss buttons |
+
+**Row Colors:**
+- **Red background**: Overdue reminders
+- **White background**: Upcoming reminders
+
+### 8.5 Managing Reminders
+
+**Completing a Reminder:**
+
+**Step 1:** Click the **✓** (checkmark) button
+
+![Complete Reminder](screenshots/19_complete_reminder.png)
+
+**Step 2:** The reminder is marked as complete and removed from the list
+
+**Note:** If the reminder is recurring, a new reminder will be automatically created for the next occurrence.
+
+**Editing a Reminder:**
+
+**Step 1:** Click the **✎** (edit) button
+
+**Step 2:** The reminder modal opens with current settings
+
+**Step 3:** Make your changes and click **Update Reminder**
+
+**Dismissing a Reminder:**
+
+**Step 1:** Click the **✕** (dismiss) button
+
+**Step 2:** The reminder is dismissed and removed from the list
+
+**Note:** Dismissed reminders are permanently removed and cannot be recovered.
+
+### 8.6 Recurring Reminders
+
+When you complete a recurring reminder:
+
+1. The current reminder is marked as complete
+2. A new reminder is automatically created for the next occurrence
+3. The new reminder appears in your To-Do Documents
+
+**Example:**
+- You set a weekly reminder for "Review weekly reports" every Monday at 9 AM
+- When you complete it on Monday, a new reminder is created for next Monday
+- This continues until the recurrence end date (if set)
+
+### 8.7 Reminder Best Practices
+
+**Tips for effective reminder usage:**
+
+1. **Use descriptive titles**: "Review Q4 budget proposal" is better than "Review file"
+2. **Set appropriate priorities**: Reserve "High" for truly urgent items
+3. **Add context in notes**: Include what action needs to be taken
+4. **Use recurring reminders**: For regular tasks like monthly reports
+5. **Check daily**: Review your To-Do Documents each morning
+6. **Complete or dismiss**: Keep your list clean by acting on reminders
+
+**Common Use Cases:**
+
+- **Contract reviews**: Set reminders before contract expiration dates
+- **Report submissions**: Never miss a deadline
+- **Document approvals**: Track pending approvals
+- **Regular reviews**: Monthly/quarterly document reviews
+- **Follow-ups**: Remind yourself to follow up on shared documents
+
+---
+
+## 9. Storage Quota
 
 Your storage quota is displayed at the bottom of the sidebar.
 
@@ -315,7 +512,7 @@ Platform owners have access to the full Platform Admin Panel with:
 
 ---
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 ### Common Issues and Solutions
 
@@ -326,6 +523,8 @@ Platform owners have access to the full Platform Admin Panel with:
 | File not visible | Wrong folder or permission | Navigate to correct folder, check sharing |
 | Slow performance | Large files or network | Check internet connection, try refreshing |
 | Page not loading | Browser cache | Clear cache and cookies, try incognito mode |
+| Reminder not showing | Browser notifications disabled | Enable notifications in browser settings |
+| Cannot set reminder | File permissions | Ensure you have access to the file |
 
 ### Error Messages
 
@@ -333,10 +532,20 @@ Platform owners have access to the full Platform Admin Panel with:
 - **"Storage quota exceeded"**: Storage full - delete files or contact admin
 - **"Upload failed"**: Check file size and format, try again
 - **"Access denied"**: No permission - contact file owner or admin
+- **"Failed to create reminder"**: Check date/time is in the future
+
+### Reminder Issues
+
+| Issue | Solution |
+|-------|----------|
+| Reminder not appearing in notifications | Refresh the page or check To-Do Documents |
+| Cannot complete reminder | Check your internet connection and try again |
+| Recurring reminder not creating | Verify end date is in the future |
+| Overdue count not updating | Refresh the page (F5) |
 
 ---
 
-## 12. Support
+## 13. Support
 
 If you encounter issues not covered in this manual:
 
@@ -363,6 +572,7 @@ If you encounter issues not covered in this manual:
 | New Folder | Ctrl + Shift + N |
 | Upload | Ctrl + U |
 | Refresh | F5 |
+| View To-Do Documents | Click sidebar or notification bell |
 
 ### File Size Limits
 
@@ -383,6 +593,7 @@ For testing purposes:
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | December 2025 | Initial release with screenshots |
+| 1.1 | December 2025 | Added File Reminders & To-Do Documents feature |
 
 ---
 
