@@ -5,9 +5,14 @@ const generateRandomString = (length = 32) => {
   return crypto.randomBytes(length).toString('hex');
 };
 
-// Generate invitation code
+// Generate invitation code (6 random letters and numbers)
 const generateInvitationCode = () => {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusing chars like 0, O, I, 1
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
 };
 
 // Format file size

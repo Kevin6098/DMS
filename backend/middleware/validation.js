@@ -89,8 +89,18 @@ const validateOrganization = [
     .withMessage('Description must not exceed 500 characters'),
   body('storageQuota')
     .optional()
-    .isInt({ min: 100, max: 1000000 })
-    .withMessage('Storage quota must be between 100MB and 1TB'),
+    .custom((value) => {
+      const numValue = Number(value);
+      if (!Number.isInteger(numValue)) {
+        throw new Error('Storage quota must be an integer');
+      }
+      const minBytes = 100 * 1024 * 1024; // 100MB in bytes
+      const maxBytes = 1024 * 1024 * 1024 * 1024; // 1TB in bytes
+      if (numValue < minBytes || numValue > maxBytes) {
+        throw new Error('Storage quota must be between 100MB and 1TB');
+      }
+      return true;
+    }),
   handleValidationErrors
 ];
 

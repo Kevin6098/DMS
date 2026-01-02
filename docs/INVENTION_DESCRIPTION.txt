@@ -1,0 +1,86 @@
+Task Insight Document Management System
+Invention Description
+
+================================================================================
+
+1. What is the invention/work about? (max 200 words)
+
+Task Insight Document Management System is a computer program that helps organizations store, organize, and manage their digital documents safely. It works like a secure online filing cabinet where companies can keep all their important files in one place. The system makes sure that only the right people can see and use specific documents by giving different access levels to different users.
+
+The system does more than just store files. It helps organizations keep track of who did what with each document, monitors how much storage space is being used, and includes a reminder system that connects tasks directly to documents. Users can upload files, create folders, share documents with others, and set reminders for important deadlines. Organization administrators can watch over how the system is being used, manage users, and keep everything secure.
+
+The platform is made specifically for organizations like companies, schools, and government agencies. It provides a better alternative to regular cloud storage by focusing on making work easier, following rules and regulations, and making sure people are responsible for their actions with documents.
+
+================================================================================
+
+2. Functions/objectives of invention/work? (max 200 words)
+
+The main goal of Task Insight Document Management System is to give organizations a safe, organized, and trackable way to handle their digital documents. The system puts all documents in one central location while allowing different levels of access through two user roles: Organization Admin and Member.
+
+The system has several important functions:
+
+Document and Folder Management: Users can upload files, organize them into folders, share documents with others, move files around, delete them, and restore deleted items. The system also keeps track of different versions of files.
+
+Role-Based Access Control: The system makes sure each organization's data is kept separate and secure. Only people with the right permissions can access specific files and folders.
+
+Audit Trail and Compliance: The system records everything users do with files and folders. This creates a complete history that helps with accountability and following rules and regulations.
+
+Task-Driven Reminder System: The system has a special To-Do Documents feature that connects reminders and due dates directly to specific files. This helps users never forget important deadlines.
+
+Storage Governance: The system watches how much storage space is being used, shows visual warnings when space is running low, and stops new uploads when the storage limit is reached.
+
+The system helps reduce document clutter, prevents missed deadlines, and gives administrators full visibility and control over their organization's information. By combining document storage with task management, Task Insight bridges the gap between where files are stored and what needs to be done with them.
+
+================================================================================
+
+3. State the originality of the invention (max 200 words)
+
+Task Insight Document Management System is an original work that was thought up, designed, and built by our team as a custom solution to real problems organizations face when managing documents. The system's design, user interface, how it works, reminder features, and admin tools were all created through independent thinking, design choices, and programming work. Nothing was copied directly from any existing product or code.
+
+While there are other document management systems in the world, the specific way Task Insight combines file reminders, role-based access for multiple organizations, and administrative controls comes from the inventor's own research, design work, and system planning. All the documentation, including the user manual, screenshots, special terms like "To-Do Documents," and descriptions of how things work were written originally to explain the system's unique features and behavior.
+
+Some basic ideas like folders, uploading files, or storage limits are common in the industry, but the way Task Insight implements these features, the options it provides, and how everything works together as one smooth experience are all the inventor's own work. The system represents a new combination of features that were specifically designed to solve problems that organizations have when managing documents.
+
+================================================================================
+
+4. What is the difference/uniqueness of this invention/work compared to the existing invention/work? (max 200 words)
+
+Unlike regular cloud storage services or typical document storage systems, Task Insight Document Management System is unique because it combines document storage with a reminder and task system that is directly connected to files. Instead of using separate task management apps or email reminders, users can create reminders that are attached to specific files. These reminders can have priority levels, notes, repeat settings, and due dates, and they all show up in one To-Do Documents dashboard and notification system. This connects the question of "where are my documents" with "what do I need to do with them and when."
+
+The platform focuses on multi-organization administration with two clear role levels: Organization Admin who manages their organization, and Member who uses the system for their work. This structure, along with organization dashboards, storage reports, and complete activity logs, is made specifically for organizations rather than individual users.
+
+Also, Task Insight makes things easy to understand: color-coded storage warnings, reminder categories that show if something is overdue, due today, or coming up, and visual badges that show user roles and status make complicated information simple to understand at a glance. The combination of document storage, management features, and useful reminders in one clear interface makes Task Insight different from typical file storage services or basic document systems that treat storage and task management as completely separate things.
+
+================================================================================
+
+5. What are the components/elements/phases involved in the invention/work? (max 200 words)
+
+Task Insight Document Management System is made up of several main parts:
+
+User and Authentication Layer: This includes the login system, creating accounts by joining an organization, managing user sessions, and logging out.
+
+Role and Organization Management: This handles the two user roles (Organization Admin and Member), setting up organizations, inviting new users, filtering users by role and status, and tracking what users are doing.
+
+Document and Folder Management: This is the core storage part including My Drive for personal files, Starred items for important files, Shared with Me for files others shared, and Trash for deleted items. It also includes navigating folders, uploading files and folders, renaming, moving, sharing, managing file versions, and viewing file details.
+
+Reminder and To-Do Module: This allows setting reminders from file menus, a reminder window with quick options and custom settings for date, time, title, notes, priority, and repeat options. It includes the To-Do Documents view with summary cards showing Overdue, Due Today, Upcoming, and All reminders, plus actions to complete, edit, or dismiss reminders.
+
+Notification and Dashboard Interface: This includes the top bar with search, a notification bell that shows how many reminders are pending, user profile menu, side navigation menu, storage meter with color warnings, and options to view files as a list or grid.
+
+Storage and Quota Management: This tracks how much storage each organization is using, monitors when storage limits are being approached, shows color-coded warnings (green for safe, yellow for warning, red for danger), and blocks new uploads when the limit is reached.
+
+Audit and Analytics: This provides organization activity logs, usage statistics, storage breakdowns, and user activity reports.
+
+All these parts work together to support the complete document lifecycle: getting users started, daily document work, tracking tasks, administrative oversight, system monitoring, and helping users when needed.
+
+================================================================================
+
+6. What are the benefits/contributions of this invention/work to the nation, institutions and community? (max 200 words)
+
+Task Insight Document Management System helps the nation, institutions, and communities by improving how organizations handle important information. This makes things more transparent, accountable, and efficient. For government agencies and public organizations, the system helps with better record keeping, making sure contracts and policies are reviewed on time, and creating clear records of decisions. This ultimately improves public services and how government works.
+
+For universities, colleges, and research institutions, the system organizes academic and administrative documents while making sure deadlines for reports, accreditation submissions, and compliance reviews are never missed. This benefits both staff and students. Private companies and small businesses get an affordable way to manage documents with clear access controls, reminders for important compliance documents, and detailed activity logs. This reduces the risk of missing important deadlines or mishandling information.
+
+The general community benefits when organizations using Task Insight operate more efficiently, meet deadlines regularly, and protect information properly. This leads to more reliable services and fewer mistakes. The people who benefit include organization administrators who oversee operations, employees and staff who use the system every day, students in schools and universities, auditors and compliance officers, government regulators, and finally the citizens or customers who are served by these organizations. The system's focus on accountability, managing deadlines, and secure document handling creates positive effects that spread throughout the organizations and communities that use it.
+
+================================================================================

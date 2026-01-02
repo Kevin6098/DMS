@@ -27,21 +27,35 @@ router.post('/register', validateUserRegistration, async (req, res) => {
 
     // Validate invitation code if provided
     let orgId = organizationId;
+    let userRole = 'member'; // Default role
     if (invitationCode) {
-      const invitationResult = await executeQuery(
-        'SELECT * FROM invitations WHERE code = ? AND status = "active" AND (expires_at IS NULL OR expires_at > NOW())',
-        [invitationCode]
+      // Check invitation code in organizations table
+      const orgResult = await executeQuery(
+        'SELECT id, invitation_code, invitation_role, invitation_expires_at, status FROM organizations WHERE invitation_code = ? AND status = "active"',
+        [invitationCode.trim().toUpperCase()]
       );
 
-      if (!invitationResult.success || invitationResult.data.length === 0) {
+      if (!orgResult.success || orgResult.data.length === 0) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid or expired invitation code'
+          message: 'Invalid invitation code'
+        });
+      }
+
+      const org = orgResult.data[0];
+
+      // Check if invitation code has expired
+      if (org.invitation_expires_at && new Date(org.invitation_expires_at) < new Date()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invitation code has expired'
         });
       }
 
       // Link user to organization via invitation code
-      orgId = invitationResult.data[0].organization_id;
+      orgId = org.id;
+      // Use the role specified in the invitation code, or default to 'member'
+      userRole = org.invitation_role || 'member';
     }
 
     // Ensure organization ID is set
@@ -56,10 +70,10 @@ router.post('/register', validateUserRegistration, async (req, res) => {
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create user
+    // Create user with role from invitation code
     const userResult = await executeQuery(
       'INSERT INTO users (email, password_hash, first_name, last_name, organization_id, role, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [email, hashedPassword, firstName, lastName, orgId, 'member', 'active']
+      [email, hashedPassword, firstName, lastName, orgId, userRole, 'active']
     );
 
     if (!userResult.success) {

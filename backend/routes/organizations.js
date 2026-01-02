@@ -2,6 +2,7 @@ const express = require('express');
 const { executeQuery } = require('../config/database');
 const { verifyToken, requirePlatformOwner, requireOrgAdmin } = require('../middleware/auth');
 const { validateOrganization, validatePagination, validateSearch } = require('../middleware/validation');
+const { generateInvitationCode } = require('../utils/helpers');
 
 const router = express.Router();
 
@@ -178,10 +179,38 @@ router.post('/', verifyToken, requirePlatformOwner, validateOrganization, async 
       });
     }
 
-    // Create organization
+    // Generate a unique invitation code
+    let invitationCode;
+    let isUnique = false;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (!isUnique && attempts < maxAttempts) {
+      invitationCode = generateInvitationCode().toUpperCase();
+      
+      // Check if code already exists
+      const codeCheck = await executeQuery(
+        'SELECT id FROM organizations WHERE invitation_code = ?',
+        [invitationCode]
+      );
+
+      if (codeCheck.success && codeCheck.data.length === 0) {
+        isUnique = true;
+      }
+      attempts++;
+    }
+
+    if (!isUnique) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to generate unique invitation code. Please try again.'
+      });
+    }
+
+    // Create organization with invitation code
     const orgResult = await executeQuery(
-      'INSERT INTO organizations (name, description, storage_quota, status) VALUES (?, ?, ?, ?)',
-      [name, description, storageQuota || 5368709120, 'active']
+      'INSERT INTO organizations (name, description, storage_quota, status, invitation_code, invitation_role) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, description, storageQuota || 5368709120, 'active', invitationCode, 'member']
     );
 
     if (!orgResult.success) {
@@ -204,7 +233,8 @@ router.post('/', verifyToken, requirePlatformOwner, validateOrganization, async 
         organizationId: orgResult.data.insertId,
         name,
         description,
-        storageQuota: storageQuota || 1000
+        storageQuota: storageQuota || 5368709120,
+        invitationCode
       }
     });
   } catch (error) {
