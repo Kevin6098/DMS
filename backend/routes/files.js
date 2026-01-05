@@ -1180,7 +1180,8 @@ router.post('/:fileId/share', verifyToken, async (req, res) => {
     // Generate a unique share link
     const crypto = require('crypto');
     const shareLink = crypto.randomBytes(32).toString('hex');
-    const fullShareLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/share/${shareLink}`;
+    const frontendUrl = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://taskinsight.my' : 'http://localhost:3000');
+    const fullShareLink = `${frontendUrl}/share/${shareLink}`;
 
     // Convert expiresAt to MySQL datetime format (YYYY-MM-DD HH:mm:ss)
     let mysqlExpiresAt = null;
@@ -1295,6 +1296,7 @@ router.get('/:fileId/shares', verifyToken, async (req, res) => {
     }
 
     // Format the response
+    const frontendUrl = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://taskinsight.my' : 'http://localhost:3000');
     const shares = sharesResult.data.map(share => ({
       id: share.id,
       email: share.email || 'Anyone with link',
@@ -1302,7 +1304,7 @@ router.get('/:fileId/shares', verifyToken, async (req, res) => {
       expiresAt: share.expiresAt,
       createdAt: share.createdAt,
       shareType: share.share_type,
-      shareLink: share.share_link ? `${process.env.FRONTEND_URL || 'http://localhost:3000'}/share/${share.share_link}` : null,
+      shareLink: share.share_link ? `${frontendUrl}/share/${share.share_link}` : null,
       sharedBy: share.sharer_first_name ? `${share.sharer_first_name} ${share.sharer_last_name}` : 'Unknown'
     }));
 
@@ -1452,7 +1454,8 @@ router.post('/folders/:folderId/share', verifyToken, async (req, res) => {
     // Generate a unique share link
     const crypto = require('crypto');
     const shareLink = crypto.randomBytes(32).toString('hex');
-    const fullShareLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/share/folder/${shareLink}`;
+    const frontendUrl = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://taskinsight.my' : 'http://localhost:3000');
+    const fullShareLink = `${frontendUrl}/share/folder/${shareLink}`;
 
     // Convert expiresAt to MySQL datetime format (YYYY-MM-DD HH:mm:ss)
     let mysqlExpiresAt = null;
@@ -1567,6 +1570,7 @@ router.get('/folders/:folderId/shares', verifyToken, async (req, res) => {
     }
 
     // Format the response
+    const frontendUrl = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://taskinsight.my' : 'http://localhost:3000');
     const shares = sharesResult.data.map(share => ({
       id: share.id,
       email: share.email || 'Anyone with link',
@@ -1574,7 +1578,7 @@ router.get('/folders/:folderId/shares', verifyToken, async (req, res) => {
       expiresAt: share.expiresAt,
       createdAt: share.createdAt,
       shareType: share.share_type,
-      shareLink: share.share_link ? `${process.env.FRONTEND_URL || 'http://localhost:3000'}/share/folder/${share.share_link}` : null,
+      shareLink: share.share_link ? `${frontendUrl}/share/folder/${share.share_link}` : null,
       sharedBy: share.sharer_first_name ? `${share.sharer_first_name} ${share.sharer_last_name}` : 'Unknown'
     }));
 

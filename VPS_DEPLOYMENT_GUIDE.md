@@ -122,6 +122,9 @@ ALLOWED_FILE_TYPES=pdf,doc,docx,txt,jpg,jpeg,png,gif,mp4,avi,mov,xlsx,xls,ppt,pp
 # CORS Configuration - IMPORTANT: Use your domain
 CORS_ORIGIN=https://taskinsight.my
 
+# Frontend URL - IMPORTANT: Used for generating share links
+FRONTEND_URL=https://taskinsight.my
+
 # Security
 BCRYPT_ROUNDS=10
 SESSION_SECRET=another_random_secret_string_here

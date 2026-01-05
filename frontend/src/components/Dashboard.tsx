@@ -1376,7 +1376,11 @@ const Dashboard: React.FC = () => {
         const response = await fileService.moveFile(contextMenu.item.id, null);
         if (response.success) {
           toast.success(`"${contextMenu.item.name}" moved to root`);
-          await refreshCurrentView();
+          // Navigate to root and refresh
+          navigate('/dashboard/my-drive');
+          await loadFiles(1, filters, null);
+          await loadFolders(null);
+          await refreshStats();
         } else {
           toast.error(response.message || 'Failed to move file');
         }
@@ -1384,7 +1388,11 @@ const Dashboard: React.FC = () => {
         const response = await fileService.moveFolder(contextMenu.item.id, null);
         if (response.success) {
           toast.success(`"${contextMenu.item.name}" moved to root`);
-          await refreshCurrentView();
+          // Navigate to root and refresh
+          navigate('/dashboard/my-drive');
+          await loadFiles(1, filters, null);
+          await loadFolders(null);
+          await refreshStats();
         } else {
           toast.error(response.message || 'Failed to move folder');
         }
@@ -1575,7 +1583,11 @@ const Dashboard: React.FC = () => {
         const response = await fileService.moveFile(draggedItem.id, null);
         if (response.success) {
           toast.success(`"${draggedItem.name}" moved to root`);
-          await refreshCurrentView();
+          // Navigate to root and refresh
+          navigate('/dashboard/my-drive');
+          await loadFiles(1, filters, null);
+          await loadFolders(null);
+          await refreshStats();
         } else {
           toast.error(response.message || 'Failed to move file');
         }
@@ -1583,7 +1595,11 @@ const Dashboard: React.FC = () => {
         const response = await fileService.moveFolder(draggedItem.id, null);
         if (response.success) {
           toast.success(`"${draggedItem.name}" moved to root`);
-          await refreshCurrentView();
+          // Navigate to root and refresh
+          navigate('/dashboard/my-drive');
+          await loadFiles(1, filters, null);
+          await loadFolders(null);
+          await refreshStats();
         } else {
           toast.error(response.message || 'Failed to move folder');
         }

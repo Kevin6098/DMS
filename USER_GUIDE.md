@@ -215,10 +215,29 @@ After logging in, you'll see your main dashboard with several sections:
 
 #### Move File
 
+**Method 1: Using Context Menu**
+
 1. Click three-dot menu (⋮) on file card
 2. Select **"Move"**
 3. Choose destination folder
 4. Click **"Move"**
+
+**Method 2: Drag and Drop (Recommended)**
+
+1. Click and hold on the file card
+2. Drag it over the destination folder (folder will highlight)
+3. Release to drop the file into the folder
+4. File moves automatically
+
+**Move to Root**
+
+To move a file back to the root level:
+
+1. Click three-dot menu (⋮) on file card
+2. Select **"Move to root"** (only visible when inside a folder)
+3. File moves to root level
+
+*Alternatively, you can drag and drop the file to an empty area in the file list to move it to root.*
 
 #### Copy File
 
@@ -277,9 +296,10 @@ Folders can be nested to create a hierarchical structure:
 
 ### Navigating Folders
 
-- Click folder card to open
-- Use breadcrumb navigation to go back
-- Click **"Home"** icon to return to root
+- **Click folder card** to open
+- **Use breadcrumb navigation** at the top to go back
+- **Click "My Drive"** in breadcrumb to return to root
+- Folders support drag and drop for easy organization
 
 ### Folder Operations
 
@@ -292,10 +312,31 @@ Folders can be nested to create a hierarchical structure:
 
 #### Move Folder
 
+**Method 1: Using Context Menu**
+
 1. Click three-dot menu (⋮) on folder card
 2. Select **"Move"**
-3. Choose destination
+3. Choose destination folder
 4. Click **"Move"**
+
+**Method 2: Drag and Drop (Recommended)**
+
+1. Click and hold on the folder card
+2. Drag it over the destination folder (folder will highlight in yellow)
+3. Release to drop the folder into the destination
+4. Folder moves automatically
+
+**Move to Root**
+
+To move a folder back to the root level:
+
+1. Click three-dot menu (⋮) on folder card
+2. Select **"Move to root"** (only visible when inside a folder)
+3. Folder moves to root level
+
+*Alternatively, you can drag and drop the folder to an empty area in the file list to move it to root.*
+
+**Note**: You cannot move a folder into itself or into its own subfolders.
 
 #### Delete Folder
 
@@ -399,11 +440,30 @@ Click the **Filter** button to access:
 - Large (> 10 MB)
 - Custom range
 
-#### Sort Options
-- **Name**: A-Z or Z-A
-- **Date**: Newest or Oldest
-- **Size**: Largest or Smallest
-- **Type**: Group by file type
+#### Sorting Files and Folders
+
+The system provides powerful sorting options accessible from the toolbar:
+
+1. Click the **Sort** icon (📊) in the toolbar
+2. Select your sorting criteria:
+   - **Name**: Sort alphabetically
+   - **Date modified**: Sort by last modification date
+   - **Date modified by me**: Show files/folders you modified, sorted by date
+   - **Date opened by me**: Show files you opened, sorted by date
+3. Choose sort order:
+   - For **Name**: **A to Z** (ascending) or **Z to A** (descending)
+   - For **Date options**: **Oldest first** or **Newest first**
+
+**Sorting Behavior**:
+- Sorting applies to both files and folders
+- Works in all views (My Drive, Starred, Shared, Trash)
+- Sorting persists until you change it
+- Visual indicator (checkmark) shows current sort criteria and order
+
+**Quick Tips**:
+- Use "Date modified by me" to quickly find files you recently worked on
+- Use "Date opened by me" to find files you accessed recently
+- Switch between A-Z and Z-A (or Oldest/Newest) to reverse the order
 
 ### Saving Search Filters
 
@@ -798,6 +858,13 @@ Speed up your workflow with these shortcuts:
 ## Updates & What's New
 
 ### Recent Updates
+
+**Latest Version** (2024)
+- **Enhanced Sorting**: Advanced sorting options with "Date modified by me" and "Date opened by me"
+- **Drag and Drop**: Move files and folders by dragging and dropping
+- **Move to Root**: Quick option to move items back to root level
+- **Improved Context Menu**: Better positioning and scrolling for context menus
+- **View Modes**: Switch between grid and list views for files and folders
 
 **Version 1.0.0** (January 2024)
 - Initial release
