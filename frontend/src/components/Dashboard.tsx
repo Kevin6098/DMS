@@ -182,7 +182,18 @@ const Dashboard: React.FC = () => {
     y: number;
     item: FileItem | Folder | null;
     type: 'file' | 'folder' | null;
+    buttonTop?: number; // Store button top position for better positioning
   }>({ show: false, x: 0, y: 0, item: null, type: null });
+
+  // Sort state
+  const [sortCriteria, setSortCriteria] = useState<'name' | 'dateModified' | 'dateModifiedByMe' | 'dateOpenedByMe'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
+
+  // Drag and drop state for moving files/folders
+  const [draggedItem, setDraggedItem] = useState<{ id: number; type: 'file' | 'folder'; name: string } | null>(null);
+  const [dragOverFolderId, setDragOverFolderId] = useState<number | null>(null);
   
   // Modals for context menu actions
   const [showRenameModal, setShowRenameModal] = useState(false);
@@ -194,6 +205,7 @@ const Dashboard: React.FC = () => {
   const [isLoadingVersions, setIsLoadingVersions] = useState(false);
   const [isUploadingVersion, setIsUploadingVersion] = useState(false);
   const versionFileInputRef = useRef<HTMLInputElement>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
   const [selectedItem, setSelectedItem] = useState<{ item: FileItem | Folder; type: 'file' | 'folder' } | null>(null);
@@ -212,16 +224,29 @@ const Dashboard: React.FC = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  // Close new menu when clicking outside
+  // Close new menu and sort menu when clicking outside or on other buttons
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
+      
+      // Close new menu if clicking outside
       if (showNewMenu && !target.closest('.new-button-container')) {
         setShowNewMenu(false);
       }
+      
+      // Close sort menu if clicking outside or on toolbar buttons
+      if (showSortMenu) {
+        const sortMenuContainer = target.closest('.sort-menu-container');
+        const toolbarButton = target.closest('.btn-icon, .btn-new, .toolbar button');
+        
+        // Close if clicking outside sort menu container OR clicking on other toolbar buttons
+        if (!sortMenuContainer || (toolbarButton && !sortMenuContainer.contains(toolbarButton))) {
+          setShowSortMenu(false);
+        }
+      }
     };
 
-    if (showNewMenu) {
+    if (showNewMenu || showSortMenu) {
       // Use a small delay to avoid closing immediately when opening
       setTimeout(() => {
         document.addEventListener('mousedown', handleClickOutside);
@@ -230,7 +255,7 @@ const Dashboard: React.FC = () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
-  }, [showNewMenu]);
+  }, [showNewMenu, showSortMenu]);
 
   // Sync currentView with URL path and load appropriate data
   useEffect(() => {
@@ -630,6 +655,11 @@ const Dashboard: React.FC = () => {
   };
 
   // Drag and drop handlers
+  // Check if dragging a file from system (not an internal file/folder)
+  const isSystemFileDrag = (e: React.DragEvent): boolean => {
+    return e.dataTransfer.types.includes('Files') && !draggedItem;
+  };
+
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -1167,34 +1197,24 @@ const Dashboard: React.FC = () => {
 
   const handleMoreClick = (e: React.MouseEvent, item: FileItem | Folder, type: 'file' | 'folder') => {
     e.stopPropagation();
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-    const menuWidth = 200; // Approximate menu width
-    const menuHeight = 300; // Approximate menu height (adjust based on items)
+    const buttonRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const padding = 10; // Padding from viewport edges
     
-    // Calculate initial position
-    let x = rect.left;
-    let y = rect.bottom + 5;
+    // Set initial position - will be adjusted after menu renders
+    // Position menu below the button by default
+    let x = buttonRect.left;
+    let y = buttonRect.bottom + 5;
     
-    // Check if menu would overflow right edge
-    if (x + menuWidth > window.innerWidth - padding) {
-      x = window.innerWidth - menuWidth - padding;
+    // Basic horizontal adjustment before rendering
+    const estimatedMenuWidth = 220;
+    if (x + estimatedMenuWidth > window.innerWidth - padding) {
+      // Try positioning to the left of button
+      x = buttonRect.right - estimatedMenuWidth;
     }
     
-    // Check if menu would overflow left edge
+    // Ensure menu doesn't go off left edge
     if (x < padding) {
       x = padding;
-    }
-    
-    // Check if menu would overflow bottom edge
-    if (y + menuHeight > window.innerHeight - padding) {
-      // Position above the button instead
-      y = rect.top - menuHeight - 5;
-    }
-    
-    // Check if menu would overflow top edge
-    if (y < padding) {
-      y = padding;
     }
     
     setContextMenu({
@@ -1202,22 +1222,99 @@ const Dashboard: React.FC = () => {
       x,
       y,
       item,
-      type
+      type,
+      buttonTop: buttonRect.top // Store button top position for positioning above
     });
   };
 
   const closeContextMenu = () => {
-    setContextMenu({ show: false, x: 0, y: 0, item: null, type: null });
+    setContextMenu({ show: false, x: 0, y: 0, item: null, type: null, buttonTop: undefined });
   };
 
-  // Close context menu when clicking outside
+  // Close context menu when clicking outside or on toolbar buttons
   useEffect(() => {
-    const handleClickOutside = () => closeContextMenu();
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      // Close if clicking outside context menu or on toolbar buttons (including sort menu)
+      if (contextMenu.show) {
+        const isContextMenu = target.closest('.context-menu');
+        const isToolbar = target.closest('.toolbar');
+        const isSortMenu = target.closest('.sort-menu-container');
+        const isMoreButton = target.closest('.btn-more');
+        
+        // Close if clicking outside context menu, or on toolbar (including sort), but not if clicking the more button that opened it
+        if (!isContextMenu && (isToolbar || isSortMenu || (!isMoreButton))) {
+          closeContextMenu();
+        }
+      }
+    };
     if (contextMenu.show) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [contextMenu.show]);
+
+  // Adjust context menu position after it renders to ensure it fits in viewport
+  useEffect(() => {
+    if (!contextMenu.show || !contextMenuRef.current) return;
+    
+    const menu = contextMenuRef.current;
+    const padding = 10;
+    
+    // Get actual menu dimensions
+    const menuRect = menu.getBoundingClientRect();
+    const menuWidth = menuRect.width;
+    const menuHeight = menuRect.height;
+    
+    // Get current position
+    let x = contextMenu.x;
+    let y = contextMenu.y;
+    const buttonTop = contextMenu.buttonTop;
+    
+    // Adjust horizontal position if needed
+    if (x + menuWidth > window.innerWidth - padding) {
+      // Try positioning to the left
+      x = Math.max(padding, window.innerWidth - menuWidth - padding);
+    }
+    if (x < padding) {
+      x = padding;
+    }
+    
+    // Adjust vertical position if needed
+    const spaceBelow = window.innerHeight - y;
+    const spaceAbove = y;
+    
+    // Check if menu would overflow bottom and if there's more space above
+    if (menuHeight > spaceBelow && (buttonTop !== undefined || spaceAbove > spaceBelow)) {
+      // Position above the button if we have button position info
+      if (buttonTop !== undefined) {
+        y = buttonTop - menuHeight - 5;
+      } else {
+        // Fallback: calculate based on current position
+        y = y - menuHeight - 10;
+      }
+    }
+    
+    // Ensure menu doesn't go off top edge
+    if (y < padding) {
+      y = padding;
+      // If menu is still too tall, it will scroll (handled by CSS max-height and overflow)
+    }
+    
+    // Ensure menu doesn't go off bottom edge (with scroll support)
+    if (y + menuHeight > window.innerHeight - padding) {
+      // Limit max height to available space
+      const maxHeight = window.innerHeight - y - padding;
+      menu.style.maxHeight = `${maxHeight}px`;
+    } else {
+      // Reset max height if there's enough space
+      menu.style.maxHeight = 'calc(100vh - 20px)';
+    }
+    
+    // Apply adjusted position
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+  }, [contextMenu]);
 
   // Context menu action handlers
   const handleRename = () => {
@@ -1269,6 +1366,35 @@ const Dashboard: React.FC = () => {
     closeContextMenu();
   };
 
+  const handleMoveToRoot = async () => {
+    if (!contextMenu.item) return;
+    
+    closeContextMenu();
+    
+    try {
+      if (contextMenu.type === 'file') {
+        const response = await fileService.moveFile(contextMenu.item.id, null);
+        if (response.success) {
+          toast.success(`"${contextMenu.item.name}" moved to root`);
+          await refreshCurrentView();
+        } else {
+          toast.error(response.message || 'Failed to move file');
+        }
+      } else {
+        const response = await fileService.moveFolder(contextMenu.item.id, null);
+        if (response.success) {
+          toast.success(`"${contextMenu.item.name}" moved to root`);
+          await refreshCurrentView();
+        } else {
+          toast.error(response.message || 'Failed to move folder');
+        }
+      }
+    } catch (error) {
+      console.error('Error moving to root:', error);
+      toast.error('Failed to move to root');
+    }
+  };
+
   const handleShowInfo = () => {
     if (contextMenu.item) {
       setSelectedItem({ item: contextMenu.item, type: contextMenu.type! });
@@ -1302,6 +1428,173 @@ const Dashboard: React.FC = () => {
 
   const handleUploadNewVersion = () => {
     versionFileInputRef.current?.click();
+  };
+
+  // Drag and drop handlers for moving files/folders
+  const handleDragStart = (e: React.DragEvent, item: FileItem | Folder, type: 'file' | 'folder') => {
+    e.stopPropagation();
+    setDraggedItem({ id: item.id, type, name: item.name });
+    // Set drag image
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', ''); // Required for Firefox
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+    setDragOverFolderId(null);
+  };
+
+  const handleFolderDragOver = (e: React.DragEvent, folderId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (draggedItem && draggedItem.type === 'folder' && draggedItem.id === folderId) {
+      return; // Can't drop folder on itself
+    }
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move';
+    }
+    setDragOverFolderId(folderId);
+  };
+
+  const handleFolderDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Clear dragOverFolderId when leaving the folder
+    // Check if the related target (where we're going) is not a child of the folder
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (!relatedTarget || !(e.currentTarget as HTMLElement).contains(relatedTarget)) {
+      setDragOverFolderId(null);
+    }
+  };
+
+  // Helper function to refresh data based on current view
+  const refreshCurrentView = async () => {
+    const folderIdFromUrl = getFolderIdFromUrl();
+
+    switch (currentView) {
+      case 'starred':
+        await loadStarredItems();
+        break;
+      case 'shared':
+        await loadSharedItems();
+        break;
+      case 'trash':
+        await loadDeletedFiles();
+        break;
+      default:
+        // My Drive view
+        await loadFiles(1, filters, folderIdFromUrl);
+        await loadFolders(folderIdFromUrl);
+        break;
+    }
+    // Always refresh stats
+    await refreshStats();
+  };
+
+  const handleFolderDrop = async (e: React.DragEvent, targetFolderId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverFolderId(null);
+
+    if (!draggedItem) return;
+
+    // Prevent dropping on self
+    if (draggedItem.type === 'folder' && draggedItem.id === targetFolderId) {
+      toast.error('Cannot move folder into itself');
+      setDraggedItem(null);
+      return;
+    }
+
+    try {
+      // Check if folder is trying to move into its own child
+      if (draggedItem.type === 'folder') {
+        const checkFolder = folders.find(f => f.id === draggedItem.id);
+        if (checkFolder) {
+          // Simple check - can't move folder to itself
+          if (checkFolder.id === targetFolderId) {
+            toast.error('Cannot move folder into itself');
+            setDraggedItem(null);
+            return;
+          }
+        }
+      }
+
+      if (draggedItem.type === 'file') {
+        const response = await fileService.moveFile(draggedItem.id, targetFolderId);
+        if (response.success) {
+          toast.success(`"${draggedItem.name}" moved to folder`);
+          await refreshCurrentView();
+        } else {
+          toast.error(response.message || 'Failed to move file');
+        }
+      } else {
+        const response = await fileService.moveFolder(draggedItem.id, targetFolderId);
+        if (response.success) {
+          toast.success(`"${draggedItem.name}" moved to folder`);
+          await refreshCurrentView();
+        } else {
+          toast.error(response.message || 'Failed to move folder');
+        }
+      }
+    } catch (error) {
+      console.error('Error moving item:', error);
+      toast.error('Failed to move item');
+    } finally {
+      setDraggedItem(null);
+    }
+  };
+
+  // Handle drop in empty area (move to root)
+  const handleRootDrop = async (e: React.DragEvent) => {
+    // Check if we're dropping on a folder - if so, let the folder handle it
+    const target = e.target as HTMLElement;
+    if (target.closest('.folder-row, .file-item.folder-drop-target')) {
+      return; // Let folder drop handler take care of it
+    }
+
+    // Only handle if we're not currently over a folder
+    if (dragOverFolderId !== null) {
+      // Small delay to let folder drop handler process first
+      setTimeout(() => {
+        if (dragOverFolderId !== null) {
+          setDragOverFolderId(null);
+        }
+      }, 10);
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!draggedItem) return;
+
+    try {
+      if (draggedItem.type === 'file') {
+        const response = await fileService.moveFile(draggedItem.id, null);
+        if (response.success) {
+          toast.success(`"${draggedItem.name}" moved to root`);
+          await refreshCurrentView();
+        } else {
+          toast.error(response.message || 'Failed to move file');
+        }
+      } else {
+        const response = await fileService.moveFolder(draggedItem.id, null);
+        if (response.success) {
+          toast.success(`"${draggedItem.name}" moved to root`);
+          await refreshCurrentView();
+        } else {
+          toast.error(response.message || 'Failed to move folder');
+        }
+      }
+    } catch (error) {
+      console.error('Error moving item:', error);
+      toast.error('Failed to move item');
+    } finally {
+      setDraggedItem(null);
+      setDragOverFolderId(null);
+    }
   };
 
   const handleVersionFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1560,6 +1853,95 @@ const Dashboard: React.FC = () => {
     } catch (error) {
       console.error('Error loading pending reminders:', error);
     }
+  };
+
+  // Sorting function
+  const sortFilesAndFolders = (filesToSort: FileItem[], foldersToSort: Folder[]) => {
+    const sortedFiles = [...filesToSort];
+    const sortedFolders = [...foldersToSort];
+    const currentUserId = user?.id;
+
+    // Sort function for files
+    const sortFile = (a: FileItem, b: FileItem): number => {
+      let comparison = 0;
+      const isAscending = sortOrder === 'asc';
+      
+      switch (sortCriteria) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+          return isAscending ? comparison : -comparison;
+          
+        case 'dateModified':
+          const aModified = a.last_modified_at ? new Date(a.last_modified_at).getTime() : new Date(a.updated_at || a.created_at).getTime();
+          const bModified = b.last_modified_at ? new Date(b.last_modified_at).getTime() : new Date(b.updated_at || b.created_at).getTime();
+          comparison = aModified - bModified;
+          // For dates: asc = oldest first, desc = newest first
+          return isAscending ? comparison : -comparison;
+          
+        case 'dateModifiedByMe':
+          const aMyModified = (a.last_modified_by === currentUserId && a.last_modified_at) 
+            ? new Date(a.last_modified_at).getTime() 
+            : 0;
+          const bMyModified = (b.last_modified_by === currentUserId && b.last_modified_at) 
+            ? new Date(b.last_modified_at).getTime() 
+            : 0;
+          // Items not modified by me go to the end
+          if (aMyModified === 0 && bMyModified === 0) return 0;
+          if (aMyModified === 0) return 1;
+          if (bMyModified === 0) return -1;
+          comparison = aMyModified - bMyModified;
+          // For dates: asc = oldest first, desc = newest first
+          return isAscending ? comparison : -comparison;
+          
+        case 'dateOpenedByMe':
+          const aMyOpened = (a.last_accessed_by === currentUserId && a.last_accessed_at) 
+            ? new Date(a.last_accessed_at).getTime() 
+            : 0;
+          const bMyOpened = (b.last_accessed_by === currentUserId && b.last_accessed_at) 
+            ? new Date(b.last_accessed_at).getTime() 
+            : 0;
+          // Items not opened by me go to the end
+          if (aMyOpened === 0 && bMyOpened === 0) return 0;
+          if (aMyOpened === 0) return 1;
+          if (bMyOpened === 0) return -1;
+          comparison = aMyOpened - bMyOpened;
+          // For dates: asc = oldest first, desc = newest first
+          return isAscending ? comparison : -comparison;
+          
+        default:
+          return 0;
+      }
+    };
+
+    // Sort function for folders
+    const sortFolder = (a: Folder, b: Folder): number => {
+      let comparison = 0;
+      const isAscending = sortOrder === 'asc';
+      
+      switch (sortCriteria) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+          return isAscending ? comparison : -comparison;
+          
+        case 'dateModified':
+        case 'dateModifiedByMe':
+        case 'dateOpenedByMe':
+          // For folders, use created_at as there's no modified date
+          const aDate = new Date(a.created_at).getTime();
+          const bDate = new Date(b.created_at).getTime();
+          comparison = aDate - bDate;
+          // For dates: asc = oldest first, desc = newest first
+          return isAscending ? comparison : -comparison;
+          
+        default:
+          return 0;
+      }
+    };
+
+    sortedFiles.sort(sortFile);
+    sortedFolders.sort(sortFolder);
+
+    return { sortedFiles, sortedFolders };
   };
 
   // Handle reminder complete
@@ -1985,6 +2367,7 @@ const Dashboard: React.FC = () => {
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowNewMenu(!showNewMenu);
+                  setShowSortMenu(false);
                 }}
               >
                 <i className="fas fa-plus"></i>
@@ -2019,15 +2402,72 @@ const Dashboard: React.FC = () => {
                 </div>
               )}
             </div>
-            <button className="btn-icon" onClick={() => setViewMode('grid')}>
+            <button className="btn-icon" onClick={() => { setViewMode('grid'); setShowSortMenu(false); }}>
               <i className={`fas fa-th ${viewMode === 'grid' ? 'active' : ''}`}></i>
             </button>
-            <button className="btn-icon" onClick={() => setViewMode('list')}>
+            <button className="btn-icon" onClick={() => { setViewMode('list'); setShowSortMenu(false); }}>
               <i className={`fas fa-list ${viewMode === 'list' ? 'active' : ''}`}></i>
             </button>
+            
+            {/* Sort Menu */}
+            <div className="sort-menu-container">
+              <button 
+                className="btn-icon sort-menu-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closeContextMenu(); // Close context menu if open
+                  setShowSortMenu(!showSortMenu);
+                }}
+                title="Sort by"
+              >
+                <i className="fas fa-sort"></i>
+              </button>
+              {showSortMenu && (
+                <div 
+                  ref={sortMenuRef}
+                  className="sort-menu"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="sort-menu-header">Sort by</div>
+                  <div className="sort-menu-item" onClick={() => { setSortCriteria('name'); setShowSortMenu(false); }}>
+                    <i className={`fas fa-check ${sortCriteria === 'name' ? 'visible' : 'hidden'}`}></i>
+                    <span>Name</span>
+                  </div>
+                  <div className="sort-menu-item" onClick={() => { setSortCriteria('dateModified'); setShowSortMenu(false); }}>
+                    <i className={`fas fa-check ${sortCriteria === 'dateModified' ? 'visible' : 'hidden'}`}></i>
+                    <span>Date modified</span>
+                  </div>
+                  <div className="sort-menu-item" onClick={() => { setSortCriteria('dateModifiedByMe'); setShowSortMenu(false); }}>
+                    <i className={`fas fa-check ${sortCriteria === 'dateModifiedByMe' ? 'visible' : 'hidden'}`}></i>
+                    <span>Date modified by me</span>
+                  </div>
+                  <div className="sort-menu-item" onClick={() => { setSortCriteria('dateOpenedByMe'); setShowSortMenu(false); }}>
+                    <i className={`fas fa-check ${sortCriteria === 'dateOpenedByMe' ? 'visible' : 'hidden'}`}></i>
+                    <span>Date opened by me</span>
+                  </div>
+                  <div className="sort-menu-divider"></div>
+                  <div className="sort-menu-item" onClick={() => { setSortOrder('asc'); setShowSortMenu(false); }}>
+                    <i className={`fas fa-check ${sortOrder === 'asc' ? 'visible' : 'hidden'}`}></i>
+                    <span>
+                      {sortCriteria === 'name' ? 'A to Z' : 
+                       sortCriteria === 'dateModified' || sortCriteria === 'dateModifiedByMe' || sortCriteria === 'dateOpenedByMe' 
+                       ? 'Oldest first' : 'A to Z'}
+                    </span>
+                  </div>
+                  <div className="sort-menu-item" onClick={() => { setSortOrder('desc'); setShowSortMenu(false); }}>
+                    <i className={`fas fa-check ${sortOrder === 'desc' ? 'visible' : 'hidden'}`}></i>
+                    <span>
+                      {sortCriteria === 'name' ? 'Z to A' : 
+                       sortCriteria === 'dateModified' || sortCriteria === 'dateModifiedByMe' || sortCriteria === 'dateOpenedByMe' 
+                       ? 'Newest first' : 'Z to A'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           <div className="toolbar-right">
-            <button className="btn-icon" onClick={refreshFiles}>
+            <button className="btn-icon" onClick={() => { refreshFiles(); setShowSortMenu(false); }}>
               <i className="fas fa-sync-alt"></i>
             </button>
           </div>
@@ -2190,7 +2630,16 @@ const Dashboard: React.FC = () => {
           </div>
         ) : viewMode === 'list' ? (
           /* Table View (Windows-style) */
-          <div className="files-table-container">
+          <div 
+            className="files-table-container"
+            onDragOver={(e) => {
+              if (draggedItem && !dragOverFolderId) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
+            onDrop={handleRootDrop}
+          >
             {isLoading ? (
               <div className="loading">
                 <i className="fas fa-spinner fa-spin"></i>
@@ -2210,10 +2659,19 @@ const Dashboard: React.FC = () => {
                 </thead>
                 <tbody>
                   {/* Folders */}
-                  {currentView !== 'trash' && currentView !== 'shared' && (currentView === 'starred' ? starredFolders : folders).map((folder) => (
+                  {(() => {
+                    const displayFolders = currentView === 'starred' ? starredFolders : folders;
+                    const { sortedFolders } = sortFilesAndFolders([], displayFolders);
+                    return currentView !== 'trash' && currentView !== 'shared' && sortedFolders.map((folder) => (
                     <tr 
                       key={`folder-${folder.id}`}
-                      className="table-row folder-row"
+                      className={`table-row folder-row ${draggedItem && draggedItem.id !== folder.id ? 'folder-drop-target' : ''} ${dragOverFolderId === folder.id ? 'drag-over' : ''}`}
+                      draggable={currentView !== 'trash'}
+                      onDragStart={(e) => handleDragStart(e, folder, 'folder')}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={(e) => handleFolderDragOver(e, folder.id)}
+                      onDragLeave={handleFolderDragLeave}
+                      onDrop={(e) => handleFolderDrop(e, folder.id)}
                       onClick={(e) => {
                         // Only navigate if clicking on the row itself, not on buttons
                         if ((e.target as HTMLElement).closest('button') === null) {
@@ -2253,13 +2711,20 @@ const Dashboard: React.FC = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    ));
+                  })()}
                   
                   {/* Files */}
-                  {(currentView === 'trash' ? deletedFiles : (currentView === 'starred' || currentView === 'shared') ? starredFiles : files).map((file) => (
+                  {(() => {
+                    const displayFiles = currentView === 'trash' ? deletedFiles : (currentView === 'starred' || currentView === 'shared') ? starredFiles : files;
+                    const { sortedFiles } = sortFilesAndFolders(displayFiles, []);
+                    return sortedFiles.map((file) => (
                     <tr 
                       key={`file-${file.id}`}
-                      className="table-row file-row"
+                      className={`table-row file-row ${draggedItem && draggedItem.id === file.id ? 'dragging' : ''}`}
+                      draggable={currentView !== 'trash'}
+                      onDragStart={(e) => handleDragStart(e, file, 'file')}
+                      onDragEnd={handleDragEnd}
                       onClick={(e) => {
                         // Only open preview if clicking on the row itself, not on buttons
                         if ((e.target as HTMLElement).closest('button') === null && currentView !== 'trash') {
@@ -2312,7 +2777,8 @@ const Dashboard: React.FC = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    ));
+                  })()}
                   
                   {/* Empty state row */}
                   {(() => {
@@ -2345,7 +2811,29 @@ const Dashboard: React.FC = () => {
           </div>
         ) : (
           /* Grid View */
-        <div className={`files-container ${viewMode}`}>
+        <div 
+          className={`files-container ${viewMode}`}
+          onDragOver={(e) => {
+            if (draggedItem) {
+              // Only allow root drop if not over a folder
+              if (!dragOverFolderId) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.dataTransfer) {
+                  e.dataTransfer.dropEffect = 'move';
+                }
+              }
+            }
+          }}
+          onDrop={handleRootDrop}
+          onDragEnter={(e) => {
+            // Clear folder drag over when entering empty area
+            if (draggedItem && !dragOverFolderId) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          }}
+        >
           {isLoading ? (
             <div className="loading">
               <i className="fas fa-spinner fa-spin"></i>
@@ -2354,10 +2842,19 @@ const Dashboard: React.FC = () => {
           ) : (
             <>
                 {/* Folders - Hide in trash and shared views (shared doesn't have folders yet) */}
-                {currentView !== 'trash' && currentView !== 'shared' && (currentView === 'starred' ? starredFolders : folders).map((folder) => (
+                {(() => {
+                  const displayFolders = currentView === 'starred' ? starredFolders : folders;
+                  const { sortedFolders } = sortFilesAndFolders([], displayFolders);
+                  return currentView !== 'trash' && currentView !== 'shared' && sortedFolders.map((folder) => (
                   <div 
                     key={folder.id} 
-                    className="file-item" 
+                    className={`file-item ${draggedItem && draggedItem.id !== folder.id ? 'folder-drop-target' : ''} ${dragOverFolderId === folder.id ? 'drag-over' : ''} ${draggedItem && draggedItem.id === folder.id ? 'dragging' : ''}`}
+                    draggable={currentView !== 'trash'}
+                    onDragStart={(e) => handleDragStart(e, folder, 'folder')}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={(e) => handleFolderDragOver(e, folder.id)}
+                    onDragLeave={handleFolderDragLeave}
+                    onDrop={(e) => handleFolderDrop(e, folder.id)}
                     onClick={() => handleFolderClick(folder)}
                     onContextMenu={(e) => handleContextMenu(e, folder, 'folder')}
                   >
@@ -2377,16 +2874,23 @@ const Dashboard: React.FC = () => {
                     </button>
                   </div>
                 </div>
-              ))}
+                ));
+                })()}
 
               {/* Files */}
-                  {(currentView === 'trash' ? deletedFiles : (currentView === 'starred' || currentView === 'shared') ? starredFiles : files).map((file) => {
+                  {(() => {
+                    const displayFiles = currentView === 'trash' ? deletedFiles : (currentView === 'starred' || currentView === 'shared') ? starredFiles : files;
+                    const { sortedFiles } = sortFilesAndFolders(displayFiles, []);
+                    return sortedFiles.map((file) => {
                     const isImageFile = fileService.isImage(file.file_type);
                     
                     return (
                       <div 
                         key={file.id} 
-                        className="file-item"
+                        className={`file-item ${draggedItem && draggedItem.id === file.id ? 'dragging' : ''}`}
+                        draggable={currentView !== 'trash'}
+                        onDragStart={(e) => handleDragStart(e, file, 'file')}
+                        onDragEnd={handleDragEnd}
                         onClick={() => currentView !== 'trash' && handleFileClick(file)}
                         onContextMenu={(e) => currentView !== 'trash' && handleContextMenu(e, file, 'file')}
                       >
@@ -2424,7 +2928,8 @@ const Dashboard: React.FC = () => {
                   </div>
                 </div>
                     );
-                  })}
+                    });
+                  })()}
               </>
             )}
           </div>
@@ -2736,6 +3241,7 @@ const Dashboard: React.FC = () => {
       {/* Context Menu */}
       {contextMenu.show && (
         <div 
+          ref={contextMenuRef}
           className="context-menu"
           style={{
             position: 'fixed',
@@ -2750,7 +3256,8 @@ const Dashboard: React.FC = () => {
             padding: '8px 0',
             border: '1px solid #e0e0e0',
             maxHeight: 'calc(100vh - 20px)', // Responsive max height
-            overflowY: 'auto' // Allow scrolling if menu is too tall
+            overflowY: 'auto', // Allow scrolling if menu is too tall
+            overflowX: 'hidden' // Prevent horizontal scroll
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -2775,6 +3282,12 @@ const Dashboard: React.FC = () => {
             <i className="fas fa-folder-open"></i>
             <span>Move</span>
           </button>
+          {currentFolder && (
+            <button className="context-menu-item" onClick={handleMoveToRoot}>
+              <i className="fas fa-home"></i>
+              <span>Move to root</span>
+            </button>
+          )}
           <button className="context-menu-item" onClick={handleShowInfo}>
             <i className="fas fa-info-circle"></i>
             <span>{contextMenu.type === 'file' ? 'File' : 'Folder'} information</span>

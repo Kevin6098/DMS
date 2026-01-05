@@ -489,6 +489,94 @@
   line-height: 1rem;
 }
 
+/* Sort Menu */
+.sort-menu-container {
+  position: relative;
+  margin-right: 0.5rem;
+}
+
+.sort-menu-button {
+  position: relative;
+}
+
+.sort-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: white;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  min-width: 240px;
+  z-index: 10000 !important;
+  padding: 8px 0;
+  margin-top: 4px;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.sort-menu-header {
+  padding: 12px 16px 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #5f6368;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #e8eaed;
+  margin-bottom: 4px;
+}
+
+.sort-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  color: #202124;
+  font-size: 0.875rem;
+  position: relative;
+}
+
+.sort-menu-item:hover {
+  background-color: #f1f3f4;
+}
+
+.sort-menu-item:active {
+  background-color: #e8eaed;
+}
+
+.sort-menu-item i.fa-check {
+  width: 20px;
+  text-align: center;
+  color: #1a73e8;
+  font-size: 0.875rem;
+}
+
+.sort-menu-item i.fa-check.visible {
+  opacity: 1;
+}
+
+.sort-menu-item i.fa-check.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.sort-menu-item span {
+  flex: 1;
+}
+
+.sort-menu-divider {
+  height: 1px;
+  background: #e8eaed;
+  margin: 8px 0;
+}
+
 /* Files Container */
 .files-container {
   display: grid;
@@ -578,12 +666,32 @@
 
 .files-table tbody tr {
   border-bottom: 1px solid #f0f0f0;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, opacity 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
 }
 
 .files-table tbody tr:hover {
   background-color: #f8f9fa;
+}
+
+/* Drag and drop styles for table rows */
+.files-table tbody tr.dragging {
+  opacity: 0.5;
+  cursor: move;
+}
+
+.files-table tbody tr.folder-drop-target {
+  cursor: copy;
+}
+
+.files-table tbody tr.drag-over {
+  background-color: #e3f2fd !important;
+  box-shadow: 0 0 0 2px #1a73e8 inset;
+}
+
+.files-table tbody tr.folder-row.drag-over {
+  background-color: #fff3cd !important;
+  box-shadow: 0 0 0 2px #ffc107 inset;
 }
 
 .files-table tbody tr:last-child {
@@ -722,6 +830,38 @@
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  user-select: none;
+}
+
+/* Drag and drop styles for file items */
+.file-item.dragging {
+  opacity: 0.5;
+  cursor: move;
+  transform: scale(0.95);
+}
+
+.file-item.folder-drop-target {
+  cursor: copy;
+}
+
+.file-item.drag-over {
+  background-color: #e3f2fd !important;
+  box-shadow: 0 0 0 3px #1a73e8 inset, 0 4px 8px rgba(26, 115, 232, 0.2);
+  transform: scale(1.02);
+}
+
+.file-item.folder-drop-target.drag-over {
+  background-color: #fff3cd !important;
+  box-shadow: 0 0 0 3px #ffc107 inset, 0 4px 8px rgba(255, 193, 7, 0.2);
+  transform: scale(1.02);
+}
+
+.file-item[draggable="true"] {
+  cursor: grab;
+}
+
+.file-item[draggable="true"]:active {
+  cursor: grabbing;
 }
 
 /* Starred icon styling */
@@ -1405,8 +1545,30 @@
   max-width: calc(100vw - 20px);
   max-height: calc(100vh - 20px);
   overflow-y: auto;
+  overflow-x: hidden;
   /* Smooth scrolling for long menus */
   -webkit-overflow-scrolling: touch;
+  /* Scrollbar styling for better visibility */
+  scrollbar-width: thin;
+  scrollbar-color: #c0c0c0 #f5f5f5;
+}
+
+.context-menu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.context-menu::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.context-menu::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 4px;
+}
+
+.context-menu::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
 }
 
 @keyframes contextMenuFadeIn {

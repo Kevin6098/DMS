@@ -7,6 +7,7 @@ const archiver = require('archiver');
 const { executeQuery } = require('../config/database');
 const { verifyToken, requireFileAccess } = require('../middleware/auth');
 const { validateFileUpload, validateFileUpdate, validateFolder, validatePagination, validateSearch } = require('../middleware/validation');
+const { formatDate } = require('../utils/helpers');
 
 // Helper function to decode filename (handles URL encoding from browser)
 const decodeFilename = (filename) => {
@@ -1181,6 +1182,20 @@ router.post('/:fileId/share', verifyToken, async (req, res) => {
     const shareLink = crypto.randomBytes(32).toString('hex');
     const fullShareLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/share/${shareLink}`;
 
+    // Convert expiresAt to MySQL datetime format (YYYY-MM-DD HH:mm:ss)
+    let mysqlExpiresAt = null;
+    if (expiresAt) {
+      try {
+        mysqlExpiresAt = formatDate(expiresAt, 'YYYY-MM-DD HH:mm:ss');
+      } catch (error) {
+        console.error('Error formatting expiresAt date:', error);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid expiration date format'
+        });
+      }
+    }
+
     // Create the share record
     const insertResult = await executeQuery(
       `INSERT INTO file_shares (file_id, shared_by, shared_with, share_type, permission_level, share_link, expires_at, status)
@@ -1192,7 +1207,7 @@ router.post('/:fileId/share', verifyToken, async (req, res) => {
         shareType,
         permission || 'view',
         shareLink,
-        expiresAt || null
+        mysqlExpiresAt
       ]
     );
 
@@ -1439,6 +1454,20 @@ router.post('/folders/:folderId/share', verifyToken, async (req, res) => {
     const shareLink = crypto.randomBytes(32).toString('hex');
     const fullShareLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/share/folder/${shareLink}`;
 
+    // Convert expiresAt to MySQL datetime format (YYYY-MM-DD HH:mm:ss)
+    let mysqlExpiresAt = null;
+    if (expiresAt) {
+      try {
+        mysqlExpiresAt = formatDate(expiresAt, 'YYYY-MM-DD HH:mm:ss');
+      } catch (error) {
+        console.error('Error formatting expiresAt date:', error);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid expiration date format'
+        });
+      }
+    }
+
     // Create the share record
     const insertResult = await executeQuery(
       `INSERT INTO folder_shares (folder_id, shared_by, shared_with, share_type, permission_level, share_link, expires_at, status)
@@ -1450,7 +1479,7 @@ router.post('/folders/:folderId/share', verifyToken, async (req, res) => {
         shareType,
         permission || 'view',
         shareLink,
-        expiresAt || null
+        mysqlExpiresAt
       ]
     );
 
