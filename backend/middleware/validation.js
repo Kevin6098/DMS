@@ -91,13 +91,13 @@ const validateOrganization = [
     .optional()
     .custom((value) => {
       const numValue = Number(value);
-      if (!Number.isInteger(numValue)) {
-        throw new Error('Storage quota must be an integer');
+      if (isNaN(numValue) || numValue < 0) {
+        throw new Error('Storage quota must be a positive number');
       }
       const minBytes = 100 * 1024 * 1024; // 100MB in bytes
-      const maxBytes = 1024 * 1024 * 1024 * 1024; // 1TB in bytes
+      const maxBytes = 10 * 1024 * 1024 * 1024 * 1024; // 10TB in bytes
       if (numValue < minBytes || numValue > maxBytes) {
-        throw new Error('Storage quota must be between 100MB and 1TB');
+        throw new Error('Storage quota must be between 100MB and 10TB');
       }
       return true;
     }),
