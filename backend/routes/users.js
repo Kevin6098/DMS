@@ -6,6 +6,134 @@ const { validateUserUpdate, validatePagination, validateSearch } = require('../m
 
 const router = express.Router();
 
+// Create user (platform owner or org admin)
+router.post('/', verifyToken, requireOrgAdmin, async (req, res) => {
+  try {
+    const { email, password, firstName, lastName, organizationId, role = 'member' } = req.body;
+
+    // Validate required fields
+    if (!email || !password || !firstName || !lastName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email, password, first name, and last name are required'
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    // Determine organization ID
+    let targetOrgId = organizationId;
+    if (req.user.role === 'organization_admin') {
+      // Org admins can only create users in their own organization
+      targetOrgId = req.user.organization_id;
+    } else if (req.user.role === 'platform_owner') {
+      // Platform owners must specify an organization
+      if (!organizationId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Organization ID is required'
+        });
+      }
+      // Validate organization exists
+      const orgCheck = await executeQuery(
+        'SELECT id FROM organizations WHERE id = ? AND status = "active"',
+        [organizationId]
+      );
+      if (!orgCheck.success || orgCheck.data.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Organization not found'
+        });
+      }
+    }
+
+    // Check if email already exists
+    const existingUser = await executeQuery(
+      'SELECT id FROM users WHERE email = ?',
+      [email]
+    );
+
+    if (existingUser.success && existingUser.data.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is already registered'
+      });
+    }
+
+    // Validate role
+    const allowedRoles = ['member', 'organization_admin'];
+    if (req.user.role === 'platform_owner') {
+      allowedRoles.push('platform_owner');
+    }
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role. Allowed roles: ${allowedRoles.join(', ')}`
+      });
+    }
+
+    // Hash password
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Create user
+    const createResult = await executeQuery(
+      `INSERT INTO users (email, password_hash, first_name, last_name, organization_id, role, status, created_at) 
+       VALUES (?, ?, ?, ?, ?, ?, 'active', NOW())`,
+      [email, hashedPassword, firstName, lastName, targetOrgId, role]
+    );
+
+    if (!createResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to create user'
+      });
+    }
+
+    const userId = createResult.data.insertId;
+
+    // Log the creation
+    await executeQuery(
+      'INSERT INTO audit_logs (user_id, organization_id, action, resource_type, resource_id, details) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, targetOrgId, 'CREATE', 'USER', userId, JSON.stringify({ email, firstName, lastName, role })]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      data: {
+        userId,
+        email,
+        firstName,
+        lastName,
+        organizationId: targetOrgId,
+        role
+      }
+    });
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 // Get all users (platform owner or org admin)
 router.get('/', verifyToken, validatePagination, validateSearch, async (req, res) => {
   try {
