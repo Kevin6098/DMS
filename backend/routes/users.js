@@ -185,7 +185,7 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
     // Get users with pagination
     const usersQuery = `
       SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.status, 
-             u.created_at, u.last_login, o.name as organization_name
+             u.organization_id, u.created_at, u.last_login, o.name as organization_name
       FROM users u 
       LEFT JOIN organizations o ON u.organization_id = o.id 
       ${whereClause}
