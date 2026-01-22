@@ -321,12 +321,36 @@
   overflow-y: visible;
   -webkit-overflow-scrolling: touch;
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  /* Add scrollbar styling for better UX */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f7fafc;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 600px; /* Minimum width to prevent too much compression */
+  min-width: 900px; /* Minimum width for users table with 7 columns */
+  table-layout: auto;
 }
 
 .data-table th {
@@ -344,6 +368,15 @@
   border-bottom: 1px solid #e9ecef;
   color: #495057;
   word-wrap: break-word;
+  white-space: nowrap; /* Prevent wrapping by default */
+}
+
+/* Allow name and email columns to wrap on larger screens */
+.data-table td:first-child,
+.data-table td:nth-child(2) {
+  white-space: normal;
+  min-width: 150px;
+  max-width: 250px;
 }
 
 .data-table tr:hover {
@@ -1021,20 +1054,30 @@
   .table-container {
     margin: 0 -1rem;
     padding: 0 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   
   .data-table {
     font-size: 0.875rem;
-    min-width: 800px;
+    min-width: 900px; /* Ensure table can scroll horizontally */
   }
   
   .data-table th,
   .data-table td {
     padding: 0.75rem 0.5rem;
+    white-space: nowrap; /* Prevent text wrapping in cells */
   }
   
   .data-table th {
     font-size: 0.8rem;
+  }
+  
+  /* Allow some columns to wrap if needed */
+  .data-table td:first-child,
+  .data-table td:nth-child(2) {
+    white-space: normal;
+    min-width: 120px;
   }
   
   /* Make action buttons stack on mobile */
@@ -1094,15 +1137,26 @@
 @media (min-width: 769px) and (max-width: 1024px) {
   .data-table {
     font-size: 0.9rem;
+    min-width: 900px; /* Maintain scrollable width */
   }
   
   .data-table th,
   .data-table td {
     padding: 0.875rem 0.75rem;
+    white-space: nowrap;
   }
   
   .table-container {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Allow name and email to wrap on medium screens */
+  .data-table td:first-child,
+  .data-table td:nth-child(2) {
+    white-space: normal;
+    min-width: 150px;
+    max-width: 200px;
   }
 }
 
@@ -1267,98 +1321,5 @@
   
   .health-stats {
     grid-template-columns: 1fr;
-  }
-}
-
-/* Medium screens */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .data-table {
-    font-size: 0.9rem;
-  }
-  
-  .data-table th,
-  .data-table td {
-    padding: 0.875rem 0.75rem;
-  }
-  
-  .table-container {
-    overflow-x: auto;
-  }
-}
-
-/* Very small screens - card view for tables */
-@media (max-width: 480px) {
-  .table-container {
-    background: transparent;
-    box-shadow: none;
-    padding: 0;
-    margin: 0;
-  }
-  
-  .data-table {
-    min-width: 100%;
-    display: block;
-  }
-  
-  .data-table thead {
-    display: none;
-  }
-  
-  .data-table tbody {
-    display: block;
-  }
-  
-  .data-table tr {
-    display: block;
-    border: 1px solid #e9ecef;
-    margin-bottom: 1rem;
-    border-radius: 0.5rem;
-    padding: 1rem;
-    background: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-  
-  .data-table td {
-    display: block;
-    border: none;
-    position: relative;
-    padding-left: 40%;
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
-    text-align: left;
-    border-bottom: 1px solid #f0f0f0;
-  }
-  
-  .data-table td:last-child {
-    border-bottom: none;
-    padding-left: 0;
-    padding-top: 1rem;
-  }
-  
-  .data-table td:before {
-    content: attr(data-label);
-    position: absolute;
-    left: 0;
-    width: 35%;
-    padding-right: 10px;
-    white-space: nowrap;
-    font-weight: 600;
-    color: #495057;
-    font-size: 0.85rem;
-  }
-  
-  .data-table td:last-child:before {
-    display: none;
-  }
-  
-  .action-buttons {
-    flex-direction: row;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-  
-  .action-buttons .btn-sm {
-    flex: 1;
-    min-width: auto;
   }
 }
