@@ -1,0 +1,3153 @@
+Ignoring invalid configuration option passed to Connection: acquireTimeout. This is currently a warning, but in future versions of MySQL2, an error will be thrown if you pass an invalid configuration option to a Connection
+Ignoring invalid configuration option passed to Connection: timeout. This is currently a warning, but in future versions of MySQL2, an error will be thrown if you pass an invalid configuration option to a Connection
+Ignoring invalid configuration option passed to Connection: reconnect. This is currently a warning, but in future versions of MySQL2, an error will be thrown if you pass an invalid configuration option to a Connection
+❌ [BACKEND] Invalid password for user: member@demo.com
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:94:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:94:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:108:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active"\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:108:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active"\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:108:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active"\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:108:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active"\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:108:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active"\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:575:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "deleted" AND f.organization_id = ?\n' +
+    '      ORDER BY f.deleted_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:108:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active"\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:575:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "deleted" AND f.organization_id = ?\n' +
+    '      ORDER BY f.deleted_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:108:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active"\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ? AND f.folder_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ? AND f.folder_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ? AND f.folder_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ? AND f.folder_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Unknown column 'f.type' in 'field list'
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:351:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_BAD_FIELD_ERROR',
+  errno: 1054,
+  sql: '\n' +
+    '      SELECT DISTINCT f.id, f.name, f.type, f.size as file_size, f.description,\n' +
+    '             f.uploaded_by, f.folder_id, f.organization_id, f.status,\n' +
+    '             f.created_at, f.updated_at, f.path, f.version,\n' +
+    '             u.first_name, u.last_name, u.email,\n' +
+    '             fo.name as folder_name, o.name as organization_name,\n' +
+    '             fs.permission_level, fs.created_at as shared_at\n' +
+    '      FROM files f\n' +
+    '      INNER JOIN file_shares fs ON f.id = fs.file_id\n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND fs.status = "active" AND (fs.expires_at IS NULL OR fs.expires_at > NOW()) AND (fs.shared_with = ? OR (fs.share_type = "organization" AND f.organization_id = ?) OR fs.general_access != "restricted")\n' +
+    '      ORDER BY fs.created_at DESC\n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: '42S22',
+  sqlMessage: "Unknown column 'f.type' in 'field list'"
+}
+❌ [FILES] Query failed: {
+  filesResult: "Unknown column 'f.type' in 'field list'",
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Bind parameters must not contain undefined. To pass SQL NULL specify JS null
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:974:32
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: undefined,
+  errno: undefined,
+  sql: undefined,
+  sqlState: undefined,
+  sqlMessage: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:111:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+❌ [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: undefined
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:94:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:94:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:94:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:94:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:100:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+📁 [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: 'Unknown error',
+  query: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  params: [ 1, 10, 0 ]
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:102:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+📁 [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: 'Unknown error',
+  query: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  params: [ 1, 10, 0 ]
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:102:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+📁 [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: 'Unknown error',
+  query: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  params: [ 1, 10, 0 ]
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:109:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+📁 [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: 'Unknown error',
+  query: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  params: [ 1, 10, 0 ]
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:109:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:13:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+📁 [FILES] Query failed: {
+  filesResult: 'Incorrect arguments to mysqld_stmt_execute',
+  countResult: 'Unknown error',
+  query: '\n' +
+    '      SELECT f.*, u.first_name, u.last_name, u.email, \n' +
+    '             fo.name as folder_name, o.name as organization_name\n' +
+    '      FROM files f \n' +
+    '      LEFT JOIN users u ON f.uploaded_by = u.id\n' +
+    '      LEFT JOIN folders fo ON f.folder_id = fo.id\n' +
+    '      LEFT JOIN organizations o ON f.organization_id = o.id\n' +
+    '      WHERE f.status = "active" AND f.organization_id = ?\n' +
+    '      ORDER BY f.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  params: [ 1, 10, 0 ]
+}
+Database query error: Error: Bind parameters must not contain undefined. To pass SQL NULL specify JS null
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:38:34)
+    at /root/projects/dms/backend/routes/files.js:838:32
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: undefined,
+  errno: undefined,
+  sql: undefined,
+  sqlState: undefined,
+  sqlMessage: undefined
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Error: Cannot find module 'archiver'
+Require stack:
+- /root/projects/dms/backend/routes/files.js
+- /root/projects/dms/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:81:25)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/root/projects/dms/backend/routes/files.js:6:18)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at Hook._require.Module.require (/usr/lib/node_modules/pm2/node_modules/require-in-the-middle/index.js:101:39) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/root/projects/dms/backend/routes/files.js',
+    '/root/projects/dms/backend/server.js'
+  ]
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:56:34)
+    at /root/projects/dms/backend/routes/users.js:68:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:18:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.status, \n' +
+    '             u.created_at, u.last_login, o.name as organization_name\n' +
+    '      FROM users u \n' +
+    '      LEFT JOIN organizations o ON u.organization_id = o.id \n' +
+    '      WHERE u.organization_id = ? AND u.organization_id = ?\n' +
+    '      ORDER BY u.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:56:34)
+    at /root/projects/dms/backend/routes/organizations.js:50:30
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:18:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT o.id, o.name, o.description, o.storage_quota, o.storage_used, o.status,\n' +
+    '             o.invitation_code, o.invitation_role, o.invitation_expires_at, o.invitation_generated_by,\n' +
+    '             o.created_at, o.updated_at,\n' +
+    '             COUNT(DISTINCT u.id) as user_count,\n' +
+    '             COALESCE(SUM(f.file_size), 0) as calculated_storage_used\n' +
+    '      FROM organizations o \n' +
+    "      LEFT JOIN users u ON o.id = u.organization_id AND u.status = 'active'\n" +
+    "      LEFT JOIN files f ON o.id = f.organization_id AND f.status = 'active'\n" +
+    '      \n' +
+    '      GROUP BY o.id, o.name, o.description, o.storage_quota, o.storage_used, o.status,\n' +
+    '               o.invitation_code, o.invitation_role, o.invitation_expires_at, o.invitation_generated_by,\n' +
+    '               o.created_at, o.updated_at\n' +
+    '      ORDER BY o.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+Organizations query error: Incorrect arguments to mysqld_stmt_execute
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:56:34)
+    at /root/projects/dms/backend/routes/users.js:68:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:18:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.status, \n' +
+    '             u.created_at, u.last_login, o.name as organization_name\n' +
+    '      FROM users u \n' +
+    '      LEFT JOIN organizations o ON u.organization_id = o.id \n' +
+    '      \n' +
+    '      ORDER BY u.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:56:34)
+    at /root/projects/dms/backend/routes/users.js:68:31
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:18:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.status, \n' +
+    '             u.created_at, u.last_login, o.name as organization_name\n' +
+    '      FROM users u \n' +
+    '      LEFT JOIN organizations o ON u.organization_id = o.id \n' +
+    '      \n' +
+    '      ORDER BY u.created_at DESC \n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:56:34)
+    at /root/projects/dms/backend/routes/audit.js:85:30
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:18:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT al.*, u.first_name, u.last_name, u.email, u.role, o.name as organization_name\n' +
+    '      FROM audit_logs al\n' +
+    '      LEFT JOIN users u ON al.user_id = u.id\n' +
+    '      LEFT JOIN organizations o ON al.organization_id = o.id\n' +
+    '      \n' +
+    '      ORDER BY al.created_at DESC\n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+Database query error: Error: Incorrect arguments to mysqld_stmt_execute
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:56:34)
+    at /root/projects/dms/backend/routes/audit.js:85:30
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at handleValidationErrors (/root/projects/dms/backend/middleware/validation.js:18:3)
+    at Layer.handle [as handle_request] (/root/projects/dms/backend/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/projects/dms/backend/node_modules/express/lib/router/route.js:149:13)
+    at middleware (/root/projects/dms/backend/node_modules/express-validator/lib/middlewares/check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_WRONG_ARGUMENTS',
+  errno: 1210,
+  sql: '\n' +
+    '      SELECT al.*, u.first_name, u.last_name, u.email, u.role, o.name as organization_name\n' +
+    '      FROM audit_logs al\n' +
+    '      LEFT JOIN users u ON al.user_id = u.id\n' +
+    '      LEFT JOIN organizations o ON al.organization_id = o.id\n' +
+    '      \n' +
+    '      ORDER BY al.created_at DESC\n' +
+    '      LIMIT ? OFFSET ?\n' +
+    '    ',
+  sqlState: 'HY000',
+  sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+}
+Database query error: Error: Bind parameters must not contain undefined. To pass SQL NULL specify JS null
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:56:34)
+    at /root/projects/dms/backend/routes/files.js:2109:32
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: undefined,
+  errno: undefined,
+  sql: undefined,
+  sqlState: undefined,
+  sqlMessage: undefined
+}
+📤 [UPLOAD] Multer error: {
+  code: undefined,
+  message: 'File type .r is not allowed',
+  field: undefined,
+  name: 'Error',
+  stack: 'Error: File type .r is not allowed\n' +
+    '    at fileFilter (/root/projects/dms/backend/routes/files.js:53:8)\n' +
+    '    at wrappedFileFilter (/root/projects/dms/backend/node_modules/multer/index.js:44:7)\n' +
+    '    at Multipart.<anonymous> (/root/projects/dms/backend/node_modules/multer/lib/make-middleware.js:109:7)\n' +
+    '    at Multipart.emit (node:events:524:28)\n' +
+    '    at HeaderParser.cb (/root/projects/dms/backend/node_modules/busboy/lib/types/multipart.js:358:14)\n' +
+    '    at HeaderParser.push (/root/projects/dms/backend/node_modules/busboy/lib/types/multipart.js:162:20)\n' +
+    '    at SBMH.ssCb [as _cb] (/root/projects/dms/backend/node_modules/busboy/lib/types/multipart.js:394:37)\n' +
+    '    at feed (/root/projects/dms/backend/node_modules/streamsearch/lib/sbmh.js:219:14)\n' +
+    '    at SBMH.push (/root/projects/dms/backend/node_modules/streamsearch/lib/sbmh.js:104:16)\n' +
+    '    at Multipart._write (/root/projects/dms/backend/node_modules/busboy/lib/types/multipart.js:567:19)'
+}
+📤 [UPLOAD] Multer error: {
+  code: undefined,
+  message: 'File type .r is not allowed',
+  field: undefined,
+  name: 'Error',
+  stack: 'Error: File type .r is not allowed\n' +
+    '    at fileFilter (/root/projects/dms/backend/routes/files.js:53:8)\n' +
+    '    at wrappedFileFilter (/root/projects/dms/backend/node_modules/multer/index.js:44:7)\n' +
+    '    at Multipart.<anonymous> (/root/projects/dms/backend/node_modules/multer/lib/make-middleware.js:109:7)\n' +
+    '    at Multipart.emit (node:events:524:28)\n' +
+    '    at HeaderParser.cb (/root/projects/dms/backend/node_modules/busboy/lib/types/multipart.js:358:14)\n' +
+    '    at HeaderParser.push (/root/projects/dms/backend/node_modules/busboy/lib/types/multipart.js:162:20)\n' +
+    '    at SBMH.ssCb [as _cb] (/root/projects/dms/backend/node_modules/busboy/lib/types/multipart.js:394:37)\n' +
+    '    at feed (/root/projects/dms/backend/node_modules/streamsearch/lib/sbmh.js:219:14)\n' +
+    '    at SBMH.push (/root/projects/dms/backend/node_modules/streamsearch/lib/sbmh.js:104:16)\n' +
+    '    at Multipart._write (/root/projects/dms/backend/node_modules/busboy/lib/types/multipart.js:567:19)'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: '1000',
+      msg: 'Limit must be between 1 and 100',
+      path: 'limit',
+      location: 'query'
+    }
+  ],
+  body: {},
+  file: 'no file'
+}
+Database query error: Error: Incorrect datetime value: '2035-11-30T02:03:51.582Z' for column 'expires_at' at row 1
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:56:34)
+    at /root/projects/dms/backend/routes/files.js:1421:32
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_TRUNCATED_WRONG_VALUE',
+  errno: 1292,
+  sql: 'INSERT INTO folder_shares (folder_id, shared_by, shared_with, share_type, permission_level, share_link, expires_at, status)\n' +
+    "       VALUES (?, ?, ?, ?, ?, ?, ?, 'active')",
+  sqlState: '22007',
+  sqlMessage: "Incorrect datetime value: '2035-11-30T02:03:51.582Z' for column 'expires_at' at row 1"
+}
+Database query error: Error: Bind parameters must not contain undefined. To pass SQL NULL specify JS null
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:56:34)
+    at /root/projects/dms/backend/routes/files.js:2109:32
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: undefined,
+  errno: undefined,
+  sql: undefined,
+  sqlState: undefined,
+  sqlMessage: undefined
+}
+Database query error: Error: Bind parameters must not contain undefined. To pass SQL NULL specify JS null
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:56:34)
+    at /root/projects/dms/backend/routes/files.js:2109:32
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: undefined,
+  errno: undefined,
+  sql: undefined,
+  sqlState: undefined,
+  sqlMessage: undefined
+}
+📤 [UPLOAD] Multer error: {
+  code: undefined,
+  message: 'File type .r is not allowed',
+  field: undefined,
+  name: 'Error',
+  stack: 'Error: File type .r is not allowed\n' +
+    '    at fileFilter (/root/projects/dms/backend/routes/files.js:53:8)\n' +
+    '    at wrappedFileFilter (/root/projects/dms/backend/node_modules/multer/index.js:44:7)\n' +
+    '    at Multipart.<anonymous> (/root/projects/dms/backend/node_modules/multer/lib/make-middleware.js:109:7)\n' +
+    '    at Multipart.emit (node:events:524:28)\n' +
+    '    at HeaderParser.cb (/root/projects/dms/backend/node_modules/busboy/lib/types/multipart.js:358:14)\n' +
+    '    at HeaderParser.push (/root/projects/dms/backend/node_modules/busboy/lib/types/multipart.js:162:20)\n' +
+    '    at SBMH.ssCb [as _cb] (/root/projects/dms/backend/node_modules/busboy/lib/types/multipart.js:394:37)\n' +
+    '    at feed (/root/projects/dms/backend/node_modules/streamsearch/lib/sbmh.js:219:14)\n' +
+    '    at SBMH.push (/root/projects/dms/backend/node_modules/streamsearch/lib/sbmh.js:104:16)\n' +
+    '    at Multipart._write (/root/projects/dms/backend/node_modules/busboy/lib/types/multipart.js:567:19)'
+}
+📤 [UPLOAD] Multer error: {
+  code: undefined,
+  message: 'File type .r is not allowed',
+  field: undefined,
+  name: 'Error',
+  stack: 'Error: File type .r is not allowed\n' +
+    '    at fileFilter (/root/projects/dms/backend/routes/files.js:53:8)\n' +
+    '    at wrappedFileFilter (/root/projects/dms/backend/node_modules/multer/index.js:44:7)\n' +
+    '    at Multipart.<anonymous> (/root/projects/dms/backend/node_modules/multer/lib/make-middleware.js:109:7)\n' +
+    '    at Multipart.emit (node:events:524:28)\n' +
+    '    at HeaderParser.cb (/root/projects/dms/backend/node_modules/busboy/lib/types/multipart.js:358:14)\n' +
+    '    at HeaderParser.push (/root/projects/dms/backend/node_modules/busboy/lib/types/multipart.js:162:20)\n' +
+    '    at SBMH.ssCb [as _cb] (/root/projects/dms/backend/node_modules/busboy/lib/types/multipart.js:394:37)\n' +
+    '    at feed (/root/projects/dms/backend/node_modules/streamsearch/lib/sbmh.js:219:14)\n' +
+    '    at SBMH.push (/root/projects/dms/backend/node_modules/streamsearch/lib/sbmh.js:104:16)\n' +
+    '    at Multipart._write (/root/projects/dms/backend/node_modules/busboy/lib/types/multipart.js:567:19)'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: '1000',
+      msg: 'Limit must be between 1 and 100',
+      path: 'limit',
+      location: 'query'
+    }
+  ],
+  body: {},
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: '1000',
+      msg: 'Limit must be between 1 and 100',
+      path: 'limit',
+      location: 'query'
+    }
+  ],
+  body: {},
+  file: 'no file'
+}
+Database query error: Error: Bind parameters must not contain undefined. To pass SQL NULL specify JS null
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:56:34)
+    at /root/projects/dms/backend/routes/files.js:2109:32
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: undefined,
+  errno: undefined,
+  sql: undefined,
+  sqlState: undefined,
+  sqlMessage: undefined
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 5368709120,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'iCON Yan',
+    description: 'Sistem Pengurusan Fail Pintar iCON YAN',
+    storageQuota: 5368709120
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 5368709120,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'iCON Yan',
+    description: 'Sistem Pengurusan Fail Pintar iCON YAN',
+    storageQuota: 5368709120
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 5368709120,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'iCON Yan',
+    description: 'Sistem Pengurusan Fail Pintar iCON YAN',
+    storageQuota: 5368709120
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 1073741824,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'iCON Yan',
+    description: 'Sistem Pengurusan Fail Pintar iCON YAN',
+    storageQuota: 1073741824
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 1073741824,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'iCON Yan',
+    description: 'Sistem Pengurusan Fail Pintar iCON YAN',
+    storageQuota: 1073741824
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 1073741824,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'iCON Yan',
+    description: 'Sistem Pengurusan Fail Pintar iCON YAN',
+    storageQuota: 1073741824
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 10737418240,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'iCON Yan',
+    description: 'Sistem Pengurusan Fail Pintar iCON YAN',
+    storageQuota: 10737418240
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 107374182400,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'iCON Yan',
+    description: 'Sistem Pengurusan Fail Pintar iCON YAN',
+    storageQuota: 107374182400
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 66571993088,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'iCON Yan',
+    description: 'Sistem Pengurusan Fail Pintar iCON Yan',
+    storageQuota: 66571993088
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 1152921504606847000,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'iCON Yan',
+    description: 'Sistem Pengurusan Fail Pintar iCON Yan',
+    storageQuota: 1152921504606847000
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 107374182400,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'iCON Yan',
+    description: 'Sistem Pengurusan Fail Pintar iCON Yan',
+    storageQuota: 107374182400
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 1073741824000,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'iCON Yan',
+    description: 'Sistem Pengurusan Fail Pintar iCON Yan',
+    storageQuota: 1073741824000
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 5497558138880,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'iCON YAN',
+    description: 'Sistem Pengurusan Fail Pintar ICON Yan',
+    storageQuota: 5497558138880
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 1610612736,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'iCON YAN',
+    description: 'Sistem Pengurusan Fail Pintar ICON Yan',
+    storageQuota: 1610612736
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 5368709120,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'KTAS Resources Sdn. Bhd.',
+    description: 'KTAS Resources Sdn. Bhd.',
+    storageQuota: 5368709120
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 6442450944,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'KTAS Resources Sdn. Bhd.',
+    description: 'KTAS Resources Sdn. Bhd.',
+    storageQuota: 6442450944
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 6442450944,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'KTAS Resources Sdn. Bhd.',
+    description: 'KTAS Resources Sdn. Bhd.',
+    storageQuota: 6442450944
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 6442450944,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'KTAS Resources Sdn. Bhd.',
+    description: 'KTAS Resources Sdn. Bhd.',
+    storageQuota: 6442450944
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 16106127360,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'KTAS Resources Sdn. Bhd.',
+    description: 'KTAS Resources Sdn. Bhd.',
+    storageQuota: 16106127360
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 16106127360,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'KTAS Resources Sdn. Bhd.',
+    description: 'KTAS Resources Sdn. Bhd.',
+    storageQuota: 16106127360
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 16106127360,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'KTAS Resources Sdn. Bhd.',
+    description: 'KTAS Resources Sdn. Bhd.',
+    storageQuota: 16106127360
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 16106127360,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'KTAS Resources Sdn. Bhd.',
+    description: 'KTAS Resources Sdn. Bhd.',
+    storageQuota: 16106127360
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 16106127360,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'KTAS Resources Sdn. Bhd.',
+    description: 'KTAS Resources Sdn. Bhd.',
+    storageQuota: 16106127360
+  },
+  file: 'no file'
+}
+❌ [VALIDATION] Validation errors: {
+  errors: [
+    {
+      type: 'field',
+      value: 16106127360,
+      msg: 'Storage quota must be between 100MB and 1TB',
+      path: 'storageQuota',
+      location: 'body'
+    }
+  ],
+  body: {
+    name: 'KTAS Resources Sdn. Bhd.',
+    description: 'KTAS Resources Sdn. Bhd.',
+    storageQuota: 16106127360
+  },
+  file: 'no file'
+}
+Database query error: Error: Incorrect datetime value: '2026-02-03T03:57:00.950Z' for column 'expires_at' at row 1
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:56:34)
+    at /root/projects/dms/backend/routes/files.js:1443:32
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_TRUNCATED_WRONG_VALUE',
+  errno: 1292,
+  sql: 'INSERT INTO folder_shares (folder_id, shared_by, shared_with, share_type, permission_level, share_link, expires_at, status)\n' +
+    "       VALUES (?, ?, ?, ?, ?, ?, ?, 'active')",
+  sqlState: '22007',
+  sqlMessage: "Incorrect datetime value: '2026-02-03T03:57:00.950Z' for column 'expires_at' at row 1"
+}
+Database query error: Error: Incorrect datetime value: '2026-02-03T03:57:20.287Z' for column 'expires_at' at row 1
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:56:34)
+    at /root/projects/dms/backend/routes/files.js:1443:32
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_TRUNCATED_WRONG_VALUE',
+  errno: 1292,
+  sql: 'INSERT INTO folder_shares (folder_id, shared_by, shared_with, share_type, permission_level, share_link, expires_at, status)\n' +
+    "       VALUES (?, ?, ?, ?, ?, ?, ?, 'active')",
+  sqlState: '22007',
+  sqlMessage: "Incorrect datetime value: '2026-02-03T03:57:20.287Z' for column 'expires_at' at row 1"
+}
+Database query error: Error: Incorrect datetime value: '2026-02-03T03:57:33.300Z' for column 'expires_at' at row 1
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:56:34)
+    at /root/projects/dms/backend/routes/files.js:1443:32
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_TRUNCATED_WRONG_VALUE',
+  errno: 1292,
+  sql: 'INSERT INTO folder_shares (folder_id, shared_by, shared_with, share_type, permission_level, share_link, expires_at, status)\n' +
+    "       VALUES (?, ?, ?, ?, ?, ?, ?, 'active')",
+  sqlState: '22007',
+  sqlMessage: "Incorrect datetime value: '2026-02-03T03:57:33.300Z' for column 'expires_at' at row 1"
+}
+Database query error: Error: Incorrect datetime value: '2026-02-03T03:58:21.502Z' for column 'expires_at' at row 1
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:56:34)
+    at /root/projects/dms/backend/routes/files.js:1443:32
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_TRUNCATED_WRONG_VALUE',
+  errno: 1292,
+  sql: 'INSERT INTO folder_shares (folder_id, shared_by, shared_with, share_type, permission_level, share_link, expires_at, status)\n' +
+    "       VALUES (?, ?, ?, ?, ?, ?, ?, 'active')",
+  sqlState: '22007',
+  sqlMessage: "Incorrect datetime value: '2026-02-03T03:58:21.502Z' for column 'expires_at' at row 1"
+}
+Database query error: Error: Incorrect datetime value: '2026-02-03T04:10:35.789Z' for column 'expires_at' at row 1
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:56:34)
+    at /root/projects/dms/backend/routes/files.js:1443:32
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_TRUNCATED_WRONG_VALUE',
+  errno: 1292,
+  sql: 'INSERT INTO folder_shares (folder_id, shared_by, shared_with, share_type, permission_level, share_link, expires_at, status)\n' +
+    "       VALUES (?, ?, ?, ?, ?, ?, ?, 'active')",
+  sqlState: '22007',
+  sqlMessage: "Incorrect datetime value: '2026-02-03T04:10:35.789Z' for column 'expires_at' at row 1"
+}
+Database query error: Error: Incorrect datetime value: '2026-02-04T03:22:12.990Z' for column 'expires_at' at row 1
+    at PromisePool.execute (/root/projects/dms/backend/node_modules/mysql2/lib/promise/pool.js:54:22)
+    at executeQuery (/root/projects/dms/backend/config/database.js:56:34)
+    at /root/projects/dms/backend/routes/files.js:1443:32
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'ER_TRUNCATED_WRONG_VALUE',
+  errno: 1292,
+  sql: 'INSERT INTO folder_shares (folder_id, shared_by, shared_with, share_type, permission_level, share_link, expires_at, status)\n' +
+    "       VALUES (?, ?, ?, ?, ?, ?, ?, 'active')",
+  sqlState: '22007',
+  sqlMessage: "Incorrect datetime value: '2026-02-04T03:22:12.990Z' for column 'expires_at' at row 1"
+}
