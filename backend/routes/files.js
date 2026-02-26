@@ -9,6 +9,19 @@ const { verifyToken, requireFileAccess } = require('../middleware/auth');
 const { validateFileUpload, validateFileUpdate, validateFolder, validatePagination, validateSearch } = require('../middleware/validation');
 const { formatDate } = require('../utils/helpers');
 
+// Normalize date to MySQL datetime (YYYY-MM-DD HH:mm:ss). Handles ISO strings from frontend.
+const toMysqlDatetime = (value) => {
+  if (value == null || value === '') return null;
+  try {
+    if (typeof value === 'string' && value.includes('T')) {
+      return formatDate(new Date(value), 'YYYY-MM-DD HH:mm:ss');
+    }
+    return formatDate(value, 'YYYY-MM-DD HH:mm:ss');
+  } catch (e) {
+    return null;
+  }
+};
+
 // Helper function to decode filename (handles URL encoding from browser)
 const decodeFilename = (filename) => {
   if (!filename) return filename;
@@ -1186,10 +1199,8 @@ router.post('/:fileId/share', verifyToken, async (req, res) => {
     // Convert expiresAt to MySQL datetime format (YYYY-MM-DD HH:mm:ss)
     let mysqlExpiresAt = null;
     if (expiresAt) {
-      try {
-        mysqlExpiresAt = formatDate(expiresAt, 'YYYY-MM-DD HH:mm:ss');
-      } catch (error) {
-        console.error('Error formatting expiresAt date:', error);
+      mysqlExpiresAt = toMysqlDatetime(expiresAt);
+      if (mysqlExpiresAt == null) {
         return res.status(400).json({
           success: false,
           message: 'Invalid expiration date format'
@@ -1460,10 +1471,8 @@ router.post('/folders/:folderId/share', verifyToken, async (req, res) => {
     // Convert expiresAt to MySQL datetime format (YYYY-MM-DD HH:mm:ss)
     let mysqlExpiresAt = null;
     if (expiresAt) {
-      try {
-        mysqlExpiresAt = formatDate(expiresAt, 'YYYY-MM-DD HH:mm:ss');
-      } catch (error) {
-        console.error('Error formatting expiresAt date:', error);
+      mysqlExpiresAt = toMysqlDatetime(expiresAt);
+      if (mysqlExpiresAt == null) {
         return res.status(400).json({
           success: false,
           message: 'Invalid expiration date format'

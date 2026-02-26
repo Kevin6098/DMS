@@ -122,11 +122,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error: any) {
       console.error('Login error:', error);
       
-      // Extract and show error message
-      const errorMessage = error?.response?.data?.message || 
-                          error?.response?.data?.errors?.[0]?.msg ||
-                          error?.message || 
-                          'Login failed. Please check your credentials.';
+      // Prefer backend validation message (e.g. "Please provide a valid email address") over generic "Network Error"
+      const data = error?.response?.data;
+      const validationMsg = data?.errors?.[0]?.msg || data?.errors?.[0]?.message;
+      const serverMsg = data?.message;
+      const fallback = error?.message === 'Network Error' || error?.message === 'network Error'
+        ? 'Cannot reach server. Check your connection or try again.'
+        : (error?.message || 'Login failed. Please check your credentials.');
+      const errorMessage = validationMsg || serverMsg || fallback;
       toast.error(errorMessage);
       
       return false;
@@ -159,11 +162,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return false;
     } catch (error: any) {
       console.error('Registration error:', error);
-      // Extract error message from API response
-      const errorMessage = error?.response?.data?.message || 
-                          error?.response?.data?.errors?.[0]?.msg || 
-                          error?.message || 
-                          'Registration failed. Please check your input.';
+      // Prefer backend validation message over generic "Network Error"
+      const data = error?.response?.data;
+      const validationMsg = data?.errors?.[0]?.msg || data?.errors?.[0]?.message;
+      const serverMsg = data?.message;
+      const fallback = error?.message === 'Network Error' || error?.message === 'network Error'
+        ? 'Cannot reach server. Check your connection or try again.'
+        : (error?.message || 'Registration failed. Please check your input.');
+      const errorMessage = validationMsg || serverMsg || fallback;
       toast.error(errorMessage);
       return false;
     } finally {

@@ -802,6 +802,36 @@ curl https://taskinsight.my/health
 
 ---
 
+## 📜 Quick deploy with script (after code changes)
+
+A `deploy.sh` script in the project root automates backend + frontend deploy.
+
+**First time on the VPS (make it executable):**
+```bash
+cd /home/$(whoami)/dms   # or /root/projects/dms
+chmod +x deploy.sh
+```
+
+**Deploy (backend + frontend):**
+```bash
+./deploy.sh
+```
+
+**Options:**
+```bash
+./deploy.sh --pull          # git pull then deploy
+./deploy.sh --backend-only  # only backend (npm install + PM2 restart)
+./deploy.sh --frontend-only # only frontend (npm run build + copy to web root)
+./deploy.sh --help          # show usage
+```
+
+**Custom paths (if your project is not in current directory):**
+```bash
+DMS_PROJECT_ROOT=/root/projects/dms DMS_WEB_ROOT=/var/www/taskinsight.my ./deploy.sh
+```
+
+---
+
 ## 🎉 Success!
 
 Your DMS should now be live at **https://taskinsight.my**!

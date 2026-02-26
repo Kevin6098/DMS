@@ -89,14 +89,17 @@ api.interceptors.response.use(
           }
           break;
         case 400:
-          // Bad Request - show validation errors or error message
-          const validationErrors = (data as any)?.errors;
-          if (validationErrors && Array.isArray(validationErrors) && validationErrors.length > 0) {
-            validationErrors.forEach((err: any) => {
-              toast.error(err.msg || err.message || 'Validation error');
-            });
-          } else {
-            toast.error(errorMessage);
+          // Bad Request - show validation errors or error message (skip for auth so AuthContext can show the right message)
+          const isAuthRequest = (error.config?.url || '').includes('/auth/login') || (error.config?.url || '').includes('/auth/register');
+          if (!isAuthRequest) {
+            const validationErrors = (data as any)?.errors;
+            if (validationErrors && Array.isArray(validationErrors) && validationErrors.length > 0) {
+              validationErrors.forEach((err: any) => {
+                toast.error(err.msg || err.message || 'Validation error');
+              });
+            } else {
+              toast.error(errorMessage);
+            }
           }
           break;
         case 403:
@@ -120,15 +123,18 @@ api.interceptors.response.use(
           toast.error('Too many requests. Please try again later.');
           break;
         case 500:
-          toast.error('Server error. Please try again later.');
+          // Show backend message when available so users see the real reason (e.g. validation)
+          toast.error(errorMessage);
           break;
         default:
           toast.error(errorMessage);
       }
     } else if (error.request) {
-      // Network error - don't show toast for initial auth check
+      // No response received (backend down, CORS, timeout, or real network failure)
+      // Show a clear message so users don't only see the browser's vague "Network Error"
       if (!error.config?.url?.includes('/auth/verify')) {
-        console.warn('Network error. Backend may not be running.');
+        toast.error('Cannot reach server. Check your connection or try again later.');
+        console.warn('Request failed (no response). Backend may be down or unreachable.', error.config?.url);
       }
     } else {
       // Other error
