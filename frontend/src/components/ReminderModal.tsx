@@ -31,7 +31,6 @@ const ReminderModal: React.FC<ReminderModalProps> = ({
 
   // Quick preset buttons
   const setQuickReminder = (preset: string) => {
-    const now = new Date();
     let targetDate = new Date();
     let targetTime = '09:00';
 
@@ -355,4 +354,3 @@ const ReminderModal: React.FC<ReminderModalProps> = ({
 };
 
 export default ReminderModal;
-

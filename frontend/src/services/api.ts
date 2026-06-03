@@ -30,8 +30,8 @@ api.interceptors.request.use(
       delete config.headers['Content-Type'];
     }
     
-    // Log and validate requests for debugging
-    if (config.url?.includes('/folders') || config.url?.includes('/auth/login')) {
+    // Log and validate folder requests for debugging without exposing auth payloads.
+    if (config.url?.includes('/folders')) {
       console.log('📤 [API REQUEST INTERCEPTOR]', {
         url: config.url,
         method: config.method,
@@ -192,8 +192,8 @@ export const apiService = {
       return { success: false, message: 'Offline mode - backend not available' };
     }
     
-    // Log the data being sent for debugging
-    if (url.includes('/folders') || url.includes('/auth/login')) {
+    // Log folder requests for debugging without exposing auth payloads.
+    if (url.includes('/folders')) {
       console.log('📤 [API POST] Request details:', {
         url,
         data,

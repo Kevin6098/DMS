@@ -655,11 +655,6 @@ const Dashboard: React.FC = () => {
   };
 
   // Drag and drop handlers
-  // Check if dragging a file from system (not an internal file/folder)
-  const isSystemFileDrag = (e: React.DragEvent): boolean => {
-    return e.dataTransfer.types.includes('Files') && !draggedItem;
-  };
-
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -2241,9 +2236,9 @@ const Dashboard: React.FC = () => {
                 </div>
                 {pendingReminders.length > 5 && (
                   <div className="notification-footer">
-                    <a href="#" onClick={(e) => { e.preventDefault(); setShowNotifications(false); showView('todo'); }}>
+                    <button type="button" onClick={() => { setShowNotifications(false); showView('todo'); }}>
                       View all {pendingReminders.length} reminders
-                    </a>
+                    </button>
                   </div>
                 )}
               </div>

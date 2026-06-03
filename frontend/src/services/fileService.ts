@@ -335,8 +335,7 @@ export const fileService = {
   // File Preview
   getFilePreviewUrl: (fileId: number): string => {
     const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
-    const token = localStorage.getItem('token');
-    return `${baseUrl}/files/${fileId}/preview?token=${token}`;
+    return `${baseUrl}/files/${fileId}/preview`;
   },
 
   // Check if file can be previewed

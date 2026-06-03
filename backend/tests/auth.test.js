@@ -1,8 +1,9 @@
 const request = require('supertest');
 const app = require('../server');
 const { executeQuery } = require('../config/database');
+const describeDb = process.env.RUN_DB_TESTS === 'true' ? describe : describe.skip;
 
-describe('Authentication API', () => {
+describeDb('Authentication API', () => {
   // Clean up test data before each test
   beforeEach(async () => {
     // Clean up test users

@@ -8,6 +8,43 @@ const Login: React.FC = () => {
   const { login, register, isAuthenticated, isLoading, isPlatformOwner, isOrganizationAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState('login');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+
+  const togglePasswordVisibility = (fieldId: string) => {
+    setVisiblePasswords((current) => ({
+      ...current,
+      [fieldId]: !current[fieldId],
+    }));
+  };
+
+  const renderPasswordField = (fieldId: string, label: string, placeholder: string) => {
+    const isVisible = Boolean(visiblePasswords[fieldId]);
+
+    return (
+      <div className="form-group">
+        <label htmlFor={fieldId}>{label}</label>
+        <div className="password-input-wrapper">
+          <input
+            type={isVisible ? 'text' : 'password'}
+            id={fieldId}
+            required
+            placeholder={placeholder}
+            disabled={isSubmitting}
+          />
+          <button
+            type="button"
+            className="password-toggle-btn"
+            aria-label={isVisible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+            aria-pressed={isVisible}
+            onClick={() => togglePasswordVisibility(fieldId)}
+            disabled={isSubmitting}
+          >
+            <i className={`fas ${isVisible ? 'fa-eye-slash' : 'fa-eye'}`} aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   // Redirect if already authenticated (but only after loading is complete)
   useEffect(() => {
@@ -204,16 +241,7 @@ const Login: React.FC = () => {
                 disabled={isSubmitting}
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="login-password">Password</label>
-              <input 
-                type="password" 
-                id="login-password" 
-                required 
-                placeholder="Enter your password"
-                disabled={isSubmitting}
-              />
-            </div>
+            {renderPasswordField('login-password', 'Password', 'Enter your password')}
             <button 
               type="submit" 
               className="btn-primary"
@@ -314,26 +342,8 @@ const Login: React.FC = () => {
                 disabled={isSubmitting}
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="register-password">Password</label>
-              <input 
-                type="password" 
-                id="register-password" 
-                required 
-                placeholder="Enter your password"
-                disabled={isSubmitting}
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="register-confirm">Confirm Password</label>
-              <input 
-                type="password" 
-                id="register-confirm" 
-                required 
-                placeholder="Confirm your password"
-                disabled={isSubmitting}
-              />
-            </div>
+            {renderPasswordField('register-password', 'Password', 'Enter your password')}
+            {renderPasswordField('register-confirm', 'Confirm Password', 'Confirm your password')}
             <button 
               type="submit" 
               className="btn-primary"
@@ -380,16 +390,7 @@ const Login: React.FC = () => {
                 disabled={isSubmitting}
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="admin-password">Admin Password</label>
-              <input 
-                type="password" 
-                id="admin-password" 
-                required 
-                placeholder="Enter admin password"
-                disabled={isSubmitting}
-              />
-            </div>
+            {renderPasswordField('admin-password', 'Admin Password', 'Enter admin password')}
             <button 
               type="submit" 
               className="btn-primary"

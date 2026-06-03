@@ -1,8 +1,9 @@
 const request = require('supertest');
 const app = require('../server');
 const { executeQuery } = require('../config/database');
+const describeDb = process.env.RUN_DB_TESTS === 'true' ? describe : describe.skip;
 
-describe('Admin API', () => {
+describeDb('Admin API', () => {
   let adminToken;
   let adminUserId;
   let testOrgId;
@@ -354,4 +355,3 @@ describe('Admin API', () => {
     });
   });
 });
-

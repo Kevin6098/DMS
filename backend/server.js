@@ -20,6 +20,27 @@ const reminderRoutes = require('./routes/reminders');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const redactSensitive = (value) => {
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  const sensitiveKeys = new Set([
+    'authorization',
+    'password',
+    'password_hash',
+    'passwordhash',
+    'token',
+    'refreshtoken',
+    'refresh_token'
+  ]);
+
+  return Object.entries(value).reduce((redacted, [key, fieldValue]) => {
+    redacted[key] = sensitiveKeys.has(key.toLowerCase()) ? '[REDACTED]' : fieldValue;
+    return redacted;
+  }, {});
+};
+
 // Security middleware - Configure helmet to allow iframe embedding for previews
 app.use(helmet({
   contentSecurityPolicy: {
@@ -68,8 +89,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // This is important for uploads of files up to 2GB
 const serverTimeout = parseInt(process.env.SERVER_TIMEOUT) || 7200000; // 2 hours default
 
-// Static files
-app.use('/uploads', express.static('uploads'));
+// Uploaded documents are served only through authenticated file routes.
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -107,16 +127,16 @@ app.use((error, req, res, next) => {
     url: req.url,
     method: req.method,
     contentType: req.headers['content-type'],
-    body: req.body,
+    body: redactSensitive(req.body),
     stack: error.stack
   });
   
   // Handle JSON parse errors
   if (error instanceof SyntaxError && error.message.includes('JSON')) {
     console.error('JSON Parse Error - Request body:', {
-      body: req.body,
+      body: redactSensitive(req.body),
       bodyType: typeof req.body,
-      headers: req.headers
+      headers: redactSensitive(req.headers)
     });
     return res.status(400).json({
       success: false,
@@ -171,29 +191,35 @@ const startServer = async () => {
   }
 };
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err, promise) => {
-  console.error('Unhandled Promise Rejection at:', promise, 'reason:', err);
-  process.exit(1);
-});
+const registerProcessHandlers = () => {
+  // Handle unhandled promise rejections
+  process.on('unhandledRejection', (err, promise) => {
+    console.error('Unhandled Promise Rejection at:', promise, 'reason:', err);
+    process.exit(1);
+  });
 
-// Handle uncaught exceptions
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-  process.exit(1);
-});
+  // Handle uncaught exceptions
+  process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+    process.exit(1);
+  });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  process.exit(0);
-});
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    process.exit(0);
+  });
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
-  process.exit(0);
-});
+  process.on('SIGINT', () => {
+    console.log('SIGINT received, shutting down gracefully');
+    process.exit(0);
+  });
+};
 
-startServer();
+if (require.main === module) {
+  registerProcessHandlers();
+  startServer();
+}
 
 module.exports = app;
+module.exports.startServer = startServer;

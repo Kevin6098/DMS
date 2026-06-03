@@ -61,7 +61,7 @@ describe('fileService', () => {
 
       (apiService.get as jest.Mock).mockResolvedValue(mockResponse);
 
-      await fileService.getFiles(1, 10, 5);
+      await fileService.getFiles(1, 10, { folderId: 5 });
 
       expect(apiService.get).toHaveBeenCalledWith('/files', {
         page: 1,
@@ -86,13 +86,13 @@ describe('fileService', () => {
 
       (apiService.get as jest.Mock).mockResolvedValue(mockResponse);
 
-      await fileService.getFiles(1, 10, null, 'test search');
+      await fileService.getFiles(1, 10, { folderId: null, search: 'test search' });
 
       expect(apiService.get).toHaveBeenCalledWith('/files', {
         page: 1,
         limit: 10,
-        folderId: null,
-        search: 'test search',
+        folderId: 'null',
+        q: 'test search',
       });
     });
   });
@@ -108,7 +108,7 @@ describe('fileService', () => {
       (apiService.upload as jest.Mock).mockResolvedValue(mockResponse);
 
       const onProgress = jest.fn();
-      const result = await fileService.uploadFile(mockFile, null, onProgress);
+      const result = await fileService.uploadFile(mockFile, {}, onProgress);
 
       expect(apiService.upload).toHaveBeenCalledWith(
         '/files/upload',
@@ -127,7 +127,7 @@ describe('fileService', () => {
 
       (apiService.upload as jest.Mock).mockResolvedValue(mockResponse);
 
-      await fileService.uploadFile(mockFile, 5);
+      await fileService.uploadFile(mockFile, { folderId: 5 });
 
       const formData = (apiService.upload as jest.Mock).mock.calls[0][1];
       expect(formData.get('folderId')).toBe('5');
@@ -170,7 +170,7 @@ describe('fileService', () => {
       const result = await fileService.renameFile(1, 'new-name.pdf');
 
       expect(apiService.put).toHaveBeenCalledWith('/files/1/rename', {
-        fileName: 'new-name.pdf',
+        name: 'new-name.pdf',
       });
       expect(result).toEqual(mockResponse);
     });
@@ -190,7 +190,7 @@ describe('fileService', () => {
 
       const result = await fileService.getFolders();
 
-      expect(apiService.get).toHaveBeenCalledWith('/files/folders');
+      expect(apiService.get).toHaveBeenCalledWith('/files/folders/list', {});
       expect(result).toEqual(mockResponse);
     });
   });
@@ -204,11 +204,10 @@ describe('fileService', () => {
 
       (apiService.post as jest.Mock).mockResolvedValue(mockResponse);
 
-      const result = await fileService.createFolder('New Folder', null);
+      const result = await fileService.createFolder({ name: 'New Folder' });
 
       expect(apiService.post).toHaveBeenCalledWith('/files/folders', {
-        folderName: 'New Folder',
-        parentId: null,
+        name: 'New Folder',
       });
       expect(result).toEqual(mockResponse);
     });
@@ -221,10 +220,10 @@ describe('fileService', () => {
 
       (apiService.post as jest.Mock).mockResolvedValue(mockResponse);
 
-      await fileService.createFolder('Subfolder', 1);
+      await fileService.createFolder({ name: 'Subfolder', parentId: 1 });
 
       expect(apiService.post).toHaveBeenCalledWith('/files/folders', {
-        folderName: 'Subfolder',
+        name: 'Subfolder',
         parentId: 1,
       });
     });
@@ -250,7 +249,7 @@ describe('fileService', () => {
 
       const result = await fileService.getFileStats();
 
-      expect(apiService.get).toHaveBeenCalledWith('/files/stats');
+      expect(apiService.get).toHaveBeenCalledWith('/files/stats/overview', {});
       expect(result).toEqual(mockResponse);
     });
   });
@@ -267,14 +266,15 @@ describe('fileService', () => {
 
       (apiService.post as jest.Mock).mockResolvedValue(mockResponse);
 
-      const result = await fileService.shareFile(1, 'view', '2024-12-31');
-
-      expect(apiService.post).toHaveBeenCalledWith('/files/1/share', {
-        permission: 'view',
+      const shareData = {
+        permission: 'view' as const,
         expiresAt: '2024-12-31',
-      });
+      };
+
+      const result = await fileService.shareFile(1, shareData);
+
+      expect(apiService.post).toHaveBeenCalledWith('/files/1/share', shareData);
       expect(result).toEqual(mockResponse);
     });
   });
 });
-

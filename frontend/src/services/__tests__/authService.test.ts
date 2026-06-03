@@ -56,19 +56,21 @@ describe('authService', () => {
 
       (apiService.post as jest.Mock).mockResolvedValue(mockResponse);
 
-      const result = await authService.login('test@example.com', 'password123');
-
-      expect(apiService.post).toHaveBeenCalledWith('/auth/login', {
+      const credentials = {
         email: 'test@example.com',
         password: 'password123',
-      });
+      };
+
+      const result = await authService.login(credentials);
+
+      expect(apiService.post).toHaveBeenCalledWith('/auth/login', credentials);
       expect(result).toEqual(mockResponse);
-      expect(localStorageMock.getItem('token')).toBe('test-token');
-      expect(localStorageMock.getItem('refreshToken')).toBe('test-refresh-token');
-      expect(JSON.parse(localStorageMock.getItem('user') || '{}')).toEqual(mockResponse.data.user);
+      expect(localStorageMock.getItem('token')).toBeNull();
+      expect(localStorageMock.getItem('refreshToken')).toBeNull();
+      expect(localStorageMock.getItem('user')).toBeNull();
     });
 
-    it('handles login with invitation code', async () => {
+    it('handles admin login flag', async () => {
       const mockResponse = {
         success: true,
         data: {
@@ -86,13 +88,15 @@ describe('authService', () => {
 
       (apiService.post as jest.Mock).mockResolvedValue(mockResponse);
 
-      await authService.login('test@example.com', 'password123', 'INVITE123');
-
-      expect(apiService.post).toHaveBeenCalledWith('/auth/login', {
+      const credentials = {
         email: 'test@example.com',
         password: 'password123',
-        invitationCode: 'INVITE123',
-      });
+        adminLogin: true,
+      };
+
+      await authService.login(credentials);
+
+      expect(apiService.post).toHaveBeenCalledWith('/auth/login', credentials);
     });
   });
 
@@ -137,9 +141,9 @@ describe('authService', () => {
       await authService.logout();
 
       expect(apiService.post).toHaveBeenCalledWith('/auth/logout');
-      expect(localStorageMock.getItem('token')).toBeNull();
-      expect(localStorageMock.getItem('refreshToken')).toBeNull();
-      expect(localStorageMock.getItem('user')).toBeNull();
+      expect(localStorageMock.getItem('token')).toBe('test-token');
+      expect(localStorageMock.getItem('refreshToken')).toBe('test-refresh-token');
+      expect(localStorageMock.getItem('user')).toBe(JSON.stringify({ id: 1, email: 'test@example.com' }));
     });
   });
 
@@ -181,14 +185,14 @@ describe('authService', () => {
 
       (apiService.post as jest.Mock).mockResolvedValue(mockResponse);
 
-      const result = await authService.refreshToken();
+      const result = await authService.refreshToken('old-refresh-token');
 
       expect(apiService.post).toHaveBeenCalledWith('/auth/refresh', {
         refreshToken: 'old-refresh-token',
       });
       expect(result).toEqual(mockResponse);
-      expect(localStorageMock.getItem('token')).toBe('new-token');
-      expect(localStorageMock.getItem('refreshToken')).toBe('new-refresh-token');
+      expect(localStorageMock.getItem('token')).toBeNull();
+      expect(localStorageMock.getItem('refreshToken')).toBe('old-refresh-token');
     });
   });
 
@@ -228,4 +232,3 @@ describe('authService', () => {
     });
   });
 });
-

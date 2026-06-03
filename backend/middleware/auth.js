@@ -118,8 +118,52 @@ const requireOrgAccess = async (req, res, next) => {
   }
 };
 
-// Check file access permissions
-const requireFileAccess = async (req, res, next) => {
+const resolveFilePath = (storagePath) => {
+  if (!storagePath) return null;
+  if (path.isAbsolute(storagePath)) {
+    return storagePath;
+  }
+  return path.resolve(__dirname, '../uploads', storagePath);
+};
+
+const setRequestFile = (req, file) => {
+  req.file = {
+    ...file,
+    path: resolveFilePath(file.storage_path)
+  };
+};
+
+const roleCanManageOrgFile = (user, file) => {
+  if (user.role === 'platform_owner') return true;
+  return user.role === 'organization_admin' && file.organization_id === user.organization_id;
+};
+
+const userOwnsFile = (user, file) => {
+  return file.uploaded_by === user.id && file.organization_id === user.organization_id;
+};
+
+const findActiveShare = async (fileId, userId, allowedPermissions) => {
+  const placeholders = allowedPermissions.map(() => '?').join(', ');
+  const shareResult = await executeQuery(
+    `SELECT permission_level
+     FROM file_shares
+     WHERE file_id = ?
+       AND shared_with = ?
+       AND status = "active"
+       AND (expires_at IS NULL OR expires_at > NOW())
+       AND permission_level IN (${placeholders})
+     LIMIT 1`,
+    [fileId, userId, ...allowedPermissions]
+  );
+
+  return shareResult.success && shareResult.data.length > 0;
+};
+
+const createFileAccessMiddleware = ({
+  allowedStatuses = ['active'],
+  ownerOrAdminOnly = false,
+  allowedSharePermissions = ['view', 'comment', 'edit']
+} = {}) => async (req, res, next) => {
   try {
     const fileId = req.params.fileId || req.params.id;
     
@@ -145,55 +189,37 @@ const requireFileAccess = async (req, res, next) => {
 
     const file = fileResult.data[0];
 
-    // Helper function to resolve file path
-    const resolveFilePath = (storagePath) => {
-      if (!storagePath) return null;
-      // If path is already absolute, return as is
-      if (path.isAbsolute(storagePath)) {
-        return storagePath;
-      }
-      // Otherwise, resolve relative to uploads directory
-      return path.resolve(__dirname, '../uploads', storagePath);
-    };
+    if (allowedStatuses && !allowedStatuses.includes(file.status)) {
+      return res.status(404).json({
+        success: false,
+        message: 'File not found.'
+      });
+    }
 
     // Platform owner has access to all files
     if (req.user.role === 'platform_owner') {
-      // Set path property from storage_path for compatibility
-      req.file = {
-        ...file,
-        path: resolveFilePath(file.storage_path)
-      };
+      setRequestFile(req, file);
       return next();
     }
 
-    // Check if user belongs to the same organization as the file
-    const userResult = await executeQuery(
-      'SELECT organization_id FROM users WHERE id = ?',
-      [req.user.id]
-    );
-
-    if (!userResult.success || userResult.data.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'User not found.'
-      });
+    if (roleCanManageOrgFile(req.user, file) || userOwnsFile(req.user, file)) {
+      setRequestFile(req, file);
+      return next();
     }
 
-    const userOrgId = userResult.data[0].organization_id;
-
-    if (file.organization_id !== userOrgId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. You do not have permission to access this file.'
-      });
+    if (
+      !ownerOrAdminOnly &&
+      allowedSharePermissions.length > 0 &&
+      await findActiveShare(file.id, req.user.id, allowedSharePermissions)
+    ) {
+      setRequestFile(req, file);
+      return next();
     }
 
-    // Set path property from storage_path for compatibility
-    req.file = {
-      ...file,
-      path: resolveFilePath(file.storage_path)
-    };
-    next();
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. You do not have permission to access this file.'
+    });
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -202,11 +228,34 @@ const requireFileAccess = async (req, res, next) => {
   }
 };
 
+// Read access allows owners, org admins, platform owners, and active user shares.
+const requireFileAccess = createFileAccessMiddleware();
+
+// Write access additionally allows explicit edit shares.
+const requireFileWriteAccess = createFileAccessMiddleware({
+  allowedSharePermissions: ['edit']
+});
+
+// Management access is limited to the owner, organization admin, or platform owner.
+const requireFileOwnerOrAdmin = createFileAccessMiddleware({
+  ownerOrAdminOnly: true,
+  allowedSharePermissions: []
+});
+
+const requireDeletedFileOwnerOrAdmin = createFileAccessMiddleware({
+  allowedStatuses: ['deleted'],
+  ownerOrAdminOnly: true,
+  allowedSharePermissions: []
+});
+
 module.exports = {
   verifyToken,
   requireAdmin,
   requirePlatformOwner,
   requireOrgAdmin,
   requireOrgAccess,
-  requireFileAccess
+  requireFileAccess,
+  requireFileWriteAccess,
+  requireFileOwnerOrAdmin,
+  requireDeletedFileOwnerOrAdmin
 };

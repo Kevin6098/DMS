@@ -569,14 +569,17 @@
   text-align: center;
 }
 
-.notification-footer a {
+.notification-footer button {
+  background: transparent;
+  border: 0;
   color: #141464;
-  text-decoration: none;
+  cursor: pointer;
   font-size: 0.875rem;
   font-weight: 500;
+  padding: 0;
 }
 
-.notification-footer a:hover {
+.notification-footer button:hover {
   text-decoration: underline;
 }
 
@@ -599,4 +602,3 @@
     right: -50px;
   }
 }
-

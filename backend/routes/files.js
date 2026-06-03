@@ -5,7 +5,13 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const archiver = require('archiver');
 const { executeQuery } = require('../config/database');
-const { verifyToken, requireFileAccess } = require('../middleware/auth');
+const {
+  verifyToken,
+  requireFileAccess,
+  requireFileWriteAccess,
+  requireFileOwnerOrAdmin,
+  requireDeletedFileOwnerOrAdmin
+} = require('../middleware/auth');
 const { validateFileUpload, validateFileUpdate, validateFolder, validatePagination, validateSearch } = require('../middleware/validation');
 const { formatDate } = require('../utils/helpers');
 
@@ -37,6 +43,35 @@ const decodeFilename = (filename) => {
     console.warn('Failed to decode filename:', filename, error);
     return filename;
   }
+};
+
+const sanitizeFileRecord = (file) => {
+  if (!file) return file;
+  const { storage_path, current_storage_path, ...safeFile } = file;
+  return safeFile;
+};
+
+const sanitizeFileRecords = (files = []) => files.map(sanitizeFileRecord);
+
+const redactSensitive = (value) => {
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  const sensitiveKeys = new Set([
+    'authorization',
+    'password',
+    'password_hash',
+    'passwordhash',
+    'token',
+    'refreshtoken',
+    'refresh_token'
+  ]);
+
+  return Object.entries(value).reduce((redacted, [key, fieldValue]) => {
+    redacted[key] = sensitiveKeys.has(key.toLowerCase()) ? '[REDACTED]' : fieldValue;
+    return redacted;
+  }, {});
 };
 
 const router = express.Router();
@@ -203,7 +238,7 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
     res.json({
       success: true,
       data: {
-        files: filesResult.data,
+        files: sanitizeFileRecords(filesResult.data),
         pagination: {
           page: pageNum,
           limit: limitNum,
@@ -232,8 +267,8 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
 // Test upload endpoint (for debugging)
 router.post('/upload/test', verifyToken, (req, res) => {
   console.log('📤 [UPLOAD TEST] Request received:', {
-    headers: req.headers,
-    body: req.body,
+    headers: redactSensitive(req.headers),
+    body: redactSensitive(req.body),
     files: req.files,
     file: req.file
   });
@@ -241,7 +276,7 @@ router.post('/upload/test', verifyToken, (req, res) => {
     success: true,
     message: 'Test endpoint reached',
     hasFile: !!req.file,
-    body: req.body
+    body: redactSensitive(req.body)
   });
 });
 
@@ -319,7 +354,7 @@ router.post('/upload', verifyToken, (req, res, next) => {
       fileName: req.file?.originalname,
       contentType: req.file?.mimetype,
       fieldname: req.file?.fieldname,
-      body: req.body,
+      body: redactSensitive(req.body),
       bodyKeys: Object.keys(req.body || {}),
       headers: {
         'content-type': req.headers['content-type'],
@@ -353,23 +388,9 @@ router.post('/upload', verifyToken, (req, res, next) => {
 
     const storageQuota = orgResult.data[0].storage_quota; // Already in bytes
     const currentStorageUsed = orgResult.data[0].storage_used || 0;
-
-    // Calculate new storage size
-    // If creating a new version, we need to account for the size difference
-    let sizeToAdd = file.size;
-    
-    // Check if this is a new version (will be determined later, but we need to check quota first)
-    // For now, we'll check quota with the new file size
-    // If it's a new version, we'll adjust the storage_used update later
-
-    if (currentStorageUsed + sizeToAdd > storageQuota) {
-      // Delete uploaded file
-      await fs.unlink(file.path);
-      return res.status(400).json({
-        success: false,
-        message: 'Storage quota exceeded. Please contact your administrator to increase storage quota.'
-      });
-    }
+    const quotaWouldBeExceeded = (sizeDifference) => {
+      return currentStorageUsed + Math.max(sizeDifference, 0) > storageQuota;
+    };
 
     // Validate folder if provided
     if (folderId) {
@@ -431,6 +452,14 @@ router.post('/upload', verifyToken, (req, res, next) => {
         const oldFile = oldVersionResult.data[0];
         const oldSize = oldFile.file_size || 0;
         sizeDifference = file.size - oldSize; // New size - old size
+
+        if (quotaWouldBeExceeded(sizeDifference)) {
+          await fs.unlink(file.path);
+          return res.status(400).json({
+            success: false,
+            message: 'Storage quota exceeded. Please contact your administrator to increase storage quota.'
+          });
+        }
         
         // Create version record for the old file
         await executeQuery(
@@ -440,6 +469,14 @@ router.post('/upload', verifyToken, (req, res, next) => {
       } else {
         // No old file found, treat as new file size
         sizeDifference = file.size;
+
+        if (quotaWouldBeExceeded(sizeDifference)) {
+          await fs.unlink(file.path);
+          return res.status(400).json({
+            success: false,
+            message: 'Storage quota exceeded. Please contact your administrator to increase storage quota.'
+          });
+        }
       }
 
       // Update file with new version
@@ -457,6 +494,16 @@ router.post('/upload', verifyToken, (req, res, next) => {
       }
     } else {
       // Create new file record
+      sizeDifference = file.size; // New file adds full size
+
+      if (quotaWouldBeExceeded(sizeDifference)) {
+        await fs.unlink(file.path);
+        return res.status(400).json({
+          success: false,
+          message: 'Storage quota exceeded. Please contact your administrator to increase storage quota.'
+        });
+      }
+
     const fileResult = await executeQuery(
         'INSERT INTO files (name, original_name, storage_path, file_size, file_type, description, organization_id, uploaded_by, folder_id, status, current_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
@@ -483,7 +530,6 @@ router.post('/upload', verifyToken, (req, res, next) => {
     }
 
       fileId = fileResult.data.insertId;
-      sizeDifference = file.size; // New file adds full size
     }
 
     // Update organization storage_used
@@ -627,7 +673,7 @@ router.get('/shared-with-me', verifyToken, validatePagination, async (req, res) 
       success: true,
       message: 'Shared files retrieved successfully',
       data: {
-        files: sharedFilesResult.data || [],
+        files: sanitizeFileRecords(sharedFilesResult.data || []),
         pagination: {
           page: pageNum,
           limit: limitNum,
@@ -709,7 +755,7 @@ router.get('/:fileId/versions', verifyToken, requireFileAccess, async (req, res)
 
     res.json({
       success: true,
-      data: versions
+      data: sanitizeFileRecords(versions)
     });
   } catch (error) {
     console.error('Get versions error:', error);
@@ -721,7 +767,7 @@ router.get('/:fileId/versions', verifyToken, requireFileAccess, async (req, res)
 });
 
 // Upload new version - MUST be before /:fileId route
-router.post('/:fileId/versions', verifyToken, requireFileAccess, upload.single('file'), async (req, res) => {
+router.post('/:fileId/versions', verifyToken, requireFileWriteAccess, upload.single('file'), async (req, res) => {
   try {
     const { fileId } = req.params;
 
@@ -824,7 +870,7 @@ router.post('/:fileId/versions', verifyToken, requireFileAccess, upload.single('
 });
 
 // Keep version forever - MUST be before /:fileId route
-router.put('/:fileId/versions/:versionId/keep', verifyToken, requireFileAccess, async (req, res) => {
+router.put('/:fileId/versions/:versionId/keep', verifyToken, requireFileWriteAccess, async (req, res) => {
   try {
     const { fileId, versionId } = req.params;
 
@@ -872,7 +918,7 @@ router.get('/:fileId', verifyToken, requireFileAccess, async (req, res) => {
 
     res.json({
       success: true,
-      data: fileResult.data[0]
+      data: sanitizeFileRecord(fileResult.data[0])
     });
   } catch (error) {
     console.error('Get file error:', error);
@@ -1007,7 +1053,7 @@ function getContentType(fileType) {
 }
 
 // Update file
-router.put('/:fileId', verifyToken, requireFileAccess, validateFileUpdate, async (req, res) => {
+router.put('/:fileId', verifyToken, requireFileWriteAccess, validateFileUpdate, async (req, res) => {
   try {
     const { fileId } = req.params;
     const { name, description, folderId } = req.body;
@@ -1143,33 +1189,10 @@ router.post('/star/:itemType/:itemId', verifyToken, async (req, res) => {
 // ============================================
 
 // Share a file
-router.post('/:fileId/share', verifyToken, async (req, res) => {
+router.post('/:fileId/share', verifyToken, requireFileOwnerOrAdmin, async (req, res) => {
   try {
     const { fileId } = req.params;
-    const { email, permission, expiresAt, password } = req.body;
-
-    // Check if file exists and user has access
-    const fileResult = await executeQuery(
-      'SELECT id, name, organization_id, uploaded_by FROM files WHERE id = ? AND status = "active"',
-      [fileId]
-    );
-
-    if (!fileResult.success || fileResult.data.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'File not found'
-      });
-    }
-
-    const file = fileResult.data[0];
-
-    // Check permissions - must be file owner or in same organization
-    if (file.uploaded_by !== req.user.id && file.organization_id !== req.user.organization_id) {
-      return res.status(403).json({
-        success: false,
-        message: 'You do not have permission to share this file'
-      });
-    }
+    const { email, permission, expiresAt } = req.body;
 
     let sharedWithUserId = null;
     let shareType = 'link';
@@ -1258,32 +1281,9 @@ router.post('/:fileId/share', verifyToken, async (req, res) => {
 });
 
 // Get all shares for a file
-router.get('/:fileId/shares', verifyToken, async (req, res) => {
+router.get('/:fileId/shares', verifyToken, requireFileOwnerOrAdmin, async (req, res) => {
   try {
     const { fileId } = req.params;
-
-    // Check if file exists and user has access
-    const fileResult = await executeQuery(
-      'SELECT id, organization_id, uploaded_by FROM files WHERE id = ? AND status = "active"',
-      [fileId]
-    );
-
-    if (!fileResult.success || fileResult.data.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'File not found'
-      });
-    }
-
-    const file = fileResult.data[0];
-
-    // Check permissions
-    if (file.uploaded_by !== req.user.id && file.organization_id !== req.user.organization_id) {
-      return res.status(403).json({
-        success: false,
-        message: 'You do not have permission to view shares for this file'
-      });
-    }
 
     // Get all active shares
     const sharesResult = await executeQuery(
@@ -1333,32 +1333,9 @@ router.get('/:fileId/shares', verifyToken, async (req, res) => {
 });
 
 // Revoke a share
-router.delete('/:fileId/shares/:shareId', verifyToken, async (req, res) => {
+router.delete('/:fileId/shares/:shareId', verifyToken, requireFileOwnerOrAdmin, async (req, res) => {
   try {
     const { fileId, shareId } = req.params;
-
-    // Check if file exists and user has access
-    const fileResult = await executeQuery(
-      'SELECT id, organization_id, uploaded_by FROM files WHERE id = ? AND status = "active"',
-      [fileId]
-    );
-
-    if (!fileResult.success || fileResult.data.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'File not found'
-      });
-    }
-
-    const file = fileResult.data[0];
-
-    // Check permissions
-    if (file.uploaded_by !== req.user.id && file.organization_id !== req.user.organization_id) {
-      return res.status(403).json({
-        success: false,
-        message: 'You do not have permission to revoke shares for this file'
-      });
-    }
 
     // Check if share exists
     const shareResult = await executeQuery(
@@ -1725,7 +1702,7 @@ router.get('/starred/list', verifyToken, async (req, res) => {
     res.json({
       success: true,
       data: {
-        files: starredFilesResult.data,
+        files: sanitizeFileRecords(starredFilesResult.data),
         folders: starredFoldersResult.data
       }
     });
@@ -1751,6 +1728,11 @@ router.get('/trash/list', verifyToken, validatePagination, async (req, res) => {
     if (req.user.role !== 'platform_owner') {
       whereConditions.push('f.organization_id = ?');
       queryParams.push(req.user.organization_id);
+    }
+
+    if (!['organization_admin', 'platform_owner'].includes(req.user.role)) {
+      whereConditions.push('f.uploaded_by = ?');
+      queryParams.push(req.user.id);
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
@@ -1789,7 +1771,7 @@ router.get('/trash/list', verifyToken, validatePagination, async (req, res) => {
     res.json({
       success: true,
       data: {
-        files: filesResult.data,
+        files: sanitizeFileRecords(filesResult.data),
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -1808,7 +1790,7 @@ router.get('/trash/list', verifyToken, validatePagination, async (req, res) => {
 });
 
 // Restore file from trash
-router.post('/:fileId/restore', verifyToken, requireFileAccess, async (req, res) => {
+router.post('/:fileId/restore', verifyToken, requireDeletedFileOwnerOrAdmin, async (req, res) => {
   try {
     const { fileId } = req.params;
 
@@ -1845,7 +1827,7 @@ router.post('/:fileId/restore', verifyToken, requireFileAccess, async (req, res)
 });
 
 // Permanently delete file
-router.delete('/:fileId/permanent', verifyToken, requireFileAccess, async (req, res) => {
+router.delete('/:fileId/permanent', verifyToken, requireDeletedFileOwnerOrAdmin, async (req, res) => {
   try {
     const { fileId } = req.params;
 
@@ -1912,7 +1894,7 @@ router.delete('/:fileId/permanent', verifyToken, requireFileAccess, async (req, 
 });
 
 // Delete file (soft delete - move to trash)
-router.delete('/:fileId', verifyToken, requireFileAccess, async (req, res) => {
+router.delete('/:fileId', verifyToken, requireFileOwnerOrAdmin, async (req, res) => {
   try {
     const { fileId } = req.params;
 
@@ -2115,10 +2097,11 @@ router.get('/folders/:folderId', verifyToken, async (req, res) => {
 // Create folder
 router.post('/folders', verifyToken, validateFolder, async (req, res) => {
   try {
+    const redactedBody = redactSensitive(req.body);
     console.log('📁 [FOLDERS] Create folder request:', {
-      body: req.body,
+      body: redactedBody,
       bodyType: typeof req.body,
-      bodyString: JSON.stringify(req.body),
+      bodyString: JSON.stringify(redactedBody),
       user: req.user.email,
       organizationId: req.user.organization_id,
       contentType: req.headers['content-type']
@@ -2236,7 +2219,7 @@ router.post('/folders', verifyToken, validateFolder, async (req, res) => {
 });
 
 // Rename file
-router.put('/:fileId/rename', verifyToken, async (req, res) => {
+router.put('/:fileId/rename', verifyToken, requireFileWriteAccess, async (req, res) => {
   try {
     const { fileId } = req.params;
     const { name } = req.body;
@@ -2263,8 +2246,8 @@ router.put('/:fileId/rename', verifyToken, async (req, res) => {
 
     const file = fileResult.data[0];
 
-    // Check permissions
-    if (file.organization_id !== req.user.organization_id) {
+    // Platform owners are checked by middleware; others must remain in the file org.
+    if (req.user.role !== 'platform_owner' && file.organization_id !== req.user.organization_id) {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to rename this file'
@@ -2304,7 +2287,7 @@ router.put('/:fileId/rename', verifyToken, async (req, res) => {
 });
 
 // Move file to folder
-router.put('/:fileId/move', verifyToken, async (req, res) => {
+router.put('/:fileId/move', verifyToken, requireFileWriteAccess, async (req, res) => {
   try {
     const { fileId } = req.params;
     const { folderId } = req.body;
@@ -2324,8 +2307,8 @@ router.put('/:fileId/move', verifyToken, async (req, res) => {
 
     const file = fileResult.data[0];
 
-    // Check permissions
-    if (file.organization_id !== req.user.organization_id) {
+    // Platform owners are checked by middleware; others must remain in the file org.
+    if (req.user.role !== 'platform_owner' && file.organization_id !== req.user.organization_id) {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to move this file'

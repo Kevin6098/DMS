@@ -3,8 +3,9 @@ const app = require('../server');
 const { executeQuery } = require('../config/database');
 const fs = require('fs');
 const path = require('path');
+const describeDb = process.env.RUN_DB_TESTS === 'true' ? describe : describe.skip;
 
-describe('Files API', () => {
+describeDb('Files API', () => {
   let testToken;
   let testOrgId;
   let testUserId;
@@ -262,4 +263,3 @@ describe('Files API', () => {
     });
   });
 });
-

@@ -1,16 +1,20 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import Login from '../Login';
 import { AuthProvider } from '../../contexts/AuthContext';
+import { authService } from '../../services/authService';
+import { toast } from 'react-hot-toast';
 
 // Mock the API service
 jest.mock('../../services/authService', () => ({
   authService: {
     login: jest.fn(),
     register: jest.fn(),
+    setAuthData: jest.fn(),
     getAuthData: jest.fn(() => ({ token: null, user: null, refreshToken: null })),
+    verifyToken: jest.fn(),
     clearAuthData: jest.fn(),
   },
 }));
@@ -23,12 +27,18 @@ jest.mock('react-router-dom', () => ({
 }));
 
 // Mock react-hot-toast
-jest.mock('react-hot-toast', () => ({
-  toast: {
+jest.mock('react-hot-toast', () => {
+  const toastMock = {
     success: jest.fn(),
     error: jest.fn(),
-  },
-}));
+  };
+
+  return {
+    __esModule: true,
+    default: toastMock,
+    toast: toastMock,
+  };
+});
 
 // Test wrapper component
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -39,9 +49,21 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </BrowserRouter>
 );
 
+const getInputById = (id: string) => document.getElementById(id) as HTMLInputElement;
+const getLoginForm = () => document.getElementById('login-form') as HTMLElement;
+
+const clickCreateAccountOption = async (user: ReturnType<typeof userEvent.setup>, optionText: string) => {
+  await user.click(screen.getByRole('button', { name: /create account/i }));
+  const optionsPanel = document.getElementById('create-account-options') as HTMLElement;
+  await user.click(within(optionsPanel).getByText(optionText));
+};
+
 describe('Login Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (authService.getAuthData as jest.Mock).mockReturnValue({ token: null, user: null, refreshToken: null });
+    (authService.login as jest.Mock).mockResolvedValue({ success: false, message: 'Invalid email or password' });
+    (authService.register as jest.Mock).mockResolvedValue({ success: true });
   });
 
   it('renders login form by default', () => {
@@ -51,11 +73,10 @@ describe('Login Component', () => {
       </TestWrapper>
     );
 
-    expect(screen.getByText('Task Insight')).toBeInTheDocument();
-    expect(screen.getByText('Document Management System')).toBeInTheDocument();
-    expect(screen.getByLabelText('Email')).toBeInTheDocument();
-    expect(screen.getByLabelText('Password')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+    expect(screen.getByAltText('Task Insight')).toBeInTheDocument();
+    expect(getInputById('login-email')).toBeInTheDocument();
+    expect(getInputById('login-password')).toBeInTheDocument();
+    expect(within(getLoginForm()).getByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
   });
 
   it('switches to create account options when clicking create account tab', async () => {
@@ -67,12 +88,13 @@ describe('Login Component', () => {
       </TestWrapper>
     );
 
-    const createAccountTab = screen.getByRole('button', { name: /create account/i });
-    await user.click(createAccountTab);
+    await user.click(screen.getByRole('button', { name: /create account/i }));
 
+    const optionsPanel = document.getElementById('create-account-options') as HTMLElement;
+    expect(optionsPanel).toHaveClass('active');
     expect(screen.getByText('How would you like to create your account?')).toBeInTheDocument();
-    expect(screen.getByText('Join Organization')).toBeInTheDocument();
-    expect(screen.getByText('Task Insight Admin')).toBeInTheDocument();
+    expect(within(optionsPanel).getByText('Join Organization')).toBeInTheDocument();
+    expect(within(optionsPanel).getByText('Task Insight Admin')).toBeInTheDocument();
   });
 
   it('shows registration form when selecting join organization option', async () => {
@@ -84,19 +106,15 @@ describe('Login Component', () => {
       </TestWrapper>
     );
 
-    // Navigate to create account options
-    const createAccountTab = screen.getByRole('button', { name: /create account/i });
-    await user.click(createAccountTab);
+    await clickCreateAccountOption(user, 'Join Organization');
 
-    // Select join organization option
-    const joinOrgOption = screen.getByText('Join Organization');
-    await user.click(joinOrgOption);
-
-    expect(screen.getByText('Join Organization')).toBeInTheDocument();
-    expect(screen.getByLabelText('Invitation Code')).toBeInTheDocument();
-    expect(screen.getByLabelText('First Name')).toBeInTheDocument();
-    expect(screen.getByLabelText('Last Name')).toBeInTheDocument();
-    expect(screen.getByLabelText('Email')).toBeInTheDocument();
+    const registerForm = document.getElementById('register-form') as HTMLElement;
+    expect(registerForm).toHaveClass('active');
+    expect(within(registerForm).getByRole('heading', { name: 'Join Organization' })).toBeInTheDocument();
+    expect(getInputById('invitation-code')).toBeInTheDocument();
+    expect(getInputById('register-firstname')).toBeInTheDocument();
+    expect(getInputById('register-lastname')).toBeInTheDocument();
+    expect(getInputById('register-email')).toBeInTheDocument();
   });
 
   it('shows admin form when selecting admin option', async () => {
@@ -108,17 +126,12 @@ describe('Login Component', () => {
       </TestWrapper>
     );
 
-    // Navigate to create account options
-    const createAccountTab = screen.getByRole('button', { name: /create account/i });
-    await user.click(createAccountTab);
+    await clickCreateAccountOption(user, 'Task Insight Admin');
 
-    // Select admin option
-    const adminOption = screen.getByText('Task Insight Admin');
-    await user.click(adminOption);
-
+    expect(document.getElementById('admin-form')).toHaveClass('active');
     expect(screen.getByText('Task Insight Admin Access')).toBeInTheDocument();
-    expect(screen.getByLabelText('Admin Email')).toBeInTheDocument();
-    expect(screen.getByLabelText('Admin Password')).toBeInTheDocument();
+    expect(getInputById('admin-email')).toBeInTheDocument();
+    expect(getInputById('admin-password')).toBeInTheDocument();
   });
 
   it('validates required fields in login form', async () => {
@@ -130,12 +143,12 @@ describe('Login Component', () => {
       </TestWrapper>
     );
 
-    const loginButton = screen.getByRole('button', { name: /sign in/i });
+    const loginButton = within(getLoginForm()).getByRole('button', { name: /^sign in$/i });
     await user.click(loginButton);
 
     // Check that required validation is triggered
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
+    const emailInput = getInputById('login-email');
+    const passwordInput = getInputById('login-password');
 
     expect(emailInput).toBeRequired();
     expect(passwordInput).toBeRequired();
@@ -150,17 +163,14 @@ describe('Login Component', () => {
       </TestWrapper>
     );
 
-    // Navigate to registration form
-    const createAccountTab = screen.getByRole('button', { name: /create account/i });
-    await user.click(createAccountTab);
-
-    const joinOrgOption = screen.getByText('Join Organization');
-    await user.click(joinOrgOption);
+    await clickCreateAccountOption(user, 'Join Organization');
 
     // Click back button
-    const backButton = screen.getByRole('button', { name: /back to options/i });
+    const registerForm = document.getElementById('register-form') as HTMLElement;
+    const backButton = within(registerForm).getByRole('button', { name: /back to options/i });
     await user.click(backButton);
 
+    expect(document.getElementById('create-account-options')).toHaveClass('active');
     expect(screen.getByText('How would you like to create your account?')).toBeInTheDocument();
   });
 
@@ -173,32 +183,26 @@ describe('Login Component', () => {
       </TestWrapper>
     );
 
-    // Navigate to registration form
-    const createAccountTab = screen.getByRole('button', { name: /create account/i });
-    await user.click(createAccountTab);
-
-    const joinOrgOption = screen.getByText('Join Organization');
-    await user.click(joinOrgOption);
+    await clickCreateAccountOption(user, 'Join Organization');
 
     // Fill out form with mismatched passwords
-    await user.type(screen.getByLabelText('Invitation Code'), 'TEST123');
-    await user.type(screen.getByLabelText('First Name'), 'John');
-    await user.type(screen.getByLabelText('Last Name'), 'Doe');
-    await user.type(screen.getByLabelText('Email'), 'john@example.com');
-    await user.type(screen.getByLabelText('Password'), 'password123');
-    await user.type(screen.getByLabelText('Confirm Password'), 'different123');
+    await user.type(getInputById('invitation-code'), 'TEST123');
+    await user.type(getInputById('register-firstname'), 'John');
+    await user.type(getInputById('register-lastname'), 'Doe');
+    await user.type(getInputById('register-email'), 'john@example.com');
+    await user.type(getInputById('register-password'), 'password123');
+    await user.type(getInputById('register-confirm'), 'different123');
 
-    const registerButton = screen.getByRole('button', { name: /join organization/i });
+    const registerForm = document.getElementById('register-form') as HTMLElement;
+    const registerButton = within(registerForm).getByRole('button', { name: /join organization/i });
     await user.click(registerButton);
 
-    // Should show error for password mismatch
-    await waitFor(() => {
-      expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
-    });
+    expect(toast.error).toHaveBeenCalledWith('Passwords do not match');
   });
 
   it('shows loading state during form submission', async () => {
     const user = userEvent.setup();
+    (authService.login as jest.Mock).mockReturnValue(new Promise(() => {}));
     
     render(
       <TestWrapper>
@@ -207,10 +211,10 @@ describe('Login Component', () => {
     );
 
     // Fill out login form
-    await user.type(screen.getByLabelText('Email'), 'test@example.com');
-    await user.type(screen.getByLabelText('Password'), 'password123');
+    await user.type(getInputById('login-email'), 'test@example.com');
+    await user.type(getInputById('login-password'), 'password123');
 
-    const loginButton = screen.getByRole('button', { name: /sign in/i });
+    const loginButton = within(getLoginForm()).getByRole('button', { name: /^sign in$/i });
     await user.click(loginButton);
 
     // Should show loading state
