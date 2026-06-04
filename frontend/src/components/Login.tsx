@@ -52,10 +52,8 @@ const Login: React.FC = () => {
       if (!isLoading && isAuthenticated) {
         // Check if user is admin (platform owner or organization admin)
         if (isPlatformOwner() || isOrganizationAdmin()) {
-          console.log('User is authenticated admin, redirecting to admin panel');
           navigate('/admin', { replace: true });
         } else {
-          console.log('User is authenticated, redirecting to dashboard');
           navigate('/dashboard/my-drive', { replace: true });
         }
     }
@@ -83,35 +81,28 @@ const Login: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const email = (document.getElementById('login-email') as HTMLInputElement)?.value;
-      const password = (document.getElementById('login-password') as HTMLInputElement)?.value;
-      
-      console.log('🔐 [LOGIN] Starting login process...');
-      console.log('🔐 [LOGIN] Email:', email);
-      console.log('🔐 [LOGIN] Password provided:', password ? '***' : 'MISSING');
-      
+      const emailInput = document.getElementById('login-email') as HTMLInputElement;
+      const passwordInput = document.getElementById('login-password') as HTMLInputElement;
+      const email = emailInput?.value;
+      const password = passwordInput?.value;
+
       if (!email || !password) {
-        console.error('❌ [LOGIN] Missing email or password');
         toast.error('Please fill in all fields');
         return;
       }
 
-      console.log('🔐 [LOGIN] Calling login function...');
+      if (!emailInput.checkValidity()) {
+        toast.error('Please provide a valid email address');
+        return;
+      }
+
       const success = await login(email, password);
-      console.log('🔐 [LOGIN] Login result:', success);
       
       if (success) {
-        console.log('✅ [LOGIN] Login successful, navigating to dashboard');
         navigate('/dashboard/my-drive');
-      } else {
-        console.error('❌ [LOGIN] Login failed');
       }
     } catch (error) {
-      console.error('❌ [LOGIN] Login error:', error);
-      console.error('❌ [LOGIN] Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      });
+      console.error('Login error:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -122,35 +113,28 @@ const Login: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const email = (document.getElementById('admin-email') as HTMLInputElement)?.value;
-      const password = (document.getElementById('admin-password') as HTMLInputElement)?.value;
-      
-      console.log('🔐 [ADMIN LOGIN] Starting admin login process...');
-      console.log('🔐 [ADMIN LOGIN] Email:', email);
-      console.log('🔐 [ADMIN LOGIN] Password provided:', password ? '***' : 'MISSING');
-      
+      const emailInput = document.getElementById('admin-email') as HTMLInputElement;
+      const passwordInput = document.getElementById('admin-password') as HTMLInputElement;
+      const email = emailInput?.value;
+      const password = passwordInput?.value;
+
       if (!email || !password) {
-        console.error('❌ [ADMIN LOGIN] Missing email or password');
         toast.error('Please fill in all fields');
         return;
       }
 
-      console.log('🔐 [ADMIN LOGIN] Calling login function with admin flag...');
+      if (!emailInput.checkValidity()) {
+        toast.error('Please provide a valid email address');
+        return;
+      }
+
       const success = await login(email, password, true);
-      console.log('🔐 [ADMIN LOGIN] Login result:', success);
       
       if (success) {
-        console.log('✅ [ADMIN LOGIN] Login successful, navigating to admin panel');
         navigate('/admin');
-      } else {
-        console.error('❌ [ADMIN LOGIN] Login failed');
       }
     } catch (error) {
-      console.error('❌ [ADMIN LOGIN] Admin login error:', error);
-      console.error('❌ [ADMIN LOGIN] Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      });
+      console.error('Admin login error:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -164,12 +148,18 @@ const Login: React.FC = () => {
       const invitationCode = (document.getElementById('invitation-code') as HTMLInputElement)?.value;
       const firstName = (document.getElementById('register-firstname') as HTMLInputElement)?.value;
       const lastName = (document.getElementById('register-lastname') as HTMLInputElement)?.value;
-      const email = (document.getElementById('register-email') as HTMLInputElement)?.value;
+      const emailInput = document.getElementById('register-email') as HTMLInputElement;
+      const email = emailInput?.value;
       const password = (document.getElementById('register-password') as HTMLInputElement)?.value;
       const confirmPassword = (document.getElementById('register-confirm') as HTMLInputElement)?.value;
       
       if (!firstName || !lastName || !email || !password || !confirmPassword) {
         toast.error('Please fill in all fields');
+        return;
+      }
+
+      if (!emailInput.checkValidity()) {
+        toast.error('Please provide a valid email address');
         return;
       }
       
@@ -180,6 +170,11 @@ const Login: React.FC = () => {
 
       if (!password || password.trim() === '') {
         toast.error('Password is required');
+        return;
+      }
+
+      if (password.length < 6) {
+        toast.error('Password must be at least 6 characters long');
         return;
       }
 

@@ -1,57 +1,33 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
-import { AuthProvider } from '../contexts/AuthContext';
-import { FileProvider } from '../contexts/FileContext';
+import { authService } from '../services/authService';
+import { fileService } from '../services/fileService';
+import { reminderService } from '../services/reminderService';
+import { toast } from 'react-hot-toast';
 
-// Mock the API services
+const testUser = {
+  id: 1,
+  email: 'test@example.com',
+  firstName: 'John',
+  lastName: 'Doe',
+  role: 'member',
+  organizationId: 1,
+  organizationName: 'Test Organization',
+  status: 'active',
+};
+
 jest.mock('../services/authService', () => ({
   authService: {
-    login: jest.fn(() => Promise.resolve({
-      success: true,
-      data: {
-        token: 'mock-token',
-        refreshToken: 'mock-refresh-token',
-        user: {
-          id: 1,
-          email: 'test@example.com',
-          firstName: 'John',
-          lastName: 'Doe',
-          role: 'member',
-          organizationId: 1,
-          organizationName: 'Test Organization',
-          status: 'active'
-        }
-      }
-    })),
-    register: jest.fn(() => Promise.resolve({
-      success: true,
-      data: {
-        userId: 1,
-        email: 'test@example.com',
-        firstName: 'John',
-        lastName: 'Doe'
-      }
-    })),
-    getAuthData: jest.fn(() => ({ token: null, user: null, refreshToken: null })),
+    login: jest.fn(),
+    register: jest.fn(),
+    setAuthData: jest.fn(),
+    getAuthData: jest.fn(),
     clearAuthData: jest.fn(),
-    verifyToken: jest.fn(() => Promise.resolve({
-      success: true,
-      data: {
-        user: {
-          id: 1,
-          email: 'test@example.com',
-          firstName: 'John',
-          lastName: 'Doe',
-          role: 'member',
-          organizationId: 1,
-          organizationName: 'Test Organization',
-          status: 'active'
-        }
-      }
-    })),
+    verifyToken: jest.fn(),
+    refreshToken: jest.fn(),
+    logout: jest.fn(),
   },
 }));
 
@@ -60,128 +36,181 @@ jest.mock('../services/fileService', () => ({
     getFiles: jest.fn(() => Promise.resolve({
       success: true,
       data: {
-        data: [],
-        pagination: {
-          page: 1,
-          limit: 10,
-          total: 0,
-          pages: 0
-        }
-      }
+        files: [],
+        pagination: { page: 1, limit: 10, total: 0, pages: 0 },
+      },
     })),
-    getFolders: jest.fn(() => Promise.resolve({
-      success: true,
-      data: []
-    })),
+    getFolders: jest.fn(() => Promise.resolve({ success: true, data: [] })),
     getFileStats: jest.fn(() => Promise.resolve({
       success: true,
-      data: {
-        totalFiles: 0,
-        totalSize: 0,
-        typeStats: [],
-        recentUploads: 0
-      }
+      data: { totalFiles: 0, totalSize: 0, typeStats: [], recentUploads: 0 },
     })),
+    getStarredItems: jest.fn(() => Promise.resolve({ success: true, data: { files: [], folders: [] } })),
+    getSharedWithMe: jest.fn(() => Promise.resolve({
+      success: true,
+      data: { files: [], pagination: { page: 1, limit: 50, total: 0, pages: 0 } },
+    })),
+    getDeletedFiles: jest.fn(() => Promise.resolve({
+      success: true,
+      data: { files: [], pagination: { page: 1, limit: 10, total: 0, pages: 0 } },
+    })),
+    getFileIcon: jest.fn(() => 'fas fa-file-alt'),
+    formatFileSize: jest.fn(() => '0 Bytes'),
+    isImage: jest.fn(() => false),
   },
 }));
 
-// Mock react-router-dom
+jest.mock('../services/reminderService', () => ({
+  reminderService: {
+    getPendingReminders: jest.fn(() => Promise.resolve({ success: true, data: [] })),
+    getTodoDocuments: jest.fn(() => Promise.resolve({
+      success: true,
+      data: {
+        data: [],
+        summary: { overdue: 0, today: 0, upcoming: 0, total: 0 },
+        pagination: { page: 1, limit: 50, total: 0, pages: 0 },
+      },
+    })),
+    isOverdue: jest.fn(() => false),
+    isDueToday: jest.fn(() => false),
+    formatReminderTime: jest.fn(() => 'Today'),
+  },
+}));
+
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
 }));
 
-// Mock react-hot-toast
-jest.mock('react-hot-toast', () => ({
-  toast: {
+jest.mock('react-hot-toast', () => {
+  const toastMock = {
     success: jest.fn(),
     error: jest.fn(),
-  },
-}));
+  };
 
-// Test wrapper component
-const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <BrowserRouter>
-    <AuthProvider>
-      <FileProvider>
-        {children}
-      </FileProvider>
-    </AuthProvider>
-  </BrowserRouter>
-);
+  return {
+    __esModule: true,
+    default: toastMock,
+    toast: toastMock,
+    Toaster: () => null,
+  };
+});
+
+const getInputById = (id: string) => document.getElementById(id) as HTMLInputElement;
+const getPanelById = (id: string) => document.getElementById(id) as HTMLElement;
+
+const renderLoginRoute = () => {
+  window.history.pushState({}, '', '/login');
+  return render(<App />);
+};
+
+const clickCreateAccountOption = async (user: ReturnType<typeof userEvent.setup>, optionText: string) => {
+  await user.click(screen.getByRole('button', { name: /create account/i }));
+  await user.click(within(getPanelById('create-account-options')).getByText(optionText));
+};
 
 describe('Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (authService.getAuthData as jest.Mock).mockReturnValue({ token: null, user: null, refreshToken: null });
+    (authService.verifyToken as jest.Mock).mockResolvedValue({ success: true, data: { user: testUser } });
+    (authService.login as jest.Mock).mockResolvedValue({
+      success: true,
+      data: {
+        token: 'mock-token',
+        refreshToken: 'mock-refresh-token',
+        user: testUser,
+      },
+    });
+    (authService.register as jest.Mock).mockResolvedValue({
+      success: true,
+      data: {
+        userId: testUser.id,
+        email: testUser.email,
+        firstName: testUser.firstName,
+        lastName: testUser.lastName,
+      },
+    });
+
+    (fileService.getFiles as jest.Mock).mockResolvedValue({
+      success: true,
+      data: {
+        files: [],
+        pagination: { page: 1, limit: 10, total: 0, pages: 0 },
+      },
+    });
+    (fileService.getFolders as jest.Mock).mockResolvedValue({ success: true, data: [] });
+    (fileService.getFileStats as jest.Mock).mockResolvedValue({
+      success: true,
+      data: { totalFiles: 0, totalSize: 0, typeStats: [], recentUploads: 0 },
+    });
+    (fileService.getStarredItems as jest.Mock).mockResolvedValue({ success: true, data: { files: [], folders: [] } });
+    (fileService.getSharedWithMe as jest.Mock).mockResolvedValue({
+      success: true,
+      data: { files: [], pagination: { page: 1, limit: 50, total: 0, pages: 0 } },
+    });
+    (fileService.getDeletedFiles as jest.Mock).mockResolvedValue({
+      success: true,
+      data: { files: [], pagination: { page: 1, limit: 10, total: 0, pages: 0 } },
+    });
+    (fileService.getFileIcon as jest.Mock).mockReturnValue('fas fa-file-alt');
+    (fileService.formatFileSize as jest.Mock).mockReturnValue('0 Bytes');
+    (fileService.isImage as jest.Mock).mockReturnValue(false);
+
+    (reminderService.getPendingReminders as jest.Mock).mockResolvedValue({ success: true, data: [] });
+    (reminderService.getTodoDocuments as jest.Mock).mockResolvedValue({
+      success: true,
+      data: {
+        data: [],
+        summary: { overdue: 0, today: 0, upcoming: 0, total: 0 },
+        pagination: { page: 1, limit: 50, total: 0, pages: 0 },
+      },
+    });
+    (reminderService.isOverdue as jest.Mock).mockReturnValue(false);
+    (reminderService.isDueToday as jest.Mock).mockReturnValue(false);
+    (reminderService.formatReminderTime as jest.Mock).mockReturnValue('Today');
   });
 
   describe('Authentication Flow', () => {
-    it('redirects to login page by default', () => {
-      render(
-        <TestWrapper>
-          <App />
-        </TestWrapper>
-      );
+    it('renders the login page by default', () => {
+      renderLoginRoute();
 
-      expect(screen.getByText('Task Insight')).toBeInTheDocument();
-      expect(screen.getByText('Document Management System')).toBeInTheDocument();
+      expect(screen.getByAltText('Task Insight')).toBeInTheDocument();
+      expect(getInputById('login-email')).toBeInTheDocument();
+      expect(getInputById('login-password')).toBeInTheDocument();
     });
 
-    it('handles successful login and redirects to dashboard', async () => {
+    it('handles successful login and redirects to the dashboard', async () => {
       const user = userEvent.setup();
-      
-      render(
-        <TestWrapper>
-          <App />
-        </TestWrapper>
-      );
+      renderLoginRoute();
 
-      // Fill out login form
-      await user.type(screen.getByLabelText('Email'), 'test@example.com');
-      await user.type(screen.getByLabelText('Password'), 'password123');
+      await user.type(getInputById('login-email'), 'test@example.com');
+      await user.type(getInputById('login-password'), 'password123');
+      await user.click(within(getPanelById('login-form')).getByRole('button', { name: /^sign in$/i }));
 
-      // Submit form
-      const loginButton = screen.getByRole('button', { name: /sign in/i });
-      await user.click(loginButton);
-
-      // Should redirect to dashboard after successful login
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+        expect(authService.setAuthData).toHaveBeenCalledWith('mock-token', testUser, 'mock-refresh-token');
+        expect(mockNavigate).toHaveBeenCalledWith('/dashboard/my-drive');
       });
     });
 
     it('handles successful registration and switches to login', async () => {
       const user = userEvent.setup();
-      
-      render(
-        <TestWrapper>
-          <App />
-        </TestWrapper>
-      );
+      renderLoginRoute();
 
-      // Navigate to registration form
-      const createAccountTab = screen.getByRole('button', { name: /create account/i });
-      await user.click(createAccountTab);
+      await clickCreateAccountOption(user, 'Join Organization');
 
-      const joinOrgOption = screen.getByText('Join Organization');
-      await user.click(joinOrgOption);
+      await user.type(getInputById('invitation-code'), 'TEST123');
+      await user.type(getInputById('register-firstname'), 'John');
+      await user.type(getInputById('register-lastname'), 'Doe');
+      await user.type(getInputById('register-email'), 'john@example.com');
+      await user.type(getInputById('register-password'), 'password123');
+      await user.type(getInputById('register-confirm'), 'password123');
+      await user.click(within(getPanelById('register-form')).getByRole('button', { name: /join organization/i }));
 
-      // Fill out registration form
-      await user.type(screen.getByLabelText('Invitation Code'), 'TEST123');
-      await user.type(screen.getByLabelText('First Name'), 'John');
-      await user.type(screen.getByLabelText('Last Name'), 'Doe');
-      await user.type(screen.getByLabelText('Email'), 'john@example.com');
-      await user.type(screen.getByLabelText('Password'), 'password123');
-      await user.type(screen.getByLabelText('Confirm Password'), 'password123');
-
-      // Submit form
-      const registerButton = screen.getByRole('button', { name: /join organization/i });
-      await user.click(registerButton);
-
-      // Should switch back to login form after successful registration
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+        expect(getPanelById('login-form')).toHaveClass('active');
       });
     });
   });
@@ -189,174 +218,94 @@ describe('Integration Tests', () => {
   describe('Navigation Flow', () => {
     it('navigates between login and create account tabs', async () => {
       const user = userEvent.setup();
-      
-      render(
-        <TestWrapper>
-          <App />
-        </TestWrapper>
-      );
+      renderLoginRoute();
 
-      // Should start on login tab
-      expect(screen.getByLabelText('Email')).toBeInTheDocument();
+      expect(getPanelById('login-form')).toHaveClass('active');
 
-      // Switch to create account tab
-      const createAccountTab = screen.getByRole('button', { name: /create account/i });
-      await user.click(createAccountTab);
+      await user.click(screen.getByRole('button', { name: /create account/i }));
+      expect(getPanelById('create-account-options')).toHaveClass('active');
 
-      expect(screen.getByText('How would you like to create your account?')).toBeInTheDocument();
-
-      // Switch back to login tab
-      const loginTab = screen.getByRole('button', { name: /login/i });
-      await user.click(loginTab);
-
-      expect(screen.getByLabelText('Email')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: /login/i }));
+      expect(getPanelById('login-form')).toHaveClass('active');
     });
 
     it('navigates between registration options', async () => {
       const user = userEvent.setup();
-      
-      render(
-        <TestWrapper>
-          <App />
-        </TestWrapper>
-      );
+      renderLoginRoute();
 
-      // Navigate to create account options
-      const createAccountTab = screen.getByRole('button', { name: /create account/i });
-      await user.click(createAccountTab);
+      await clickCreateAccountOption(user, 'Join Organization');
+      expect(getPanelById('register-form')).toHaveClass('active');
+      expect(getInputById('invitation-code')).toBeInTheDocument();
 
-      // Select join organization option
-      const joinOrgOption = screen.getByText('Join Organization');
-      await user.click(joinOrgOption);
+      await user.click(within(getPanelById('register-form')).getByRole('button', { name: /back to options/i }));
+      expect(getPanelById('create-account-options')).toHaveClass('active');
 
-      expect(screen.getByLabelText('Invitation Code')).toBeInTheDocument();
-
-      // Go back to options
-      const backButton = screen.getByRole('button', { name: /back to options/i });
-      await user.click(backButton);
-
-      expect(screen.getByText('How would you like to create your account?')).toBeInTheDocument();
-
-      // Select admin option
-      const adminOption = screen.getByText('Task Insight Admin');
-      await user.click(adminOption);
-
-      expect(screen.getByLabelText('Admin Email')).toBeInTheDocument();
+      await user.click(within(getPanelById('create-account-options')).getByText('Task Insight Admin'));
+      expect(getPanelById('admin-form')).toHaveClass('active');
+      expect(getInputById('admin-email')).toBeInTheDocument();
     });
   });
 
   describe('Form Validation', () => {
     it('validates email format in login form', async () => {
       const user = userEvent.setup();
-      
-      render(
-        <TestWrapper>
-          <App />
-        </TestWrapper>
-      );
+      renderLoginRoute();
 
-      // Enter invalid email
-      await user.type(screen.getByLabelText('Email'), 'invalid-email');
-      await user.type(screen.getByLabelText('Password'), 'password123');
+      await user.type(getInputById('login-email'), 'invalid-email');
+      await user.type(getInputById('login-password'), 'password123');
+      await user.click(within(getPanelById('login-form')).getByRole('button', { name: /^sign in$/i }));
 
-      const loginButton = screen.getByRole('button', { name: /sign in/i });
-      await user.click(loginButton);
-
-      // Should show validation error
-      await waitFor(() => {
-        const emailInput = screen.getByLabelText('Email') as HTMLInputElement;
-        expect(emailInput.validity.valid).toBe(false);
-      });
+      expect(getInputById('login-email').validity.valid).toBe(false);
+      expect(authService.login).not.toHaveBeenCalled();
     });
 
     it('validates password length in registration form', async () => {
       const user = userEvent.setup();
-      
-      render(
-        <TestWrapper>
-          <App />
-        </TestWrapper>
-      );
+      renderLoginRoute();
 
-      // Navigate to registration form
-      const createAccountTab = screen.getByRole('button', { name: /create account/i });
-      await user.click(createAccountTab);
+      await clickCreateAccountOption(user, 'Join Organization');
 
-      const joinOrgOption = screen.getByText('Join Organization');
-      await user.click(joinOrgOption);
+      await user.type(getInputById('invitation-code'), 'TEST123');
+      await user.type(getInputById('register-firstname'), 'John');
+      await user.type(getInputById('register-lastname'), 'Doe');
+      await user.type(getInputById('register-email'), 'john@example.com');
+      await user.type(getInputById('register-password'), '123');
+      await user.type(getInputById('register-confirm'), '123');
+      await user.click(within(getPanelById('register-form')).getByRole('button', { name: /join organization/i }));
 
-      // Fill out form with short password
-      await user.type(screen.getByLabelText('Invitation Code'), 'TEST123');
-      await user.type(screen.getByLabelText('First Name'), 'John');
-      await user.type(screen.getByLabelText('Last Name'), 'Doe');
-      await user.type(screen.getByLabelText('Email'), 'john@example.com');
-      await user.type(screen.getByLabelText('Password'), '123');
-      await user.type(screen.getByLabelText('Confirm Password'), '123');
-
-      const registerButton = screen.getByRole('button', { name: /join organization/i });
-      await user.click(registerButton);
-
-      // Should show error for short password
-      await waitFor(() => {
-        expect(screen.getByText('Password must be at least 6 characters long')).toBeInTheDocument();
-      });
+      expect(toast.error).toHaveBeenCalledWith('Password must be at least 6 characters long');
+      expect(authService.register).not.toHaveBeenCalled();
     });
   });
 
   describe('Loading States', () => {
     it('shows loading state during login', async () => {
       const user = userEvent.setup();
-      
-      render(
-        <TestWrapper>
-          <App />
-        </TestWrapper>
-      );
+      (authService.login as jest.Mock).mockReturnValue(new Promise(() => {}));
+      renderLoginRoute();
 
-      // Fill out login form
-      await user.type(screen.getByLabelText('Email'), 'test@example.com');
-      await user.type(screen.getByLabelText('Password'), 'password123');
+      await user.type(getInputById('login-email'), 'test@example.com');
+      await user.type(getInputById('login-password'), 'password123');
+      await user.click(within(getPanelById('login-form')).getByRole('button', { name: /^sign in$/i }));
 
-      const loginButton = screen.getByRole('button', { name: /sign in/i });
-      await user.click(loginButton);
-
-      // Should show loading state
-      await waitFor(() => {
-        expect(screen.getByText(/logging in/i)).toBeInTheDocument();
-      });
+      expect(await screen.findByText(/logging in/i)).toBeInTheDocument();
     });
 
     it('shows loading state during registration', async () => {
       const user = userEvent.setup();
-      
-      render(
-        <TestWrapper>
-          <App />
-        </TestWrapper>
-      );
+      (authService.register as jest.Mock).mockReturnValue(new Promise(() => {}));
+      renderLoginRoute();
 
-      // Navigate to registration form
-      const createAccountTab = screen.getByRole('button', { name: /create account/i });
-      await user.click(createAccountTab);
+      await clickCreateAccountOption(user, 'Join Organization');
+      await user.type(getInputById('invitation-code'), 'TEST123');
+      await user.type(getInputById('register-firstname'), 'John');
+      await user.type(getInputById('register-lastname'), 'Doe');
+      await user.type(getInputById('register-email'), 'john@example.com');
+      await user.type(getInputById('register-password'), 'password123');
+      await user.type(getInputById('register-confirm'), 'password123');
+      await user.click(within(getPanelById('register-form')).getByRole('button', { name: /join organization/i }));
 
-      const joinOrgOption = screen.getByText('Join Organization');
-      await user.click(joinOrgOption);
-
-      // Fill out registration form
-      await user.type(screen.getByLabelText('Invitation Code'), 'TEST123');
-      await user.type(screen.getByLabelText('First Name'), 'John');
-      await user.type(screen.getByLabelText('Last Name'), 'Doe');
-      await user.type(screen.getByLabelText('Email'), 'john@example.com');
-      await user.type(screen.getByLabelText('Password'), 'password123');
-      await user.type(screen.getByLabelText('Confirm Password'), 'password123');
-
-      const registerButton = screen.getByRole('button', { name: /join organization/i });
-      await user.click(registerButton);
-
-      // Should show loading state
-      await waitFor(() => {
-        expect(screen.getByText(/registering/i)).toBeInTheDocument();
-      });
+      expect(await screen.findByText(/registering/i)).toBeInTheDocument();
     });
   });
 });

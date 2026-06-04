@@ -78,7 +78,7 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams<{ folderId?: string }>();
-  const { user, logout, isAuthenticated, isOrganizationAdmin } = useAuth();
+  const { user, logout, isAuthenticated, isOrganizationAdmin, isPlatformOwner } = useAuth();
   const { 
     files = [], 
     folders = [], 
@@ -188,6 +188,34 @@ const Dashboard: React.FC = () => {
   // Sort state
   const [sortCriteria, setSortCriteria] = useState<'name' | 'dateModified' | 'dateModifiedByMe' | 'dateOpenedByMe'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const hasAdminFileRights = () => isPlatformOwner() || isOrganizationAdmin();
+
+  const canManageItem = (item: FileItem | Folder, type: 'file' | 'folder') => {
+    if (!user) return false;
+    if (hasAdminFileRights()) return true;
+
+    const ownerId = type === 'file'
+      ? (item as FileItem).uploaded_by
+      : (item as Folder).created_by;
+
+    return ownerId === user.id;
+  };
+
+  const canEditItem = (item: FileItem | Folder, type: 'file' | 'folder') => {
+    if (canManageItem(item, type)) return true;
+    if (type !== 'file') return false;
+
+    return (item as FileItem).permission_level === 'edit';
+  };
+
+  const contextCanEdit = Boolean(
+    contextMenu.item && contextMenu.type && canEditItem(contextMenu.item, contextMenu.type)
+  );
+
+  const contextCanManage = Boolean(
+    contextMenu.item && contextMenu.type && canManageItem(contextMenu.item, contextMenu.type)
+  );
   const [showSortMenu, setShowSortMenu] = useState(false);
   const sortMenuRef = useRef<HTMLDivElement>(null);
 
@@ -519,12 +547,6 @@ const Dashboard: React.FC = () => {
         cleanFolderData.parentId = parentIdValue;
       }
       
-      console.log('📁 [CREATE FOLDER] Sending folder data:', {
-        cleanFolderData,
-        currentFolder,
-        parentIdValue
-      });
-      
       const success = await createFolder(cleanFolderData);
       
       if (success) {
@@ -601,7 +623,7 @@ const Dashboard: React.FC = () => {
 
   // Handle permanent deletion
   const handlePermanentDelete = async (file: FileItem) => {
-    if (window.confirm(`Are you sure you want to PERMANENTLY delete "${file.name}"? This action cannot be undone!`)) {
+    if (window.confirm(`Permanently delete "${file.name}"?\n\nThis removes the file from storage and cannot be undone.`)) {
       try {
         const response = await fileService.permanentlyDeleteFile(file.id);
         if (response.success) {
@@ -2677,7 +2699,7 @@ const Dashboard: React.FC = () => {
                     <tr 
                       key={`folder-${folder.id}`}
                       className={`table-row folder-row ${draggedItem && draggedItem.id !== folder.id ? 'folder-drop-target' : ''} ${dragOverFolderId === folder.id ? 'drag-over' : ''}`}
-                      draggable={currentView !== 'trash'}
+                      draggable={currentView !== 'trash' && canEditItem(folder, 'folder')}
                       onDragStart={(e) => handleDragStart(e, folder, 'folder')}
                       onDragEnd={handleDragEnd}
                       onDragOver={(e) => handleFolderDragOver(e, folder.id)}
@@ -2733,7 +2755,7 @@ const Dashboard: React.FC = () => {
                     <tr 
                       key={`file-${file.id}`}
                       className={`table-row file-row ${draggedItem && draggedItem.id === file.id ? 'dragging' : ''}`}
-                      draggable={currentView !== 'trash'}
+                      draggable={currentView !== 'trash' && canEditItem(file, 'file')}
                       onDragStart={(e) => handleDragStart(e, file, 'file')}
                       onDragEnd={handleDragEnd}
                       onClick={(e) => {
@@ -2860,7 +2882,7 @@ const Dashboard: React.FC = () => {
                   <div 
                     key={folder.id} 
                     className={`file-item ${draggedItem && draggedItem.id !== folder.id ? 'folder-drop-target' : ''} ${dragOverFolderId === folder.id ? 'drag-over' : ''} ${draggedItem && draggedItem.id === folder.id ? 'dragging' : ''}`}
-                    draggable={currentView !== 'trash'}
+                    draggable={currentView !== 'trash' && canEditItem(folder, 'folder')}
                     onDragStart={(e) => handleDragStart(e, folder, 'folder')}
                     onDragEnd={handleDragEnd}
                     onDragOver={(e) => handleFolderDragOver(e, folder.id)}
@@ -2899,7 +2921,7 @@ const Dashboard: React.FC = () => {
                       <div 
                         key={file.id} 
                         className={`file-item ${draggedItem && draggedItem.id === file.id ? 'dragging' : ''}`}
-                        draggable={currentView !== 'trash'}
+                        draggable={currentView !== 'trash' && canEditItem(file, 'file')}
                         onDragStart={(e) => handleDragStart(e, file, 'file')}
                         onDragEnd={handleDragEnd}
                         onClick={() => currentView !== 'trash' && handleFileClick(file)}
@@ -2914,7 +2936,12 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div className="file-info">
                     <h4>{file.name}</h4>
-                    <p>{fileService.formatFileSize(file.file_size)} • {new Date(file.created_at).toLocaleDateString()}</p>
+                    <p>
+                      {fileService.formatFileSize(file.file_size)} • {new Date(file.created_at).toLocaleDateString()}
+                      {currentView === 'shared' && file.permission_level && (
+                        <span className="permission-badge">{file.permission_level} access</span>
+                      )}
+                    </p>
                   </div>
                   <div className="file-actions">
                     {currentView === 'trash' ? (
@@ -3276,28 +3303,36 @@ const Dashboard: React.FC = () => {
             <i className="fas fa-download"></i>
             <span>Download{contextMenu.type === 'folder' ? ' as ZIP' : ''}</span>
           </button>
-          <button className="context-menu-item" onClick={handleRename}>
-            <i className="fas fa-pen"></i>
-            <span>Rename</span>
-          </button>
-          <button className="context-menu-item" onClick={handleShare}>
-            <i className="fas fa-user-plus"></i>
-            <span>Share</span>
-          </button>
+          {contextCanEdit && (
+            <button className="context-menu-item" onClick={handleRename}>
+              <i className="fas fa-pen"></i>
+              <span>Rename</span>
+            </button>
+          )}
+          {contextCanManage && (
+            <button className="context-menu-item" onClick={handleShare}>
+              <i className="fas fa-user-plus"></i>
+              <span>Share</span>
+            </button>
+          )}
           <button className="context-menu-item" onClick={handleCopyLink}>
             <i className="fas fa-link"></i>
             <span>Copy link</span>
           </button>
-          <div className="context-menu-divider" style={{ height: '1px', background: '#e0e0e0', margin: '8px 0' }}></div>
-          <button className="context-menu-item" onClick={handleMove}>
-            <i className="fas fa-folder-open"></i>
-            <span>Move</span>
-          </button>
-          {currentFolder && (
-            <button className="context-menu-item" onClick={handleMoveToRoot}>
-              <i className="fas fa-home"></i>
-              <span>Move to root</span>
-            </button>
+          {contextCanEdit && (
+            <>
+              <div className="context-menu-divider" style={{ height: '1px', background: '#e0e0e0', margin: '8px 0' }}></div>
+              <button className="context-menu-item" onClick={handleMove}>
+                <i className="fas fa-folder-open"></i>
+                <span>Move</span>
+              </button>
+              {currentFolder && (
+                <button className="context-menu-item" onClick={handleMoveToRoot}>
+                  <i className="fas fa-home"></i>
+                  <span>Move to root</span>
+                </button>
+              )}
+            </>
           )}
           <button className="context-menu-item" onClick={handleShowInfo}>
             <i className="fas fa-info-circle"></i>
@@ -3305,10 +3340,12 @@ const Dashboard: React.FC = () => {
           </button>
           {contextMenu.type === 'file' && (
             <>
-              <button className="context-menu-item" onClick={handleManageVersions}>
-                <i className="fas fa-history"></i>
-                <span>Manage versions</span>
-              </button>
+              {contextCanEdit && (
+                <button className="context-menu-item" onClick={handleManageVersions}>
+                  <i className="fas fa-history"></i>
+                  <span>Manage versions</span>
+                </button>
+              )}
               <button 
                 className="context-menu-item" 
                 onClick={() => {
@@ -3322,21 +3359,25 @@ const Dashboard: React.FC = () => {
               </button>
             </>
           )}
-          <div className="context-menu-divider" style={{ height: '1px', background: '#e0e0e0', margin: '8px 0' }}></div>
-          <button 
-            className="context-menu-item context-menu-item-danger" 
-            onClick={() => {
-              if (contextMenu.type === 'file') {
-                handleDeleteFile(contextMenu.item as FileItem);
-              } else {
-                handleDeleteFolder(contextMenu.item as Folder);
-              }
-              closeContextMenu();
-            }}
-          >
-            <i className="fas fa-trash"></i>
-            <span>Move to trash</span>
-          </button>
+          {contextCanManage && (
+            <>
+              <div className="context-menu-divider" style={{ height: '1px', background: '#e0e0e0', margin: '8px 0' }}></div>
+              <button
+                className="context-menu-item context-menu-item-danger"
+                onClick={() => {
+                  if (contextMenu.type === 'file') {
+                    handleDeleteFile(contextMenu.item as FileItem);
+                  } else {
+                    handleDeleteFolder(contextMenu.item as Folder);
+                  }
+                  closeContextMenu();
+                }}
+              >
+                <i className="fas fa-trash"></i>
+                <span>Move to trash</span>
+              </button>
+            </>
+          )}
         </div>
       )}
 

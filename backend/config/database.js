@@ -1,5 +1,6 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
+const { logger } = require('../utils/logger');
 
 // Database configuration
 const dbConfig = {
@@ -30,7 +31,7 @@ const pool = mysql.createPool(dbConfig);
 pool.on('connection', (connection) => {
   connection.query('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci', (err) => {
     if (err) {
-      console.error('Failed to set charset on connection:', err);
+      logger.error('Failed to set charset on connection', { error: logger.serializeError(err) });
     }
   });
 });
@@ -39,11 +40,11 @@ pool.on('connection', (connection) => {
 const testConnection = async () => {
   try {
     const connection = await pool.getConnection();
-    console.log('✅ Database connected successfully');
+    logger.info('Database connected successfully');
     connection.release();
     return true;
   } catch (error) {
-    console.error('❌ Database connection failed:', error.message);
+    logger.error('Database connection failed', { error: logger.serializeError(error) });
     return false;
   }
 };
@@ -56,7 +57,7 @@ const executeQuery = async (query, params = []) => {
     const [results] = await pool.execute(query, params);
     return { success: true, data: results };
   } catch (error) {
-    console.error('Database query error:', error);
+    logger.error('Database query error', { error: logger.serializeError(error) });
     return { success: false, error: error.message };
   }
 };
@@ -66,7 +67,7 @@ const getConnection = async () => {
   try {
     return await pool.getConnection();
   } catch (error) {
-    console.error('Failed to get database connection:', error);
+    logger.error('Failed to get database connection', { error: logger.serializeError(error) });
     throw error;
   }
 };

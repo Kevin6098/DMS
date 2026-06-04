@@ -1,113 +1,131 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import Dashboard from '../Dashboard';
 import { AuthProvider } from '../../contexts/AuthContext';
 import { FileProvider } from '../../contexts/FileContext';
+import { authService } from '../../services/authService';
+import { fileService } from '../../services/fileService';
+import { reminderService } from '../../services/reminderService';
 
-// Mock the API services
+const testUser = {
+  id: 1,
+  email: 'test@example.com',
+  firstName: 'John',
+  lastName: 'Doe',
+  role: 'member',
+  organizationId: 1,
+  organizationName: 'Test Organization',
+  status: 'active',
+};
+
+const testFile = {
+  id: 1,
+  name: 'test-document.pdf',
+  original_name: 'test-document.pdf',
+  storage_path: 'documents/test-document.pdf',
+  file_size: 1024000,
+  file_type: 'application/pdf',
+  organization_id: 1,
+  uploaded_by: 1,
+  folder_id: undefined,
+  status: 'active',
+  created_at: '2024-01-01T00:00:00.000Z',
+  first_name: 'John',
+  last_name: 'Doe',
+  email: 'test@example.com',
+};
+
+const testFolder = {
+  id: 1,
+  name: 'Test Folder',
+  organization_id: 1,
+  created_by: 1,
+  parent_id: undefined,
+  status: 'active',
+  created_at: '2024-01-01T00:00:00.000Z',
+  file_count: 0,
+  total_size: 0,
+  first_name: 'John',
+  last_name: 'Doe',
+};
+
 jest.mock('../../services/fileService', () => ({
   fileService: {
-    getFiles: jest.fn(() => Promise.resolve({
-      success: true,
-      data: {
-        files: [
-          {
-            id: 1,
-            fileName: 'test-document.pdf',
-            fileType: 'pdf',
-            fileSize: 1024000,
-            uploadedBy: 'John Doe',
-            uploadedAt: '2024-01-01T00:00:00.000Z',
-            folderId: null,
-            organizationId: 1,
-          },
-        ],
-        pagination: {
-          page: 1,
-          limit: 10,
-          total: 1,
-          pages: 1,
-        },
-      },
-    })),
-    getFolders: jest.fn(() => Promise.resolve({
-      success: true,
-      data: [
-        {
-          id: 1,
-          folderName: 'Test Folder',
-          parentId: null,
-          organizationId: 1,
-          createdBy: 1,
-        },
-      ],
-    })),
-    getFileStats: jest.fn(() => Promise.resolve({
-      success: true,
-      data: {
-        totalFiles: 10,
-        totalSize: 10240000,
-        typeStats: [
-          { fileType: 'pdf', count: 5 },
-          { fileType: 'docx', count: 3 },
-          { fileType: 'xlsx', count: 2 },
-        ],
-        recentUploads: 5,
-      },
-    })),
-    uploadFile: jest.fn(() => Promise.resolve({
-      success: true,
-      data: { id: 2, fileName: 'uploaded-file.pdf' },
-    })),
-    deleteFile: jest.fn(() => Promise.resolve({
-      success: true,
-      message: 'File deleted successfully',
-    })),
-    createFolder: jest.fn(() => Promise.resolve({
-      success: true,
-      data: { id: 2, folderName: 'New Folder' },
-    })),
+    getFiles: jest.fn(),
+    getFolders: jest.fn(),
+    getFileStats: jest.fn(),
+    getFolder: jest.fn(),
+    getStarredItems: jest.fn(),
+    getSharedWithMe: jest.fn(),
+    getDeletedFiles: jest.fn(),
+    uploadFile: jest.fn(),
+    downloadFile: jest.fn(),
+    updateFile: jest.fn(),
+    deleteFile: jest.fn(),
+    createFolder: jest.fn(),
+    deleteFolder: jest.fn(),
+    toggleStar: jest.fn(),
+    getFileIcon: jest.fn(() => 'fas fa-file-pdf'),
+    formatFileSize: jest.fn((bytes: number) => {
+      if (bytes === 10240000) return '9.77 MB';
+      if (bytes === 1024000) return '1000 KB';
+      return '0 Bytes';
+    }),
+    isImage: jest.fn(() => false),
   },
 }));
 
 jest.mock('../../services/authService', () => ({
   authService: {
-    getAuthData: jest.fn(() => ({
-      token: 'mock-token',
-      user: {
-        id: 1,
-        email: 'test@example.com',
-        firstName: 'John',
-        lastName: 'Doe',
-        role: 'member',
-        organizationId: 1,
-        organizationName: 'Test Organization',
-      },
-    })),
+    getAuthData: jest.fn(),
     clearAuthData: jest.fn(),
-    verifyToken: jest.fn(() => Promise.resolve({ success: true })),
+    verifyToken: jest.fn(),
+    refreshToken: jest.fn(),
+    logout: jest.fn(),
   },
 }));
 
-// Mock react-router-dom
+jest.mock('../../services/reminderService', () => ({
+  reminderService: {
+    getPendingReminders: jest.fn(() => Promise.resolve({ success: true, data: [] })),
+    getTodoDocuments: jest.fn(() => Promise.resolve({
+      success: true,
+      data: {
+        data: [],
+        summary: { overdue: 0, today: 0, upcoming: 0, total: 0 },
+        pagination: { page: 1, limit: 50, total: 0, pages: 0 },
+      },
+    })),
+    completeReminder: jest.fn(() => Promise.resolve({ success: true })),
+    dismissReminder: jest.fn(() => Promise.resolve({ success: true })),
+    isOverdue: jest.fn(() => false),
+    isDueToday: jest.fn(() => false),
+    formatReminderTime: jest.fn(() => 'Today'),
+  },
+}));
+
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
 }));
 
-// Mock react-hot-toast
-jest.mock('react-hot-toast', () => ({
-  toast: {
+jest.mock('react-hot-toast', () => {
+  const toastMock = {
     success: jest.fn(),
     error: jest.fn(),
     promise: jest.fn((promise) => promise),
-  },
-}));
+  };
 
-// Test wrapper component
+  return {
+    __esModule: true,
+    default: toastMock,
+    toast: toastMock,
+  };
+});
+
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <BrowserRouter>
     <AuthProvider>
@@ -118,115 +136,138 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </BrowserRouter>
 );
 
+const renderDashboard = () => {
+  window.history.pushState({}, '', '/dashboard/my-drive');
+  return render(
+    <TestWrapper>
+      <Dashboard />
+    </TestWrapper>
+  );
+};
+
 describe('Dashboard Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    (authService.getAuthData as jest.Mock).mockReturnValue({
+      token: 'mock-token',
+      user: testUser,
+      refreshToken: 'mock-refresh-token',
+    });
+    (authService.verifyToken as jest.Mock).mockResolvedValue({ success: true, data: { user: testUser } });
+    (authService.logout as jest.Mock).mockResolvedValue({ success: true });
+
+    (fileService.getFiles as jest.Mock).mockResolvedValue({
+      success: true,
+      data: {
+        files: [testFile],
+        pagination: { page: 1, limit: 10, total: 1, pages: 1 },
+      },
+    });
+    (fileService.getFolders as jest.Mock).mockResolvedValue({ success: true, data: [testFolder] });
+    (fileService.getFileStats as jest.Mock).mockResolvedValue({
+      success: true,
+      data: {
+        totalFiles: 10,
+        totalSize: 10240000,
+        typeStats: [
+          { type: 'application/pdf', count: 5, total_size: 5120000, avg_size: 1024000 },
+        ],
+        recentUploads: 5,
+      },
+    });
+    (fileService.getFolder as jest.Mock).mockResolvedValue({ success: true, data: testFolder });
+    (fileService.getStarredItems as jest.Mock).mockResolvedValue({ success: true, data: { files: [], folders: [] } });
+    (fileService.getSharedWithMe as jest.Mock).mockResolvedValue({
+      success: true,
+      data: { files: [], pagination: { page: 1, limit: 50, total: 0, pages: 0 } },
+    });
+    (fileService.getDeletedFiles as jest.Mock).mockResolvedValue({
+      success: true,
+      data: { files: [], pagination: { page: 1, limit: 10, total: 0, pages: 0 } },
+    });
+    (fileService.getFileIcon as jest.Mock).mockReturnValue('fas fa-file-pdf');
+    (fileService.formatFileSize as jest.Mock).mockImplementation((bytes: number) => {
+      if (bytes === 10240000) return '9.77 MB';
+      if (bytes === 1024000) return '1000 KB';
+      return '0 Bytes';
+    });
+    (fileService.isImage as jest.Mock).mockReturnValue(false);
+    (fileService.createFolder as jest.Mock).mockResolvedValue({
+      success: true,
+      data: { folderId: 2, name: 'New Folder' },
+    });
+
+    (reminderService.getPendingReminders as jest.Mock).mockResolvedValue({ success: true, data: [] });
+    (reminderService.getTodoDocuments as jest.Mock).mockResolvedValue({
+      success: true,
+      data: {
+        data: [],
+        summary: { overdue: 0, today: 0, upcoming: 0, total: 0 },
+        pagination: { page: 1, limit: 50, total: 0, pages: 0 },
+      },
+    });
+    (reminderService.isOverdue as jest.Mock).mockReturnValue(false);
+    (reminderService.isDueToday as jest.Mock).mockReturnValue(false);
+    (reminderService.formatReminderTime as jest.Mock).mockReturnValue('Today');
   });
 
-  it('renders dashboard with user information', async () => {
-    render(
-      <TestWrapper>
-        <Dashboard />
-      </TestWrapper>
-    );
+  it('renders dashboard with user initials', async () => {
+    renderDashboard();
 
-    await waitFor(() => {
-      expect(screen.getByText('John Doe')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('JD')).toBeInTheDocument();
   });
 
   it('loads and displays files', async () => {
-    render(
-      <TestWrapper>
-        <Dashboard />
-      </TestWrapper>
-    );
+    renderDashboard();
 
-    await waitFor(() => {
-      expect(screen.getByText('test-document.pdf')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('test-document.pdf')).toBeInTheDocument();
   });
 
   it('loads and displays folders', async () => {
-    render(
-      <TestWrapper>
-        <Dashboard />
-      </TestWrapper>
-    );
+    renderDashboard();
 
-    await waitFor(() => {
-      expect(screen.getByText('Test Folder')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Test Folder')).toBeInTheDocument();
   });
 
   it('displays file statistics', async () => {
-    render(
-      <TestWrapper>
-        <Dashboard />
-      </TestWrapper>
-    );
+    renderDashboard();
 
     await waitFor(() => {
-      expect(screen.getByText('10')).toBeInTheDocument(); // Total files
+      expect(fileService.getFileStats).toHaveBeenCalledWith(1);
     });
+    expect(await screen.findByText(/9\.77 MB of 5 GB/i)).toBeInTheDocument();
   });
 
-  it('opens file upload modal when clicking upload button', async () => {
+  it('opens file upload modal from the new menu', async () => {
     const user = userEvent.setup();
+    renderDashboard();
 
-    render(
-      <TestWrapper>
-        <Dashboard />
-      </TestWrapper>
-    );
+    await screen.findByText('test-document.pdf');
+    await user.click(screen.getByRole('button', { name: /new/i }));
+    await user.click(screen.getByText('File upload'));
 
-    await waitFor(() => {
-      expect(screen.getByText('test-document.pdf')).toBeInTheDocument();
-    });
-
-    const uploadButton = screen.getByRole('button', { name: /upload file/i });
-    await user.click(uploadButton);
-
-    await waitFor(() => {
-      expect(screen.getByText('Upload File')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Upload Files')).toBeInTheDocument();
   });
 
-  it('opens create folder modal when clicking new folder button', async () => {
+  it('opens create folder modal from the new menu', async () => {
     const user = userEvent.setup();
+    renderDashboard();
 
-    render(
-      <TestWrapper>
-        <Dashboard />
-      </TestWrapper>
-    );
+    await screen.findByText('test-document.pdf');
+    await user.click(screen.getByRole('button', { name: /new/i }));
+    await user.click(screen.getByText('Folder'));
 
-    await waitFor(() => {
-      expect(screen.getByText('test-document.pdf')).toBeInTheDocument();
-    });
-
-    const newFolderButton = screen.getByRole('button', { name: /new folder/i });
-    await user.click(newFolderButton);
-
-    await waitFor(() => {
-      expect(screen.getByText('Create New Folder')).toBeInTheDocument();
-    });
+    expect(await screen.findByRole('heading', { name: 'Create Folder' })).toBeInTheDocument();
   });
 
   it('handles file search', async () => {
     const user = userEvent.setup();
+    renderDashboard();
 
-    render(
-      <TestWrapper>
-        <Dashboard />
-      </TestWrapper>
-    );
+    await screen.findByText('test-document.pdf');
 
-    await waitFor(() => {
-      expect(screen.getByText('test-document.pdf')).toBeInTheDocument();
-    });
-
-    const searchInput = screen.getByPlaceholderText(/search files/i);
+    const searchInput = screen.getByPlaceholderText(/search files and folders/i);
     await user.type(searchInput, 'test');
 
     expect(searchInput).toHaveValue('test');
@@ -234,49 +275,14 @@ describe('Dashboard Component', () => {
 
   it('handles user logout', async () => {
     const user = userEvent.setup();
+    renderDashboard();
 
-    render(
-      <TestWrapper>
-        <Dashboard />
-      </TestWrapper>
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('John Doe')).toBeInTheDocument();
-    });
-
-    // Click user menu
-    const userMenu = screen.getByText('JD'); // User initials
-    await user.click(userMenu);
-
-    // Click sign out
-    const signOutButton = screen.getByText('Sign Out');
-    await user.click(signOutButton);
+    await screen.findByText('JD');
+    await user.click(screen.getByText('JD'));
+    await user.click(within(screen.getByText('test@example.com').closest('.user-dropdown') as HTMLElement).getByText('Logout'));
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/login');
     });
   });
-
-  it('switches between grid and list view', async () => {
-    const user = userEvent.setup();
-
-    render(
-      <TestWrapper>
-        <Dashboard />
-      </TestWrapper>
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('test-document.pdf')).toBeInTheDocument();
-    });
-
-    // Find view toggle button (if it exists)
-    const viewToggle = screen.queryByRole('button', { name: /list view/i });
-    if (viewToggle) {
-      await user.click(viewToggle);
-      expect(screen.getByRole('button', { name: /grid view/i })).toBeInTheDocument();
-    }
-  });
 });
-

@@ -33,12 +33,6 @@ const AdminPanel: React.FC = () => {
   
   const [isLoading, setIsLoading] = useState(true);
   
-  // Debug: Log when modal state changes
-  useEffect(() => {
-    if (showAddOrgModal) {
-      console.log('Add Organization Modal should be visible');
-    }
-  }, [showAddOrgModal]);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -96,7 +90,6 @@ const AdminPanel: React.FC = () => {
       if (orgsRes.success && orgsRes.data) {
         const orgsData = orgsRes.data.data || [];
         setOrganizations(Array.isArray(orgsData) ? orgsData : []);
-        console.log('Organizations loaded:', orgsData.length);
       } else {
         console.error('Organizations error:', orgsRes);
         setOrganizations([]);
@@ -123,7 +116,6 @@ const AdminPanel: React.FC = () => {
       if (response.success && response.data) {
         const logsData = response.data.data || [];
         setAuditLogs(Array.isArray(logsData) ? logsData : []);
-        console.log('Audit logs loaded:', logsData.length);
       } else {
         console.error('Audit logs error:', response);
         setAuditLogs([]);
@@ -705,7 +697,6 @@ const AdminPanel: React.FC = () => {
                   <div className="section-header">
                     <h2>Organizations & Invitations</h2>
                     <button className="btn-primary" onClick={() => {
-                      console.log('Add Organization button clicked');
                       setShowAddOrgModal(true);
                     }}>
                       <i className="fas fa-plus"></i> Add Organization

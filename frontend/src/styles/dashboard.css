@@ -950,6 +950,20 @@
   color: #6c757d;
 }
 
+.permission-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid #d0d7de;
+  border-radius: 999px;
+  color: #495057;
+  background: #f8f9fa;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  text-transform: capitalize;
+}
+
 .file-actions {
   position: absolute;
   top: 0.5rem;

@@ -3,22 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@testing-library/dom": "^10.4.1",
-    "@types/jest": "^27.5.2",
-    "@types/node": "^16.18.126",
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.2",
-    "axios": "^1.12.2",
+    "axios": "^1.17.0",
     "lucide-react": "^0.546.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-hook-form": "^7.65.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-hook-form": "^7.77.0",
     "react-hot-toast": "^2.6.0",
     "react-modal": "^3.16.3",
-    "react-router-dom": "^7.9.4",
-    "react-scripts": "5.0.1",
-    "styled-components": "^6.1.19",
-    "typescript": "^4.9.5",
+    "react-router-dom": "^7.16.0",
+    "styled-components": "^6.4.2",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -54,9 +47,16 @@
     ]
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.0",
+    "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
-    "jest-environment-jsdom": "^30.2.0"
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.18.126",
+    "@types/react": "^19.2.16",
+    "@types/react-dom": "^19.2.3",
+    "jest-environment-jsdom": "^30.4.1",
+    "react-scripts": "5.0.1",
+    "typescript": "^4.9.5"
   }
 }

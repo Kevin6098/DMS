@@ -29,6 +29,10 @@ export interface FileItem {
   folder_name?: string;
   organization_name?: string;
   is_starred?: boolean;
+  permission_level?: 'view' | 'comment' | 'edit';
+  shared_at?: string;
+  shared_by_first_name?: string;
+  shared_by_last_name?: string;
 }
 
 export interface FileUploadRequest {

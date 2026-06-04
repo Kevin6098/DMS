@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService, User } from '../services/authService';
 import toast from 'react-hot-toast';
+import { clientLogger } from '../utils/logger';
 
 // Auth Context Types
 interface AuthContextType {
@@ -49,7 +50,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (storedToken && storedUser) {
           // In offline mode, use stored data without verification
           if (process.env.REACT_APP_OFFLINE_MODE === 'true') {
-            console.log('Offline mode: Using stored auth data');
+            clientLogger.debug('Offline mode: using stored auth data');
             setToken(storedToken);
             setUser(storedUser);
             setIsLoading(false);
@@ -64,7 +65,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 setUser(response.data.user);
               } else {
                 // Token is invalid, clear auth data
-              console.log('Token verification failed, clearing auth data');
+              clientLogger.debug('Token verification failed, clearing auth data');
                 authService.clearAuthData();
               setToken(null);
               setUser(null);

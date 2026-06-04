@@ -14,6 +14,13 @@ const {
 } = require('../middleware/auth');
 const { validateFileUpload, validateFileUpdate, validateFolder, validatePagination, validateSearch } = require('../middleware/validation');
 const { formatDate } = require('../utils/helpers');
+const { logger, redactSensitive } = require('../utils/logger');
+const {
+  getAllowedExtensions,
+  getOrganizationUploadPolicy,
+  runMalwareScan,
+  validateUploadedFile
+} = require('../utils/fileSecurity');
 
 // Normalize date to MySQL datetime (YYYY-MM-DD HH:mm:ss). Handles ISO strings from frontend.
 const toMysqlDatetime = (value) => {
@@ -40,7 +47,7 @@ const decodeFilename = (filename) => {
     return filename;
   } catch (error) {
     // If decoding fails, return original
-    console.warn('Failed to decode filename:', filename, error);
+    logger.warn('Failed to decode filename', { filename, error: logger.serializeError(error) });
     return filename;
   }
 };
@@ -52,27 +59,6 @@ const sanitizeFileRecord = (file) => {
 };
 
 const sanitizeFileRecords = (files = []) => files.map(sanitizeFileRecord);
-
-const redactSensitive = (value) => {
-  if (!value || typeof value !== 'object') {
-    return value;
-  }
-
-  const sensitiveKeys = new Set([
-    'authorization',
-    'password',
-    'password_hash',
-    'passwordhash',
-    'token',
-    'refreshtoken',
-    'refresh_token'
-  ]);
-
-  return Object.entries(value).reduce((redacted, [key, fieldValue]) => {
-    redacted[key] = sensitiveKeys.has(key.toLowerCase()) ? '[REDACTED]' : fieldValue;
-    return redacted;
-  }, {});
-};
 
 const router = express.Router();
 
@@ -91,7 +77,7 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = (process.env.ALLOWED_FILE_TYPES || 'pdf,doc,docx,txt,jpg,jpeg,png,gif,mp4,avi,mov').split(',');
+  const allowedTypes = getAllowedExtensions();
   // Decode filename to handle URL-encoded characters
   const decodedName = decodeFilename(file.originalname);
   const fileExtension = path.extname(decodedName).toLowerCase().substring(1);
@@ -116,7 +102,7 @@ const upload = multer({
 // Get all files
 router.get('/', verifyToken, validatePagination, validateSearch, async (req, res) => {
   try {
-    console.log('📁 [FILES] Get files request received', {
+    logger.debug('Files list request received', {
       user: req.user.email,
       role: req.user.role,
       organizationId: req.user.organization_id,
@@ -190,9 +176,8 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       LIMIT ${limitNum} OFFSET ${offset}
     `;
 
-    console.log('📁 [FILES] Executing query with params:', {
+    logger.debug('Files list query prepared', {
       userId: req.user.id,
-      queryParams,
       limitNum,
       offset,
       totalParams: [req.user.id, ...queryParams].length
@@ -200,7 +185,7 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
     
     const filesResult = await executeQuery(filesQuery, [req.user.id, ...queryParams]);
     
-    console.log('📁 [FILES] Files query result:', {
+    logger.debug('Files list query completed', {
       success: filesResult.success,
       error: filesResult.error,
       dataLength: filesResult.data?.length || 0
@@ -215,18 +200,19 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
 
     const countResult = await executeQuery(countQuery, queryParams);
     
-    console.log('📁 [FILES] Count query result:', {
+    logger.debug('Files count query completed', {
       success: countResult.success,
       error: countResult.error,
       total: countResult.data?.[0]?.total
     });
 
     if (!filesResult.success || !countResult.success) {
-      console.error('📁 [FILES] Query failed:', {
+      logger.error('Files query failed', {
         filesResult: filesResult.error || 'Unknown error',
         countResult: countResult.error || 'Unknown error',
-        query: filesQuery,
-        params: [...queryParams, limitNum, offset]
+        page: pageNum,
+        limit: limitNum,
+        offset
       });
       return res.status(500).json({
         success: false,
@@ -248,14 +234,7 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
       }
     });
   } catch (error) {
-    console.error('❌ [FILES] Get files error:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name,
-      code: error.code,
-      sqlState: error.sqlState,
-      sqlMessage: error.sqlMessage
-    });
+    logger.error('Get files error', { error: logger.serializeError(error) });
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -266,11 +245,11 @@ router.get('/', verifyToken, validatePagination, validateSearch, async (req, res
 
 // Test upload endpoint (for debugging)
 router.post('/upload/test', verifyToken, (req, res) => {
-  console.log('📤 [UPLOAD TEST] Request received:', {
+  logger.debug('Upload test request received', {
     headers: redactSensitive(req.headers),
     body: redactSensitive(req.body),
-    files: req.files,
-    file: req.file
+    hasFiles: !!req.files,
+    hasFile: !!req.file
   });
   res.json({
     success: true,
@@ -282,7 +261,7 @@ router.post('/upload/test', verifyToken, (req, res) => {
 
 // Upload file
 router.post('/upload', verifyToken, (req, res, next) => {
-  console.log('📤 [UPLOAD] Multer middleware starting:', {
+  logger.debug('Upload middleware starting', {
     contentType: req.headers['content-type'],
     contentLength: req.headers['content-length'],
     hasBody: !!req.body,
@@ -297,12 +276,12 @@ router.post('/upload', verifyToken, (req, res, next) => {
   
   upload.single('file')(req, res, (err) => {
     if (err) {
-      console.error('📤 [UPLOAD] Multer error:', {
+      logger.error('Multer upload error', {
         code: err.code,
         message: err.message,
         field: err.field,
         name: err.name,
-        stack: err.stack
+        stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
       });
       
       // Handle multer errors
@@ -337,9 +316,8 @@ router.post('/upload', verifyToken, (req, res, next) => {
         code: err.code || 'UPLOAD_ERROR'
       });
     }
-    console.log('📤 [UPLOAD] Multer processed successfully:', {
+    logger.debug('Multer processed upload successfully', {
       hasFile: !!req.file,
-      fileName: req.file?.originalname,
       fileSize: req.file?.size,
       fieldname: req.file?.fieldname,
       mimetype: req.file?.mimetype
@@ -348,10 +326,9 @@ router.post('/upload', verifyToken, (req, res, next) => {
   });
 }, validateFileUpload, async (req, res) => {
   try {
-    console.log('📤 [UPLOAD] Upload handler reached:', {
+    logger.debug('Upload handler reached', {
       hasFile: !!req.file,
       fileSize: req.file?.size,
-      fileName: req.file?.originalname,
       contentType: req.file?.mimetype,
       fieldname: req.file?.fieldname,
       body: redactSensitive(req.body),
@@ -363,7 +340,7 @@ router.post('/upload', verifyToken, (req, res, next) => {
     });
 
     if (!req.file) {
-      console.error('📤 [UPLOAD] No file in request');
+      logger.warn('Upload request missing file');
       return res.status(400).json({
         success: false,
         message: 'No file uploaded. Please select a file to upload.'
@@ -372,6 +349,25 @@ router.post('/upload', verifyToken, (req, res, next) => {
 
     const { name, description, folderId } = req.body;
     const file = req.file;
+
+    const uploadPolicy = await getOrganizationUploadPolicy(req.user.organization_id);
+    const validationResult = validateUploadedFile(file, uploadPolicy);
+    if (!validationResult.success) {
+      await fs.unlink(file.path);
+      return res.status(400).json({
+        success: false,
+        message: validationResult.message
+      });
+    }
+
+    const malwareScanResult = await runMalwareScan(file.path, uploadPolicy);
+    if (!malwareScanResult.success) {
+      await fs.unlink(file.path);
+      return res.status(400).json({
+        success: false,
+        message: malwareScanResult.message
+      });
+    }
 
     // Check organization storage quota
     const orgResult = await executeQuery(
@@ -558,12 +554,12 @@ router.post('/upload', verifyToken, (req, res, next) => {
       }
     });
   } catch (error) {
-    console.error('Upload file error:', error);
+    logger.error('Upload file error', { error: logger.serializeError(error) });
     if (req.file) {
       try {
         await fs.unlink(req.file.path);
       } catch (unlinkError) {
-        console.error('Failed to delete uploaded file:', unlinkError);
+        logger.error('Failed to delete uploaded file after failed upload', { error: logger.serializeError(unlinkError) });
       }
     }
     res.status(500).json({
@@ -945,7 +941,7 @@ router.get('/:fileId/download', verifyToken, requireFileAccess, async (req, res)
     try {
       await fs.access(req.file.path);
     } catch (error) {
-      console.error('File not found at path:', req.file.path, error);
+      logger.warn('Download file missing on disk', { fileId, error: logger.serializeError(error) });
       return res.status(404).json({
         success: false,
         message: 'File not found on disk'
@@ -960,7 +956,7 @@ router.get('/:fileId/download', verifyToken, requireFileAccess, async (req, res)
 
     res.download(req.file.path, req.file.name);
   } catch (error) {
-    console.error('Download file error:', error);
+    logger.error('Download file error', { fileId: req.params.fileId, error: logger.serializeError(error) });
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -984,7 +980,7 @@ router.get('/:fileId/preview', verifyToken, requireFileAccess, async (req, res) 
     try {
       await fs.access(req.file.path);
     } catch (error) {
-      console.error('File not found at path:', req.file.path, error);
+      logger.warn('Preview file missing on disk', { fileId, error: logger.serializeError(error) });
       return res.status(404).json({
         success: false,
         message: 'File not found on disk'
@@ -1007,7 +1003,7 @@ router.get('/:fileId/preview', verifyToken, requireFileAccess, async (req, res) 
     fileStream.pipe(res);
 
     fileStream.on('error', (error) => {
-      console.error('File stream error:', error);
+      logger.error('Preview file stream error', { fileId, error: logger.serializeError(error) });
       if (!res.headersSent) {
         res.status(500).json({
           success: false,
@@ -1016,7 +1012,7 @@ router.get('/:fileId/preview', verifyToken, requireFileAccess, async (req, res) 
       }
     });
   } catch (error) {
-    console.error('Preview file error:', error);
+    logger.error('Preview file error', { fileId: req.params.fileId, error: logger.serializeError(error) });
     if (!res.headersSent) {
       res.status(500).json({
         success: false,
@@ -2097,11 +2093,8 @@ router.get('/folders/:folderId', verifyToken, async (req, res) => {
 // Create folder
 router.post('/folders', verifyToken, validateFolder, async (req, res) => {
   try {
-    const redactedBody = redactSensitive(req.body);
-    console.log('📁 [FOLDERS] Create folder request:', {
-      body: redactedBody,
+    logger.debug('Create folder request received', {
       bodyType: typeof req.body,
-      bodyString: JSON.stringify(redactedBody),
       user: req.user.email,
       organizationId: req.user.organization_id,
       contentType: req.headers['content-type']
@@ -2109,7 +2102,10 @@ router.post('/folders', verifyToken, validateFolder, async (req, res) => {
     
     // Check if body is empty or malformed
     if (!req.body || Object.keys(req.body).length === 0) {
-      console.error('📁 [FOLDERS] Empty or missing request body');
+      logger.warn('Create folder request missing body', {
+        userId: req.user.id,
+        organizationId: req.user.organization_id
+      });
       return res.status(400).json({
         success: false,
         message: 'Request body is empty or missing. Please send a valid JSON body with name field.'
@@ -2171,12 +2167,11 @@ router.post('/folders', verifyToken, validateFolder, async (req, res) => {
     }
 
     // Create folder
-    console.log('📁 [FOLDERS] Creating folder with params:', {
-      name,
-      description,
+    logger.debug('Creating folder', {
       organizationId: req.user.organization_id,
       createdBy: req.user.id,
-      parentId: parentId || null
+      parentId: parentId || null,
+      hasDescription: !!description
     });
     
     const folderResult = await executeQuery(
@@ -2185,7 +2180,11 @@ router.post('/folders', verifyToken, validateFolder, async (req, res) => {
     );
 
     if (!folderResult.success) {
-      console.error('📁 [FOLDERS] Failed to create folder:', folderResult.error);
+      logger.error('Failed to create folder', {
+        error: folderResult.error,
+        organizationId: req.user.organization_id,
+        parentId: parentId || null
+      });
       return res.status(500).json({
         success: false,
         message: 'Failed to create folder',
@@ -2210,7 +2209,7 @@ router.post('/folders', verifyToken, validateFolder, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Create folder error:', error);
+    logger.error('Create folder error', { error: logger.serializeError(error) });
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -2703,7 +2702,11 @@ router.get('/folders/:folderId/download', verifyToken, async (req, res) => {
         await fs.access(filePath);
         archive.file(filePath, { name: file.zipPath });
       } catch (err) {
-        console.warn(`File not found on disk: ${filePath}, skipping...`);
+        logger.warn('Folder download skipped missing file on disk', {
+          folderId,
+          fileId: file.id,
+          error: logger.serializeError(err)
+        });
       }
     }
 
@@ -2717,7 +2720,7 @@ router.get('/folders/:folderId/download', verifyToken, async (req, res) => {
     );
 
   } catch (error) {
-    console.error('Download folder error:', error);
+    logger.error('Download folder error', { folderId: req.params.folderId, error: logger.serializeError(error) });
     if (!res.headersSent) {
       res.status(500).json({
         success: false,

@@ -16,7 +16,6 @@ beforeAll(async () => {
 // Global test teardown
 afterAll(async () => {
   // Clean up any global resources
-  console.log('✅ Tests completed');
 });
 
 // Increase timeout for database operations

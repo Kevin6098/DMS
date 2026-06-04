@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import toast from 'react-hot-toast';
+import { clientLogger } from '../utils/logger';
 
 // API Configuration
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
@@ -32,22 +33,18 @@ api.interceptors.request.use(
     
     // Log and validate folder requests for debugging without exposing auth payloads.
     if (config.url?.includes('/folders')) {
-      console.log('📤 [API REQUEST INTERCEPTOR]', {
+      clientLogger.debug('API folder request', {
         url: config.url,
         method: config.method,
-        data: config.data,
         dataType: typeof config.data,
         isObject: typeof config.data === 'object' && config.data !== null,
         isFormData: config.data instanceof FormData,
         contentType: config.headers['Content-Type'],
-        dataString: typeof config.data === 'object' && !(config.data instanceof FormData) 
-          ? JSON.stringify(config.data) 
-          : config.data
       });
       
       // Prevent "[object Object]" string from being sent
       if (config.data && typeof config.data === 'string' && config.data === '[object Object]') {
-        console.error('❌ [API REQUEST] Detected "[object Object]" string! This should not happen.');
+        clientLogger.error('API request data was incorrectly stringified');
         throw new Error('Data was incorrectly converted to "[object Object]" string');
       }
     }
@@ -134,11 +131,11 @@ api.interceptors.response.use(
       // Show a clear message so users don't only see the browser's vague "Network Error"
       if (!error.config?.url?.includes('/auth/verify')) {
         toast.error('Cannot reach server. Check your connection or try again later.');
-        console.warn('Request failed (no response). Backend may be down or unreachable.', error.config?.url);
+        clientLogger.warn('Request failed without response', { url: error.config?.url });
       }
     } else {
       // Other error
-      console.error('An unexpected error occurred:', error);
+      clientLogger.error('Unexpected API error', error);
     }
     
     return Promise.reject(error);
@@ -178,7 +175,7 @@ export const apiService = {
   // GET request
   get: async <T>(url: string, params?: any): Promise<ApiResponse<T>> => {
     if (OFFLINE_MODE) {
-      console.warn('Offline mode: API call blocked', url);
+      clientLogger.warn('Offline mode: API call blocked', { url });
       return { success: false, message: 'Offline mode - backend not available' };
     }
     const response = await api.get(url, { params });
@@ -188,19 +185,17 @@ export const apiService = {
   // POST request
   post: async <T>(url: string, data?: any): Promise<ApiResponse<T>> => {
     if (OFFLINE_MODE) {
-      console.warn('Offline mode: API call blocked', url);
+      clientLogger.warn('Offline mode: API call blocked', { url });
       return { success: false, message: 'Offline mode - backend not available' };
     }
     
     // Log folder requests for debugging without exposing auth payloads.
     if (url.includes('/folders')) {
-      console.log('📤 [API POST] Request details:', {
+      clientLogger.debug('API folder POST request', {
         url,
-        data,
         dataType: typeof data,
         isObject: typeof data === 'object' && data !== null,
         isFormData: data instanceof FormData,
-        stringified: typeof data === 'object' ? JSON.stringify(data) : data
       });
     }
     
@@ -208,7 +203,7 @@ export const apiService = {
     // For JSON requests (non-FormData), ensure it's an object
     let requestData = data;
     if (data && typeof data === 'string' && data === '[object Object]') {
-      console.error('❌ [API POST] Detected "[object Object]" string - this should not happen!');
+      clientLogger.error('API POST data was incorrectly stringified');
       throw new Error('Invalid data format: object was converted to "[object Object]" string');
     }
     
@@ -229,7 +224,7 @@ export const apiService = {
   // PUT request
   put: async <T>(url: string, data?: any): Promise<ApiResponse<T>> => {
     if (OFFLINE_MODE) {
-      console.warn('Offline mode: API call blocked', url);
+      clientLogger.warn('Offline mode: API call blocked', { url });
       return { success: false, message: 'Offline mode - backend not available' };
     }
     const response = await api.put(url, data);
@@ -239,7 +234,7 @@ export const apiService = {
   // DELETE request
   delete: async <T>(url: string): Promise<ApiResponse<T>> => {
     if (OFFLINE_MODE) {
-      console.warn('Offline mode: API call blocked', url);
+      clientLogger.warn('Offline mode: API call blocked', { url });
       return { success: false, message: 'Offline mode - backend not available' };
     }
     const response = await api.delete(url);
@@ -249,7 +244,7 @@ export const apiService = {
   // PATCH request
   patch: async <T>(url: string, data?: any): Promise<ApiResponse<T>> => {
     if (OFFLINE_MODE) {
-      console.warn('Offline mode: API call blocked', url);
+      clientLogger.warn('Offline mode: API call blocked', { url });
       return { success: false, message: 'Offline mode - backend not available' };
     }
     const response = await api.patch(url, data);
@@ -259,15 +254,14 @@ export const apiService = {
   // File upload
   upload: async <T>(url: string, formData: FormData, onProgress?: (progress: number) => void): Promise<ApiResponse<T>> => {
     if (OFFLINE_MODE) {
-      console.warn('Offline mode: API call blocked', url);
+      clientLogger.warn('Offline mode: API call blocked', { url });
       return { success: false, message: 'Offline mode - backend not available' };
     }
     // For large file uploads, use a much longer timeout (2 hours = 7200000ms)
     // This allows for 2GB+ files even on slow connections
     const uploadTimeout = parseInt(process.env.REACT_APP_UPLOAD_TIMEOUT || '7200000'); // 2 hours default
     
-    // Log FormData contents for debugging
-    console.log('📤 [UPLOAD] Sending file upload:', {
+    clientLogger.debug('Sending file upload', {
       url,
       formDataKeys: Array.from(formData.keys()),
       hasFile: formData.has('file'),
@@ -293,7 +287,7 @@ export const apiService = {
   // File download
   download: async (url: string, filename?: string): Promise<void> => {
     if (OFFLINE_MODE) {
-      console.warn('Offline mode: API call blocked', url);
+      clientLogger.warn('Offline mode: API call blocked', { url });
       return;
     }
     const response = await api.get(url, {
